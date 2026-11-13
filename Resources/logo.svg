@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 701 167" role="img" aria-labelledby="title">
+  <title id="title">Dusk</title>
+  <defs>
+    <linearGradient id="dusk" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d2b84f"/>
+      <stop offset="0.55" stop-color="#d2b84f"/>
+      <stop offset="1" stop-color="#c78356"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#dusk)" d="M18 20h106c49 0 79 24 79 63s-30 64-79 64H18V20zm48 36v55h54c22 0 34-10 34-28 0-17-12-27-34-27H66zm169-36h47v73c0 15 10 23 31 23s31-8 31-23V20h47v77c0 35-27 54-78 54s-78-19-78-54V20zm194 0h139v35h-92c-9 0-13 3-13 9 0 5 4 8 13 9l49 5c34 4 51 15 51 34 0 24-21 35-63 35H429v-35h97c8 0 12-3 12-9 0-5-4-8-12-9l-51-5c-33-4-50-15-50-34 0-23 21-35 64-35zm179 0h47v45l42-45h58l-57 61 61 66h-61l-43-49v49h-47V20z" transform="translate(-24 0) scale(.96 1)"/>
+  <path d="M20 155h661" fill="none" stroke="#d2b84f" stroke-width="4" stroke-linecap="round"/>
+</svg>
