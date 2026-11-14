@@ -1,5 +1,16 @@
 # Dusk Changelog
 
+## 0.18.0 — Internal Distortion Placement — 13 November 2026
+
+- Enabled the existing per-filter `Internal` distortion Placement for all three implemented filter Architectures and removed the former unavailable label and disabled menu item.
+- Inserted the selected distortion into the Clean SVF's bounded Designer Feedback return, the Ladder's stored resonance-feedback component before its protected delay-free solve, and the OTA's damped bounded resonance return.
+- Kept the Ladder's arbitrary selectable distortion outside its numerical iteration, so stateful and discontinuous models cannot invalidate the derivative used by the nonlinear feedback solver.
+- Added independent distortion memory banks for the external Pre/Post path and for each Architecture's Internal path, preventing stateful distortion history from leaking between unrelated signal positions or Architectures.
+- Retained the existing Drive, Dist Type and Placement parameter IDs, ranges, defaults and automation mappings; no new parameter or preset-state migration is required.
+- Replaced the development-status README with a user manual covering installation, signal routing, every FILTER and DESIGNER control, Architectures, Models, distortion Placement, sequencer operation, portable files and source building.
+- Preserved the repository badges and added `Resources/Dusk.jpg` so the manual's interface image resolves when the source is uploaded.
+- Kept state schema version 17 because this stage changes DSP routing, interface availability and documentation without adding or changing stored parameters.
+
 ## 0.17.1 — Designer Character Revoicing — 13 November 2026
 
 - Revoiced the existing Designer DSP ranges after extreme settings proved too subtle in listening tests; no parameter IDs, displayed ranges, defaults, model format, sequencer targets or state schema changed.

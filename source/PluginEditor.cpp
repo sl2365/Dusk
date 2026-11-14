@@ -3601,7 +3601,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addMouseListener(this, true);
     content.setInterceptsMouseClicks(false, true);
 
-    versionLabel.setText("v0.17.1", juce::dontSendNotification);
+    versionLabel.setText("v0.18.0", juce::dontSendNotification);
     versionLabel.setJustificationType(juce::Justification::centredLeft);
     versionLabel.setColour(juce::Label::textColourId, knobIndicatorColour);
     versionLabel.setFont(juce::Font(juce::FontOptions(8.5f,
@@ -3937,9 +3937,9 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     filter1DistortionTypeBox.addItemList(distortionTypeNames, 1);
     filter2DistortionTypeBox.addItemList(distortionTypeNames, 1);
     filter1DistortionPlacementBox.addItemList(
-        { "Pre", "Internal (N/A)", "Post" }, 1);
+        { "Pre", "Internal", "Post" }, 1);
     filter2DistortionPlacementBox.addItemList(
-        { "Pre", "Internal (N/A)", "Post" }, 1);
+        { "Pre", "Internal", "Post" }, 1);
     configureCombo(routingBox, routingLabel, "Routing",
         "Choose Filter 1 only, Filter 2 only, serial Filter 1 into Filter 2, or parallel processing.");
     configureCombo(filter1ArchitectureBox, filter1ArchitectureLabel,
@@ -3958,17 +3958,14 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
         "Dist Type", "Choose Filter 2's independent distortion model.");
     configureCombo(filter1DistortionPlacementBox,
         filter1DistortionPlacementLabel, "Placement",
-        "Place Filter 1 distortion before or after its filter core. Internal remains reserved for a later stage that explicitly inserts the selected distortion model into the bounded feedback return.");
+        "Place Filter 1 distortion before its input, inside its feedback path, or after its output.");
     configureCombo(filter2DistortionPlacementBox,
         filter2DistortionPlacementLabel, "Placement",
-        "Place Filter 2 distortion before or after its filter core. Internal remains reserved for a later stage that explicitly inserts the selected distortion model into the bounded feedback return.");
+        "Place Filter 2 distortion before its input, inside its feedback path, or after its output.");
     configureCombo(filter1ModelBox, filter1ModelLabel, "Model",
         "Recall a Factory or User configuration of Filter 1's Architecture and Designer controls. Standard FILTER controls and Filter 2 remain unchanged.");
     configureCombo(filter2ModelBox, filter2ModelLabel, "Model",
         "Recall a Factory or User configuration of Filter 2's Architecture and Designer controls. Standard FILTER controls and Filter 1 remain unchanged.");
-    filter1DistortionPlacementBox.setItemEnabled(2, false);
-    filter2DistortionPlacementBox.setItemEnabled(2, false);
-
     const auto configureModelMenuButton = [this](
         juce::ToggleButton& button, int filterIndex)
     {
@@ -4303,7 +4300,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addAndMakeVisible(randomButton);
 
     information.setText(
-        "DUSK 0.17.1 | Designer controls now reach unmistakably stronger character while retaining transparent zero settings.",
+        "DUSK 0.18.0 | Pre, Internal and Post now provide three genuine distortion positions.",
         juce::dontSendNotification);
     information.setColour(juce::Label::textColourId,
                           juce::Colours::lightgrey);

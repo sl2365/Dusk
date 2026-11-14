@@ -73,6 +73,10 @@ constexpr auto bypass = "bypass";
 constexpr float smoothingSeconds = 0.020f;
 constexpr float nonlinearSmoothingSeconds = 0.050f;
 constexpr float maximumDriveGain = 16.0f;
+constexpr int externalDistortionStateBank = 0;
+constexpr int cleanInternalDistortionStateBank = 1;
+constexpr int ladderInternalDistortionStateBank = 2;
+constexpr int otaInternalDistortionStateBank = 3;
 
 constexpr std::array<int, 17> distortionAlgorithmForSortedChoice
 {
@@ -540,7 +544,7 @@ DuskAudioProcessor::createParameterLayout()
     distortionTypes.sortNatural();
     const int defaultDistortionType = distortionTypes.indexOf("Soft Clip");
     const juce::StringArray distortionPlacements {
-        "Pre", "Internal (Unavailable)", "Post"
+        "Pre", "Internal", "Post"
     };
     layout.push_back(std::make_unique<APC>(
         juce::ParameterID(ParameterIds::filter1DistortionType, 1),
@@ -1499,7 +1503,10 @@ float DuskAudioProcessor::processSvfFilter(
     float cutoffHz, float resonance, float slopeDbPerOctave,
     float bassLoss, float coreSaturation,
     float saturationAsymmetry, float poleSpread,
-    float feedback, float feedbackLimit) noexcept
+    float feedback, float feedbackLimit,
+    bool internalDistortion, float distortionAmount,
+    int currentDistortion, int previousDistortion,
+    float distortionCrossfade) noexcept
 {
     const int safeEngine = juce::jlimit(
         0, filterEngineCount - 1, engine);
@@ -1522,8 +1529,14 @@ float DuskAudioProcessor::processSvfFilter(
         80.0f, juce::jlimit(0.0f, 1.0f, feedbackLimit));
     const float boundedFeedback = feedbackThreshold * std::tanh(
         filterFeedbackReturn[stateIndex] / feedbackThreshold);
+    const float internalFeedback = internalDistortion
+        ? sanitiseSample(processSelectedDistortion(
+            boundedFeedback, distortionAmount, engine, channel,
+            currentDistortion, previousDistortion, distortionCrossfade,
+            cleanInternalDistortionStateBank), 8.0f)
+        : boundedFeedback;
     const float filterInput = sanitiseSample(
-        sample + feedbackGain * boundedFeedback, 64.0f);
+        sample + feedbackGain * internalFeedback, 64.0f);
     const float saturationCharacter = upperRangeCharacter(
         safeCoreSaturation);
     const float saturationThreshold = safeCoreSaturation <= 1.0e-6f
@@ -1738,7 +1751,10 @@ float DuskAudioProcessor::processLadderFilter(
     float sample, int engine, int channel, float filterTypePosition,
     float cutoffHz, float resonance, float slopeDbPerOctave,
     float stageSaturation, float feedbackSaturation,
-    float resonanceCompensation) noexcept
+    float resonanceCompensation,
+    bool internalDistortion, float distortionAmount,
+    int currentDistortion, int previousDistortion,
+    float distortionCrossfade) noexcept
 {
     const int safeEngine = juce::jlimit(
         0, filterEngineCount - 1, engine);
@@ -1805,12 +1821,19 @@ float DuskAudioProcessor::processLadderFilter(
         static_cast<size_t>(lowerPoles)]
         + (memoryTaps[static_cast<size_t>(upperPoles)]
             - memoryTaps[static_cast<size_t>(lowerPoles)]) * poleFraction;
+    const float internalMemoryFeedback = internalDistortion
+        ? sanitiseSample(processSelectedDistortion(
+            memoryFeedback, distortionAmount, engine, channel,
+            currentDistortion, previousDistortion, distortionCrossfade,
+            ladderInternalDistortionStateBank), 8.0f)
+        : memoryFeedback;
     const float lowerFeedthrough = std::pow(coefficient, lowerPoles);
     const float upperFeedthrough = std::pow(coefficient, upperPoles);
     const float feedbackFeedthrough = lowerFeedthrough
         + (upperFeedthrough - lowerFeedthrough) * poleFraction;
     const float drivenInput = sample * inputGain;
-    float ladderInput = (drivenInput - feedbackGain * memoryFeedback)
+    float ladderInput = (drivenInput
+        - feedbackGain * internalMemoryFeedback)
         / (1.0f + feedbackGain * feedbackFeedthrough);
     if (safeFeedbackSaturation > 1.0e-6f
         && feedbackGain > 1.0e-6f)
@@ -1821,7 +1844,7 @@ float DuskAudioProcessor::processLadderFilter(
             + 31.0f * feedbackCharacter;
         for (int iteration = 0; iteration < 4; ++iteration)
         {
-            const float feedbackSignal = memoryFeedback
+            const float feedbackSignal = internalMemoryFeedback
                 + feedbackFeedthrough * ladderInput;
             const float curve = std::tanh(
                 feedbackDrive * feedbackSignal);
@@ -1911,7 +1934,10 @@ float DuskAudioProcessor::processOtaFilter(
     float sample, int engine, int channel, float filterTypePosition,
     float cutoffHz, float resonance, float slopeDbPerOctave,
     float cellDrive, float feedbackDamping,
-    float resonanceCompensation) noexcept
+    float resonanceCompensation,
+    bool internalDistortion, float distortionAmount,
+    int currentDistortion, int previousDistortion,
+    float distortionCrossfade) noexcept
 {
     const int safeEngine = juce::jlimit(0, filterEngineCount - 1, engine);
     const int safeChannel = juce::jlimit(0, channelCount - 1, channel);
@@ -1956,8 +1982,14 @@ float DuskAudioProcessor::processOtaFilter(
         64.0f);
     const float boundedFeedback = 2.0f * std::tanh(
         dampingState * 0.5f);
+    const float internalFeedback = internalDistortion
+        ? sanitiseSample(processSelectedDistortion(
+            boundedFeedback, distortionAmount, engine, channel,
+            currentDistortion, previousDistortion, distortionCrossfade,
+            otaInternalDistortionStateBank), 4.0f)
+        : boundedFeedback;
     const float drivenInput = sanitiseSample(
-        sample * inputGain - feedbackGain * boundedFeedback, 64.0f);
+        sample * inputGain - feedbackGain * internalFeedback, 64.0f);
     const float driveCharacter = upperRangeCharacter(safeDrive);
     const float driveGain = 1.0f + 39.0f * driveCharacter;
     const auto saturateDifference = [safeDrive, driveCharacter,
@@ -2047,21 +2079,29 @@ float DuskAudioProcessor::processFilterArchitecture(
     float ladderFeedbackSaturation,
     float ladderResonanceCompensation, float otaCellDrive,
     float otaFeedbackDamping,
-    float otaResonanceCompensation) noexcept
+    float otaResonanceCompensation,
+    bool internalDistortion, float distortionAmount,
+    int currentDistortion, int previousDistortion,
+    float distortionCrossfade) noexcept
 {
     const float cleanOutput = processSvfFilter(
         sample, engine, channel, filterTypePosition, cutoffHz,
         cleanResonance, slopeDbPerOctave, bassLoss, coreSaturation,
-        saturationAsymmetry, poleSpread, feedback, feedbackLimit);
+        saturationAsymmetry, poleSpread, feedback, feedbackLimit,
+        internalDistortion, distortionAmount, currentDistortion,
+        previousDistortion, distortionCrossfade);
     const float ladderOutput = processLadderFilter(
         sample, engine, channel, filterTypePosition, cutoffHz,
         basicResonance, slopeDbPerOctave, ladderStageSaturation,
         ladderFeedbackSaturation,
-        ladderResonanceCompensation);
+        ladderResonanceCompensation, internalDistortion, distortionAmount,
+        currentDistortion, previousDistortion, distortionCrossfade);
     const float otaOutput = processOtaFilter(
         sample, engine, channel, filterTypePosition, cutoffHz,
         basicResonance, slopeDbPerOctave, otaCellDrive,
-        otaFeedbackDamping, otaResonanceCompensation);
+        otaFeedbackDamping, otaResonanceCompensation, internalDistortion,
+        distortionAmount, currentDistortion, previousDistortion,
+        distortionCrossfade);
     const auto outputForArchitecture = [cleanOutput, ladderOutput, otaOutput](
         int architecture)
     {
@@ -2599,20 +2639,11 @@ void DuskAudioProcessor::processBlock(
             const auto distort = [this, &drive, &typeBlend, engine,
                                   channel, index](float value)
             {
-                float output = processDistortionType(
+                return processSelectedDistortion(
                     value, drive[index], engine, channel,
-                    currentDistortionType[index]);
-                if (previousDistortionType[index]
-                        != currentDistortionType[index]
-                    && typeBlend[index] < 1.0f)
-                {
-                    const float oldOutput = processDistortionType(
-                        value, drive[index], engine, channel,
-                        previousDistortionType[index]);
-                    output = oldOutput
-                        + (output - oldOutput) * typeBlend[index];
-                }
-                return output;
+                    currentDistortionType[index],
+                    previousDistortionType[index], typeBlend[index],
+                    externalDistortionStateBank);
             };
 
             float output = input;
@@ -2631,13 +2662,11 @@ void DuskAudioProcessor::processBlock(
                 ladderFeedbackSaturation[index],
                 ladderResonanceCompensation[index], otaCellDrive[index],
                 otaFeedbackDamping[index],
-                otaResonanceCompensation[index]);
+                otaResonanceCompensation[index], placement[index] == 1,
+                drive[index], currentDistortionType[index],
+                previousDistortionType[index], typeBlend[index]);
             if (placement[index] == 2)
                 output = distort(output);
-            // The selectable distortion's Internal placement remains
-            // reserved until that model is explicitly inserted into the new
-            // bounded return path. Each architecture's internal Designer
-            // saturation remains separate from the selectable distortion.
             return input + (output - input) * filterEnabled[index];
         };
         const auto routeSample = [routing, &processEngine](

@@ -91,8 +91,11 @@ private:
     static constexpr int channelCount = 2;
     static constexpr int maximumLadderStages = 8;
     static constexpr int maximumOtaStages = 8;
-    static constexpr int distortionStateCount =
+    static constexpr int filterStateCount =
         filterEngineCount * channelCount;
+    static constexpr int distortionStateBankCount = 4;
+    static constexpr int distortionStateCount =
+        filterStateCount * distortionStateBankCount;
     static constexpr int distortionTypeCount = 17;
     static constexpr size_t distortionCombBufferSize = 96;
 
@@ -191,7 +194,12 @@ private:
     static float applyInputDrive(float sample, float amount,
                                  int distortionType) noexcept;
     float processDistortionType(float sample, float amount, int engine,
-                                int channel, int distortionType) noexcept;
+                                int channel, int distortionType,
+                                int stateBank) noexcept;
+    float processSelectedDistortion(
+        float sample, float amount, int engine, int channel,
+        int currentType, int previousType, float typeCrossfade,
+        int stateBank) noexcept;
     float processSvfFilter(float sample, int engine, int channel,
                            float filterTypePosition, float cutoffHz,
                            float resonance,
@@ -201,17 +209,26 @@ private:
                            float saturationAsymmetry,
                            float poleSpread,
                            float feedback,
-                           float feedbackLimit) noexcept;
+                           float feedbackLimit,
+                           bool internalDistortion, float distortionAmount,
+                           int currentDistortion, int previousDistortion,
+                           float distortionCrossfade) noexcept;
     float processLadderFilter(
         float sample, int engine, int channel, float filterTypePosition,
         float cutoffHz, float resonance, float slopeDbPerOctave,
         float stageSaturation, float feedbackSaturation,
-        float resonanceCompensation) noexcept;
+        float resonanceCompensation,
+        bool internalDistortion, float distortionAmount,
+        int currentDistortion, int previousDistortion,
+        float distortionCrossfade) noexcept;
     float processOtaFilter(
         float sample, int engine, int channel, float filterTypePosition,
         float cutoffHz, float resonance, float slopeDbPerOctave,
         float cellDrive, float feedbackDamping,
-        float resonanceCompensation) noexcept;
+        float resonanceCompensation,
+        bool internalDistortion, float distortionAmount,
+        int currentDistortion, int previousDistortion,
+        float distortionCrossfade) noexcept;
     float processFilterArchitecture(
         float sample, int previousArchitecture, int currentArchitecture,
         float architectureCrossfade, int engine, int channel,
@@ -223,7 +240,10 @@ private:
         float ladderFeedbackSaturation,
         float ladderResonanceCompensation, float otaCellDrive,
         float otaFeedbackDamping,
-        float otaResonanceCompensation) noexcept;
+        float otaResonanceCompensation,
+        bool internalDistortion, float distortionAmount,
+        int currentDistortion, int previousDistortion,
+        float distortionCrossfade) noexcept;
     float processRectifyDrive(float sample, float amount, int channel) noexcept;
     float processCrackleDrive(float sample, float amount, int channel) noexcept;
     float processLightningDrive(float sample, float amount, int channel) noexcept;
@@ -292,25 +312,25 @@ private:
     LinearSmoother outputGainValue;
     LinearSmoother bypassValue;
     std::array<LinearSmoother, filterEngineCount> distortionTypeCrossfade;
-    int activeDistortionEngine = 0;
+    int activeDistortionStateSlot = 0;
 
-    std::array<float, distortionStateCount> svfIntegratorOne {};
-    std::array<float, distortionStateCount> svfIntegratorTwo {};
-    std::array<float, distortionStateCount> onePoleState {};
-    std::array<float, distortionStateCount> bassShelfState {};
-    std::array<float, distortionStateCount> coreAsymmetryDcInput {};
-    std::array<float, distortionStateCount> coreAsymmetryDcOutput {};
-    std::array<float, distortionStateCount> filterFeedbackReturn {};
-    std::array<std::array<float, distortionStateCount>,
+    std::array<float, filterStateCount> svfIntegratorOne {};
+    std::array<float, filterStateCount> svfIntegratorTwo {};
+    std::array<float, filterStateCount> onePoleState {};
+    std::array<float, filterStateCount> bassShelfState {};
+    std::array<float, filterStateCount> coreAsymmetryDcInput {};
+    std::array<float, filterStateCount> coreAsymmetryDcOutput {};
+    std::array<float, filterStateCount> filterFeedbackReturn {};
+    std::array<std::array<float, filterStateCount>,
                maximumLadderStages>
         ladderStageState {};
-    std::array<std::array<float, distortionStateCount>, maximumOtaStages>
+    std::array<std::array<float, filterStateCount>, maximumOtaStages>
         otaStageState {};
-    std::array<float, distortionStateCount> otaFeedbackReturn {};
-    std::array<float, distortionStateCount> otaFeedbackDampingState {};
-    std::array<std::array<float, distortionStateCount>, 3>
+    std::array<float, filterStateCount> otaFeedbackReturn {};
+    std::array<float, filterStateCount> otaFeedbackDampingState {};
+    std::array<std::array<float, filterStateCount>, 3>
         slopeIntegratorOne {};
-    std::array<std::array<float, distortionStateCount>, 3>
+    std::array<std::array<float, filterStateCount>, 3>
         slopeIntegratorTwo {};
 
     std::array<float, distortionStateCount> rectifyPreviousInput {};
@@ -347,12 +367,9 @@ private:
     std::array<float, distortionStateCount> fuzzToneState {};
     std::array<float, distortionStateCount> fuzzPreviousInput {};
     std::array<float, distortionStateCount> fuzzPreviousOutput {};
-    std::array<uint32_t, distortionStateCount> crackleNoiseState
-        { 0xa511e9b3u, 0x63d83595u, 0x9e3779b9u, 0x7f4a7c15u };
-    std::array<uint32_t, distortionStateCount> lightningNoiseState
-        { 0x27d4eb2du, 0x165667b1u, 0x85ebca6bu, 0xc2b2ae35u };
-    std::array<uint32_t, distortionStateCount> pixelatedNoiseState
-        { 0x94d049bbu, 0x369dea0fu, 0xd1b54a35u, 0x8cb92ba7u };
+    std::array<uint32_t, distortionStateCount> crackleNoiseState {};
+    std::array<uint32_t, distortionStateCount> lightningNoiseState {};
+    std::array<uint32_t, distortionStateCount> pixelatedNoiseState {};
     float rectifyDcCoefficient = 0.0f;
     float crackleDcCoefficient = 0.0f;
     float lightningDcCoefficient = 0.0f;

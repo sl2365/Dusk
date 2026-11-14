@@ -424,18 +424,21 @@ float DuskAudioProcessor::processFuzzDrive(float sample, float amount,
 
 size_t DuskAudioProcessor::distortionStateIndex(int channel) const noexcept
 {
-    const int safeEngine = juce::jlimit(
-        0, filterEngineCount - 1, activeDistortionEngine);
+    const int safeSlot = juce::jlimit(
+        0, filterEngineCount * distortionStateBankCount - 1,
+        activeDistortionStateSlot);
     const int safeChannel = juce::jlimit(0, channelCount - 1, channel);
-    return static_cast<size_t>(safeEngine * channelCount + safeChannel);
+    return static_cast<size_t>(safeSlot * channelCount + safeChannel);
 }
 
 float DuskAudioProcessor::processDistortionType(
     float sample, float amount, int engine, int channel,
-    int distortionType) noexcept
+    int distortionType, int stateBank) noexcept
 {
-    activeDistortionEngine = juce::jlimit(
-        0, filterEngineCount - 1, engine);
+    const int safeEngine = juce::jlimit(0, filterEngineCount - 1, engine);
+    const int safeBank = juce::jlimit(
+        0, distortionStateBankCount - 1, stateBank);
+    activeDistortionStateSlot = safeBank * filterEngineCount + safeEngine;
     // Several stateful distortion models still perform filters, noise and
     // nonlinear functions when their wet amount is exactly zero.  Their
     // output is the untouched sample in that state, so avoid dispatching the
@@ -469,6 +472,23 @@ float DuskAudioProcessor::processDistortionType(
     return sample;
 }
 
+float DuskAudioProcessor::processSelectedDistortion(
+    float sample, float amount, int engine, int channel,
+    int currentType, int previousType, float typeCrossfade,
+    int stateBank) noexcept
+{
+    float output = processDistortionType(
+        sample, amount, engine, channel, currentType, stateBank);
+    if (previousType != currentType && typeCrossfade < 1.0f)
+    {
+        const float oldOutput = processDistortionType(
+            sample, amount, engine, channel, previousType, stateBank);
+        output = oldOutput
+            + (output - oldOutput) * juce::jlimit(0.0f, 1.0f, typeCrossfade);
+    }
+    return output;
+}
+
 void DuskAudioProcessor::resetDistortionState() noexcept
 {
     rectifyPreviousInput.fill(0.0f);
@@ -476,12 +496,24 @@ void DuskAudioProcessor::resetDistortionState() noexcept
     crackleBurst.fill(0.0f);
     cracklePreviousInput.fill(0.0f);
     cracklePreviousOutput.fill(0.0f);
-    crackleNoiseState = {
-        0xa511e9b3u, 0x63d83595u, 0x9e3779b9u, 0x7f4a7c15u };
+    for (size_t index = 0; index < distortionStateCount; ++index)
+    {
+        const auto offset = static_cast<uint32_t>(index + 1u);
+        crackleNoiseState[index] = 0xa511e9b3u
+            ^ (0x9e3779b9u * offset);
+        lightningNoiseState[index] = 0x27d4eb2du
+            ^ (0x85ebca6bu * offset);
+        pixelatedNoiseState[index] = 0x94d049bbu
+            ^ (0x369dea0fu * offset);
+        if (crackleNoiseState[index] == 0u)
+            crackleNoiseState[index] = 0x63d83595u;
+        if (lightningNoiseState[index] == 0u)
+            lightningNoiseState[index] = 0x165667b1u;
+        if (pixelatedNoiseState[index] == 0u)
+            pixelatedNoiseState[index] = 0xd1b54a35u;
+    }
     lightningPreviousInput.fill(0.0f);
     lightningPreviousOutput.fill(0.0f);
-    lightningNoiseState = {
-        0x27d4eb2du, 0x165667b1u, 0x85ebca6bu, 0xc2b2ae35u };
     ampLowpassState.fill(0.0f);
     ampPreviousInput.fill(0.0f);
     ampPreviousOutput.fill(0.0f);
@@ -495,8 +527,6 @@ void DuskAudioProcessor::resetDistortionState() noexcept
     razorPreviousOutput.fill(0.0f);
     pixelatedHeldSample.fill(0.0f);
     pixelatedPhase.fill(1.0f);
-    pixelatedNoiseState = {
-        0x94d049bbu, 0x369dea0fu, 0xd1b54a35u, 0x8cb92ba7u };
     distortionCombBuffer = {};
     distortionCombWritePosition.fill(0u);
     distortionCombDampingState.fill(0.0f);

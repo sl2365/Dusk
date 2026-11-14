@@ -10,122 +10,229 @@
 
 </div>
 
-Dusk is a Dead Channel Audio creative-filter VST3 by sl23. Version 0.17.1 substantially widens the audible range of the existing Clean SVF, Ladder and OTA Designer controls without changing their parameter IDs, ranges or defaults.
-
-It is intentionally not a delay and does not load or convert any legacy preset format.
+Dusk is a dual creative-filter VST3 by Dead Channel Audio. Each filter combines standard response controls with a selectable DSP architecture, editable architecture-specific Designer settings, its own distortion stage and sequencer modulation.
 
 ![Dusk](Resources/Dusk.jpg)
 
-## Current audio behaviour
+## Requirements
 
-- Stereo and mono audio are processed by two independent architecture-dispatched filter engines. `Clean SVF` retains the established topology-preserving-transform State-Variable Filter, `Ladder` uses its own nonlinear cascaded-pole state and delay-free resonance loop, and `OTA` uses an independent nonlinear transconductance-cell cascade with a damped feedback return.
-- There are no echo buffers, delay lines, timing controls, repeat paths, freeze capture, multi-tap system or delay modes.
-- Each filter has independent 20 Hz–20 kHz Cutoff, Resonance, continuously variable 6.0–48.0 dB/octave Slope and smoothly crossfaded Power controls. Its ordinary round amber LED is lit when that filter is processing and unlit when it is off.
-- Each FILTER panel has an independent Type selector containing LPF, BPF, HPF, NOTCH and PEAK. Type changes crossfade over 20 ms through the selected architecture's own continuously available outputs instead of resetting filter state.
-- Each FILTER panel also has its own Architecture selector containing `Clean SVF`, `Ladder` and `OTA`. All engines remain live and Architecture changes use a direct 50 ms output crossfade between the previous and selected engines rather than coefficient interpolation or an abrupt state replacement.
-- In Clean SVF, LPF and HPF use true one-pole 6 dB endpoints and mirrored continuously introduced stages up to 48 dB/octave. BPF uses the genuine two-pole band output below 12 dB, then progressively adds normalised band stages above 12 dB. Notch and Peak likewise use their genuine SVF outputs and progressively add same-cutoff stages above 12 dB.
-- Slope is a basic FILTER-tab control beside Cutoff, Resonance and Drive. Clean SVF retains its established continuous one-pole / SVF / cascaded-stage response. Ladder and OTA each continuously select and interpolate one through eight of their own cascade taps, covering 6–48 dB/octave with 24 dB as the four-cell/four-pole position.
-- The Clean SVF Designer has independent Resonance Shape, Resonance Limit, Bass Loss, Core Saturation, Saturation Asymmetry, Pole Spread, Feedback and Feedback Limit controls. Their parameter ranges and defaults remain unchanged, while the underlying sound-design curves now use far more of the available range.
-- Resonance Shape now spans a wider exponential response, Bass Loss can remove up to 24 dB at maximum effective resonance, and Pole Spread can separate applicable cascaded stages by up to ±3 octaves. Pole Spread remains naturally inactive at 12 dB/octave or below.
-- Core Saturation reaches a much lower maximum threshold, making the upper half strongly audible. Saturation Asymmetry now uses bounded independent positive and negative thresholds, producing much clearer even-harmonic character while preserving zero at zero and DC-blocking only the asymmetric difference.
-- Clean SVF Feedback reaches 0.995 maximum gain. Feedback Limit now spans a 0.1–8.0 return threshold, providing a much larger contrast between tight compressed oscillation and a wide, louder return while remaining inactive at 0% Feedback.
-- Feedback and Feedback Limit use 50 ms smoothing for safe manual, host-automation and sequencer movement.
-- The Ladder Designer exposes independent Stage Saturation, Feedback Saturation and Resonance Compensation. Both saturation controls now use strongly expanded upper-range drive while retaining a unity small-signal slope and exact 0% transparency.
-- Ladder Resonance Compensation now reaches four-times input gain at maximum Resonance and Compensation, making its level-restoration range immediately apparent without changing the feedback amount.
-- Ladder resonance uses a delay-free feedback solution with a nonlinear stage cascade and a bounded four-iteration solve when Feedback Saturation is active. Its maximum loop gain follows the selected pole depth so high slopes do not begin uncontrolled oscillation prematurely. All three Ladder Designer controls use 50 ms smoothing.
-- The OTA Designer exposes Cell Drive, Feedback Damping and Resonance Compensation. Cell Drive now reaches aggressive per-cell compression in its upper range, Feedback Damping reaches a much darker and more restrained return, and Resonance Compensation can reach four-times input gain at maximum Resonance.
-- OTA resonance uses a bounded one-sample return kept below unity loop gain, with additional gain compensation as Feedback Damping introduces phase lag. The damped return, all eight cell states and all three OTA Designer controls run continuously with 50 ms parameter smoothing so switching and automation do not recall stale state.
-- Each Designer header now has its own Model selector. A Model recalls only that filter's Architecture and the Designer parameters genuinely owned by the selected Architecture; it never changes Type, Cutoff, Resonance, Slope, Drive, distortion settings, routing, sequencer state or the other filter.
-- Factory Models provide deliberately contrasted editable starting points: Clean SVF, Smooth SVF, Warm SVF, Wide Resonance, Clean Ladder, Classic Ladder, Acid Ladder, Warm Vintage, Clean OTA, Punchy OTA, Hot OTA and Dark OTA. Editing Architecture or any included Designer control changes the Model display to `CUSTOM` without undoing the recalled values.
-- The adjacent `...` menu saves the current Architecture and applicable Designer controls as a shared User Model, refreshes the User list or opens the portable Models folder. User Models saved from either filter can be recalled by either filter.
-- Each filter owns an independent copy of the retained 17-model distortion bank, Drive amount and Pre / Internal / Post placement parameter.
-- Distortion Type choices are naturally sorted alphabetically while a stable mapping retains the correct DSP model and contextual description for every name.
-- `MIX`, `OUT` and smoothed host bypass / Power remain functional.
-- Routing provides Filter 1 only, Filter 2 only, serial Filter 1 into Filter 2, and gain-compensated parallel processing.
-- Pre and Post distortion use genuinely different signal paths around each filter core. `Internal (N/A)` remains visibly unavailable until a later stage explicitly inserts the selected distortion model into an architecture's bounded nonlinear feedback return. It will then read `Internal` and become selectable only for architectures that safely support it; the Clean SVF Designer Feedback path and Ladder resonance loop are already active independently.
-- The response display derives Filter 1, Filter 2 and combined curves from the exact low-level transfer calculations of the selected Clean SVF, Ladder or OTA engine. Serial routing multiplies the complex responses; parallel routing combines them with phase intact.
-- The graph follows all applicable linear and low-level controls, including Ladder Resonance Compensation plus OTA Feedback Damping and Resonance Compensation. Because OTA Cell Drive, Ladder Stage Saturation, Feedback Saturation, Core Saturation, Feedback Limit and selectable distortion are nonlinear, the graph deliberately represents the exact small-signal response rather than claiming to show one fixed high-level response.
+- Windows x64
+- A 64-bit VST3 host
+- A writable VST3 folder if Dusk's portable settings, presets, sequences and Models are to remain beside the plugin
 
-Each Comb distortion instance retains its own tiny 96-sample resonator state. These belong exclusively to that distortion algorithm; they are not echo buffers or a dormant delay engine.
+## Installation
 
-## Retained interface systems
+1. Extract `Dusk.vst3` from the release archive.
+2. Copy it into a folder scanned by the host for VST3 plugins.
+3. Rescan plugins in the host and load Dusk as an audio effect.
 
-- Dark scalable 75–200% GUI and panel framework.
-- Two vertical FILTER / DESIGNER LED radio choices occupy the clear header space to the right of the logo without overlapping it and persist in `Settings.ini`.
-- FILTER provides independent Architecture selectors for Filter 1 and Filter 2 alongside their standard controls. `Clean SVF`, `Ladder` and `OTA` are separate DSP implementations, not relabelled factory Models.
-- Equal Filter 1 and Filter 2 control areas with a centred 206 px response-display foundation.
-- Standard response Type remains correctly on the FILTER tab. The new per-filter Model selectors live in the Designer headers and recall editable Architecture / Designer configurations rather than replacing the real DSP structures with opaque model names.
-- The calculated Filter Response remains in the same centre panel on FILTER and DESIGNER, eliminating view changes merely to inspect response edits.
-- Two simultaneous context-sensitive Mode Designer areas identify themselves as the selected architecture's Designer. Clean SVF exposes its established eight controls; Ladder exposes Stage Saturation, Feedback Saturation and Resonance Compensation; OTA exposes Cell Drive, Feedback Damping and Resonance Compensation. Essential Type, Cutoff, Resonance, Drive and Slope remain together on FILTER.
-- Designer knobs use the same 52 x 49 px footprint as the sequencer's Attack and Release knobs. FILTER-tab knob sizing is unchanged.
-- Designer caption bounds provide natural room for each complete draggable `::` target marker without condensing or horizontally scaling the label font.
-- Binary `Resources/logo.svg` loading and visible version label.
-- Theme amount, fixed two-colour bar and separate Filter 1 / Filter 2 type-colour hooks.
-- Preset browser with folders, favourites, copy/paste, Save, Save As, quick menu, previous/next navigation and keyboard navigation.
-- Portable `Settings/Settings.ini` persistence for scale, theme, FILTER / DESIGNER selection and sequencer view state.
-- Fixed two-line contextual help.
-- Context help always identifies the control actually under the pointer. A label and its associated knob or dropdown share the same visible control title and description; nameless internal child components never fall back to `DUSK` or another unrelated title.
-- Hover help uses `CONTROL | description` so useful text begins on the first line and can naturally wrap across both lines. The strip uses the available width beside the bottom buttons and keeps natural, uncondensed font proportions.
-- Main randomiser plus the sequencer target randomiser.
-- Mix Lock and Power.
+Dusk creates a portable `Dusk` data folder beside the installed plugin. If the chosen VST3 folder is protected by Windows, give the current account write access or use another scanned folder that is writable.
 
-## Sequencer and Gate
+## Quick start
 
-The complete 32-step hide/show sequencer remains available:
+1. Select `Filter 1`, `Filter 2`, `1 > 2` or `1 + 2` from Routing.
+2. Use each amber filter LED to switch that filter on or off. Lit means on.
+3. Choose an Architecture and a standard filter Type for each active filter.
+4. Set Cutoff, Resonance and the continuous 6–48 dB/octave Slope.
+5. Add Drive, choose a distortion Type, then choose its Pre, Internal or Post Placement.
+6. Open DESIGNER to change the controls belonging to the selected Architecture or recall a Model.
+7. Use MIX and OUT to set the final wet balance and level.
 
-- Host Sync or Played MIDI triggering.
-- Loop, Bounce, Reverse, Played and Random directions.
-- Unipolar +, Bipolar and Unipolar - operation.
-- Start / End range, linked range movement, Attack, Release, Depth and Offset.
-- Generated waveforms, saved user sequences and animated destination displays.
-- Sixteen drag-and-drop target slots with enable state and individual 0–100% Depth.
-- Per-step Off / Short / Long / Rest Gate states, independent Short and Long lengths, Gate nudging and Gate randomisation.
-- Gate routing modes: Input, Effect, Output and Off.
+Hover any control or its label to see its matching description in the fixed help strip.
 
-The target list contains only controls that genuinely exist: MIX, OUT, Filter 1/2 Cutoff, Resonance, Resonance Shape, Resonance Limit, Bass Loss, Core Saturation, Saturation Asymmetry, Pole Spread, Feedback, Feedback Limit, Ladder Stage Saturation, Ladder Feedback Saturation, Ladder Resonance Compensation, OTA Cell Drive, OTA Feedback Damping, OTA Resonance Compensation, Slope and Drive, plus the sequencer's own eligible controls.
+## Signal routing
 
-User sequence files use the new `.duskseq` format and `DuskSequence` root tag.
+| Routing | Signal path |
+|---|---|
+| Filter 1 | Filter 1 only |
+| Filter 2 | Filter 2 only |
+| 1 > 2 | Filter 1 feeds Filter 2 in series |
+| 1 + 2 | Both filters process the input in parallel and are gain-compensated before mixing |
 
-## New identity and storage
+The response display follows the selected architectures, Types, Cutoff, Resonance, Slope and applicable Designer controls. It shows the exact small-signal filter response; nonlinear saturation and selectable distortion cannot be represented by one fixed level-independent curve.
 
-- Product: `Dusk`
-- Version: `0.17.1`
-- Manufacturer / code: `sl23`
-- Plugin code: `dsk1`
-- Bundle ID: `com.sl23.dusk`
-- VST3 category: `Fx Filter`
-- State root: `DuskParameters`
-- State schema: `17`
-- Preset extension: `.duskpreset`
-- User Model extension / root: `.duskmodel` / `DuskFilterModel`
-- User data beside the installed plugin: `Dusk/Settings`, `Dusk/Presets`, `Dusk/Sequences`, `Dusk/Models`
+## FILTER view
 
-No old parameter IDs, state migration, preset conversion or compatibility code is included.
+Each side controls one independent filter engine.
 
-## Per-filter Factory / User Models
+| Control | Function |
+|---|---|
+| Architecture | Selects the genuine DSP structure: Clean SVF, Ladder or OTA |
+| Type | Selects LPF, BPF, HPF, NOTCH or PEAK |
+| Cutoff | Sets the principal frequency from 20 Hz to 20 kHz |
+| Resonance | Emphasises the response around Cutoff |
+| Slope | Continuously changes the response from 6 to 48 dB/octave |
+| Drive | Sets the amount sent to the selected distortion model |
+| Dist Type | Selects one of the 17 distortion models |
+| Placement | Places that distortion before, inside or after the filter |
+| Amber LED | Powers the individual filter on or off; lit is on |
 
-- Filter 1 and Filter 2 each have an independent Designer-header Model selector with Factory Clean SVF, Factory Ladder, Factory OTA and naturally sorted User sections.
-- Architecture remains a real DSP selection on FILTER. A Model is only a configuration of that Architecture and its supported Designer controls.
-- Clean SVF Models contain Resonance Shape, Resonance Limit, Bass Loss, Core Saturation, Saturation Asymmetry, Pole Spread, Feedback and Feedback Limit. Ladder Models contain Stage Saturation, Feedback Saturation and Resonance Compensation. OTA Models contain Cell Drive, Feedback Damping and Resonance Compensation.
-- Factory Models are read-only starting points and every recalled value remains immediately editable. User Models use filter-neutral parameter names, so a Model created from Filter 1 can be recalled into Filter 2 and vice versa.
-- User Models are deliberately separate from global `.duskpreset` files. Global presets continue to store the complete plugin state; `.duskmodel` files store only one filter's Architecture-specific design recipe.
-- Loading a Model leaves LPF, BPF, HPF, Notch or Peak Type untouched. The same design can therefore be used across any compatible standard response without silently changing the musician's basic filter setup.
-- Comb and future architectures will receive their own Model whitelist only after their genuine DSP and context-sensitive Designer controls exist; they will not be approximated by relabelling an existing response.
+PEAK is the selected architecture's resonant peak response. It is not a parametric-EQ bell with a separate gain control.
 
-## Build
+## Architectures
 
-Place the project at `_Projects\Dusk` beside `_Projects\_Tools`, then double-click:
+Architecture chooses how the filter is actually calculated. Changing Architecture also changes the controls shown on the DESIGNER view.
 
-`- Build.bat`
+### Clean SVF
 
-The script expects:
+A topology-preserving state-variable core with continuously blended one-pole and cascaded-stage responses. It provides the widest general-purpose Designer set and an additional bounded feedback return.
 
-- CMake at `_Projects\_Tools\cmake\_4.4.2\bin\cmake.exe`
-- JUCE 9.0.4 at `_Projects\_Tools\JUCE\_9.0.4`
-- Visual Studio Community 2026 x64
+### Ladder
 
-The portable VST3 is written to `dist\Dusk.vst3`. Nothing is installed automatically. If a build fails, send the generated `Results.log`.
+A nonlinear cascaded-pole filter with one to eight continuously blended poles. The 24 dB position uses four poles. Resonance is handled by a delay-free feedback solution rather than by relabelling the Clean SVF.
 
-## Next development stage
+### OTA
 
-Evaluate the widened Designer ranges, Factory / User Model contrast, architecture switching and portable file handling in the Windows build, then continue with the next genuine architecture or architecture-specific Internal distortion stage without changing the Model / Architecture boundary.
+A nonlinear cascade of one to eight transconductance-style cells with a damped bounded feedback return. The 24 dB position uses four cells.
+
+There is not currently a Comb filter architecture. `Comb` in the Dist Type list is a distortion model with a short resonator and should not be confused with a dedicated Comb filter.
+
+## DESIGNER view
+
+Designer controls edit the character of the selected Architecture. They do not replace the standard Type, Cutoff, Resonance, Slope or Drive controls on FILTER.
+
+### Clean SVF Designer
+
+| Control | Function |
+|---|---|
+| Res Shape | Changes how quickly the Resonance control builds from restrained to aggressive |
+| Res Limit | Limits the maximum effective resonance |
+| Bass Loss | Adds resonance-linked low-frequency thinning |
+| Core Sat | Saturates the completed filter core; 0% is transparent |
+| Sat Asym | Biases Core Sat toward one polarity for even-harmonic character; it requires Core Sat |
+| Pole Spread | Separates applicable cascaded stages; it is inactive at 12 dB/octave and below |
+| Feedback | Returns the completed filter output through a bounded one-sample loop |
+| FB Limit | Sets how tightly the Designer Feedback return is constrained; it requires Feedback |
+
+### Ladder Designer
+
+| Control | Function |
+|---|---|
+| Stage Sat | Changes the nonlinearity inside every active Ladder stage |
+| FB Sat | Saturates the Ladder resonance return inside its delay-free solve |
+| Res Comp | Restores level as Resonance rises |
+
+### OTA Designer
+
+| Control | Function |
+|---|---|
+| Cell Drive | Changes the nonlinearity inside every active OTA cell |
+| FB Damp | Low-pass damps and restrains the OTA resonance return |
+| Res Comp | Restores level as Resonance rises |
+
+## Filter Models
+
+A Model is an editable configuration of one Architecture and its supported Designer controls. It is not another filter Type and it does not change Type, Cutoff, Resonance, Slope, Drive, routing, sequencer settings or the other filter.
+
+Factory Models provide starting points for Clean SVF, Ladder and OTA. After recalling one, move any included Designer control to customise it; the Model display then changes to `CUSTOM` without undoing the recalled values.
+
+Use the `...` button beside either Model selector to:
+
+- save that filter's current Architecture and Designer settings as a User Model;
+- refresh the shared User Model list; or
+- open the portable Models folder.
+
+A User Model saved from Filter 1 can be recalled by Filter 2 and vice versa. User Models use `.duskmodel`; full-plugin presets use `.duskpreset`.
+
+## Distortion
+
+Each filter has an independent distortion model, Drive amount and Placement. Available models are:
+
+`Amp`, `Asym`, `Bumpy`, `Comb`, `Crackle`, `Fresh`, `Fuzz`, `Hard Clip`, `Lightning`, `Pixelated`, `Razor`, `Rectify`, `Samurai`, `Saturation`, `Soft Clip`, `Stressed` and `Tube`.
+
+The list is naturally sorted; each visible name remains mapped to its own DSP algorithm.
+
+| Placement | Function |
+|---|---|
+| Pre | Distorts the signal before it enters the filter core |
+| Internal | Distorts an architecture-specific feedback return inside the filter |
+| Post | Distorts the completed filter output |
+
+Internal behaves according to the selected Architecture:
+
+- Clean SVF shapes the bounded Designer Feedback return, so it requires the Clean SVF `Feedback` control to be above 0%.
+- Ladder shapes the stored resonance feedback component before the protected delay-free solve, so it requires `Resonance`.
+- OTA shapes the damped bounded resonance return before it is subtracted from the input, so it requires `Resonance`.
+
+The external Pre/Post path and each Architecture's Internal path use separate state memory. Stateful models such as Comb therefore cannot carry external-placement history into an Architecture's feedback path, or internal history from one Architecture into another.
+
+## Sequencer
+
+Press `SEQ` to show or hide the 32-step parameter sequencer.
+
+### Creating a pattern
+
+- Click or drag vertically across the step grid to set values.
+- Use Waveform to replace the grid with a generated shape.
+- Set Start and End to restrict the active range; enable the link button to move that range without changing its length.
+- Use Loop, Bounce, Reverse, Played or Random direction.
+- Enable Host Sync for tempo-locked rates, or disable it for the free/played behaviour.
+- Attack and Release smooth rising and falling changes.
+- Depth expands or contracts the complete pattern; Offset moves it vertically.
+- Cycle the polarity LED through Unipolar +, Bipolar and Unipolar - to choose how modulation moves its targets.
+
+### Assigning targets
+
+Drag a parameter label marked `::` onto one of the 16 target slots. The target's small knob sets its individual modulation Depth, and its LED enables or disables that assignment. `ANIMATE` displays the resulting control movement without replacing stored parameter values.
+
+### Gate steps
+
+Each step can be Off, Short, Long or Rest. SHORT and LONG set the open duration. Gate can act on Input, Effect, Output or be switched Off independently of parameter modulation.
+
+User sequences are stored as `.duskseq` files in the portable Sequences folder.
+
+## Presets and global controls
+
+- Open the preset browser with the list button.
+- Use Save to overwrite the current preset or Save As to create a new `.duskpreset`.
+- Use the arrow buttons, keyboard Left/Right keys or mouse wheel over the preset name to step through presets.
+- Right-click the current preset name for the quick menu.
+- MIX LOCK keeps the current MIX value when another preset is loaded.
+- The global Power LED bypasses or enables Dusk processing.
+- THEME changes the interface colour treatment.
+- Drag the resize handle to scale the interface from 75% to 200%.
+- The randomise button changes supported filter and Designer controls within bounded ranges while leaving Architecture, routing, filter power, Placement, MIX, global Power and sequencer state unchanged.
+
+## Portable files
+
+Dusk keeps its user data beside `Dusk.vst3`:
+
+```text
+Dusk/
+├── Settings/
+│   └── Settings.ini
+├── Presets/
+│   └── *.duskpreset
+├── Sequences/
+│   └── *.duskseq
+└── Models/
+    └── *.duskmodel
+```
+
+Back up this folder with the plugin to preserve all user content and interface settings.
+
+## Building from source
+
+Place the project at `_Projects\Dusk` beside `_Projects\_Tools`, then double-click `- Build.bat`.
+
+The supplied build script expects:
+
+- CMake at `_Projects\_Tools\cmake\_4.4.2\bin\cmake.exe`;
+- JUCE 9.0.4 at `_Projects\_Tools\JUCE\_9.0.4`; and
+- Visual Studio Community 2026 with the x64 C++ toolchain.
+
+The script closes `PolyHostInterface.exe` before compiling, so save any work open in PHI first. It configures and builds the Release VST3, validates the output as Windows x64 and writes `dist\Dusk.vst3`. It does not install the plugin automatically.
+
+If the build fails, read or supply the generated `Results.log`; it contains the complete configuration and compiler output.
+
+## Project identity
+
+| Field | Value |
+|---|---|
+| Manufacturer | `sl23` |
+| Manufacturer code | `sl23` |
+| Plugin code | `dsk1` |
+| Bundle ID | `com.sl23.dusk` |
+| VST3 category | `Fx Filter` |
+
+Release history and implementation changes are documented in [Changelog.md](Changelog.md).
