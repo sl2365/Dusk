@@ -6,6 +6,7 @@
 #include <array>
 #include <complex>
 #include <optional>
+#include <vector>
 
 class DuskAudioProcessor final : public juce::AudioProcessor
 {
@@ -74,6 +75,22 @@ public:
         float resonancePercent, float slopeDbPerOctave,
         float feedbackDampingPercent, float resonanceCompensationPercent,
         int filterTypeChoice) noexcept;
+    static std::complex<double> getCombResponse(
+        double frequencyHz, double sampleRate, float combFrequencyHz,
+        float feedbackPercent, float dampingPercent,
+        float fineTuneCents, float polarityPercent,
+        float dispersionPercent, int modeChoice) noexcept;
+    static std::complex<double> getFormantResponse(
+        double frequencyHz, double sampleRate, float vowelPercent,
+        float shiftSemitones, float focusPercent,
+        float formantOneLevelPercent, float formantTwoLevelPercent,
+        float formantThreeLevelPercent, float bandwidthPercent,
+        float spreadPercent, float tiltPercent) noexcept;
+    static std::complex<double> getPhaserResponse(
+        double frequencyHz, double sampleRate, float centreFrequencyHz,
+        float feedbackPercent, float depthPercent, float stages,
+        float spreadPercent, float skewPercent,
+        float dampingPercent) noexcept;
     static std::complex<double> getArchitectureResponse(
         int architectureChoice, double frequencyHz, double sampleRate,
         float cutoffHz, float resonancePercent, float slopeDbPerOctave,
@@ -83,17 +100,33 @@ public:
         float ladderResonanceCompensationPercent,
         float otaCellDrivePercent, float otaFeedbackDampingPercent,
         float otaResonanceCompensationPercent,
+        float combFrequencyHz, float combFeedbackPercent,
+        float combDampingPercent, float combFineTuneCents,
+        float combPolarityPercent, float combDispersionPercent,
+        int combModeChoice,
+        float formantVowelPercent, float formantShiftSemitones,
+        float formantFocusPercent, float formantOneLevelPercent,
+        float formantTwoLevelPercent, float formantThreeLevelPercent,
+        float formantBandwidthPercent, float formantSpreadPercent,
+        float formantTiltPercent,
+        float phaserFrequencyHz, float phaserFeedbackPercent,
+        float phaserDepthPercent, float phaserStages,
+        float phaserSpreadPercent, float phaserSkewPercent,
+        float phaserDampingPercent,
         int filterTypeChoice) noexcept;
 
 private:
-    static constexpr int stateSchemaVersion = 17;
+    static constexpr int stateSchemaVersion = 20;
     static constexpr int filterEngineCount = 2;
     static constexpr int channelCount = 2;
     static constexpr int maximumLadderStages = 8;
     static constexpr int maximumOtaStages = 8;
+    static constexpr int combModeCount = 3;
+    static constexpr int formantBandCount = 3;
+    static constexpr int maximumPhaserStages = 12;
     static constexpr int filterStateCount =
         filterEngineCount * channelCount;
-    static constexpr int distortionStateBankCount = 4;
+    static constexpr int distortionStateBankCount = 11;
     static constexpr int distortionStateCount =
         filterStateCount * distortionStateBankCount;
     static constexpr int distortionTypeCount = 17;
@@ -101,6 +134,8 @@ private:
 
     using LinearSmoother = juce::SmoothedValue<
         float, juce::ValueSmoothingTypes::Linear>;
+    using MultiplicativeSmoother = juce::SmoothedValue<
+        float, juce::ValueSmoothingTypes::Multiplicative>;
 
     struct ParameterPointers
     {
@@ -141,6 +176,62 @@ private:
         std::atomic<float>* filter2OtaFeedbackDamping = nullptr;
         std::atomic<float>* filter1OtaResonanceCompensation = nullptr;
         std::atomic<float>* filter2OtaResonanceCompensation = nullptr;
+        std::atomic<float>* filter1CombMode = nullptr;
+        std::atomic<float>* filter2CombMode = nullptr;
+        std::atomic<float>* filter1CombFrequency = nullptr;
+        std::atomic<float>* filter2CombFrequency = nullptr;
+        std::atomic<float>* filter1CombFeedback = nullptr;
+        std::atomic<float>* filter2CombFeedback = nullptr;
+        std::atomic<float>* filter1CombDamping = nullptr;
+        std::atomic<float>* filter2CombDamping = nullptr;
+        std::atomic<float>* filter1CombFineTune = nullptr;
+        std::atomic<float>* filter2CombFineTune = nullptr;
+        std::atomic<float>* filter1CombPolarity = nullptr;
+        std::atomic<float>* filter2CombPolarity = nullptr;
+        std::atomic<float>* filter1CombStereoSpread = nullptr;
+        std::atomic<float>* filter2CombStereoSpread = nullptr;
+        std::atomic<float>* filter1CombDispersion = nullptr;
+        std::atomic<float>* filter2CombDispersion = nullptr;
+        std::atomic<float>* filter1CombLoopSaturation = nullptr;
+        std::atomic<float>* filter2CombLoopSaturation = nullptr;
+        std::atomic<float>* filter1CombFeedbackLimit = nullptr;
+        std::atomic<float>* filter2CombFeedbackLimit = nullptr;
+        std::atomic<float>* filter1FormantVowel = nullptr;
+        std::atomic<float>* filter2FormantVowel = nullptr;
+        std::atomic<float>* filter1FormantShift = nullptr;
+        std::atomic<float>* filter2FormantShift = nullptr;
+        std::atomic<float>* filter1FormantFocus = nullptr;
+        std::atomic<float>* filter2FormantFocus = nullptr;
+        std::atomic<float>* filter1FormantOneLevel = nullptr;
+        std::atomic<float>* filter2FormantOneLevel = nullptr;
+        std::atomic<float>* filter1FormantTwoLevel = nullptr;
+        std::atomic<float>* filter2FormantTwoLevel = nullptr;
+        std::atomic<float>* filter1FormantThreeLevel = nullptr;
+        std::atomic<float>* filter2FormantThreeLevel = nullptr;
+        std::atomic<float>* filter1FormantBandwidth = nullptr;
+        std::atomic<float>* filter2FormantBandwidth = nullptr;
+        std::atomic<float>* filter1FormantSpread = nullptr;
+        std::atomic<float>* filter2FormantSpread = nullptr;
+        std::atomic<float>* filter1FormantTilt = nullptr;
+        std::atomic<float>* filter2FormantTilt = nullptr;
+        std::atomic<float>* filter1PhaserFrequency = nullptr;
+        std::atomic<float>* filter2PhaserFrequency = nullptr;
+        std::atomic<float>* filter1PhaserFeedback = nullptr;
+        std::atomic<float>* filter2PhaserFeedback = nullptr;
+        std::atomic<float>* filter1PhaserDepth = nullptr;
+        std::atomic<float>* filter2PhaserDepth = nullptr;
+        std::atomic<float>* filter1PhaserStages = nullptr;
+        std::atomic<float>* filter2PhaserStages = nullptr;
+        std::atomic<float>* filter1PhaserSpread = nullptr;
+        std::atomic<float>* filter2PhaserSpread = nullptr;
+        std::atomic<float>* filter1PhaserSkew = nullptr;
+        std::atomic<float>* filter2PhaserSkew = nullptr;
+        std::atomic<float>* filter1PhaserDamping = nullptr;
+        std::atomic<float>* filter2PhaserDamping = nullptr;
+        std::atomic<float>* filter1PhaserStageSaturation = nullptr;
+        std::atomic<float>* filter2PhaserStageSaturation = nullptr;
+        std::atomic<float>* filter1PhaserStereo = nullptr;
+        std::atomic<float>* filter2PhaserStereo = nullptr;
         std::atomic<float>* filter1Slope = nullptr;
         std::atomic<float>* filter2Slope = nullptr;
         std::atomic<float>* filter1Enabled = nullptr;
@@ -229,6 +320,32 @@ private:
         bool internalDistortion, float distortionAmount,
         int currentDistortion, int previousDistortion,
         float distortionCrossfade) noexcept;
+    float processCombFilter(
+        float sample, int engine, int channel, int previousMode,
+        int currentMode, float modeCrossfade, float frequencyHz,
+        float feedback, float damping, float fineTuneCents,
+        float polarity, float stereoSpread, float dispersion,
+        float loopSaturation, float feedbackLimit,
+        bool internalDistortion, float distortionAmount,
+        int currentDistortion, int previousDistortion,
+        float distortionCrossfade) noexcept;
+    float processFormantFilter(
+        float sample, int engine, int channel, float vowelPercent,
+        float shiftSemitones, float focusPercent,
+        float formantOneLevelPercent, float formantTwoLevelPercent,
+        float formantThreeLevelPercent, float bandwidthPercent,
+        float spreadPercent, float tiltPercent,
+        bool internalDistortion, float distortionAmount,
+        int currentDistortion, int previousDistortion,
+        float distortionCrossfade) noexcept;
+    float processPhaserFilter(
+        float sample, int engine, int channel, float centreFrequencyHz,
+        float feedbackPercent, float depthPercent, float stages,
+        float spreadPercent, float skewPercent, float dampingPercent,
+        float stageSaturationPercent, float stereoPercent,
+        bool internalDistortion, float distortionAmount,
+        int currentDistortion, int previousDistortion,
+        float distortionCrossfade) noexcept;
     float processFilterArchitecture(
         float sample, int previousArchitecture, int currentArchitecture,
         float architectureCrossfade, int engine, int channel,
@@ -241,6 +358,20 @@ private:
         float ladderResonanceCompensation, float otaCellDrive,
         float otaFeedbackDamping,
         float otaResonanceCompensation,
+        int previousCombMode, int currentCombMode,
+        float combModeCrossfade, float combFrequency,
+        float combFeedback, float combDamping, float combFineTune,
+        float combPolarity, float combStereoSpread,
+        float combDispersion, float combLoopSaturation,
+        float combFeedbackLimit,
+        float formantVowel, float formantShift, float formantFocus,
+        float formantOneLevel, float formantTwoLevel,
+        float formantThreeLevel, float formantBandwidth,
+        float formantSpread, float formantTilt,
+        float phaserFrequency, float phaserFeedback, float phaserDepth,
+        float phaserStages, float phaserSpread, float phaserSkew,
+        float phaserDamping, float phaserStageSaturation,
+        float phaserStereo,
         bool internalDistortion, float distortionAmount,
         int currentDistortion, int previousDistortion,
         float distortionCrossfade) noexcept;
@@ -264,6 +395,8 @@ private:
     size_t distortionStateIndex(int channel) const noexcept;
     void resetDistortionState() noexcept;
     void resetFilterState() noexcept;
+    void prepareCombState();
+    void resetCombState() noexcept;
     void resetProcessingState() noexcept;
     static float nextNoiseSample(uint32_t& state) noexcept;
     static float sanitiseSample(float sample, float limit) noexcept;
@@ -303,6 +436,36 @@ private:
     std::array<LinearSmoother, filterEngineCount> otaFeedbackDampingValue;
     std::array<LinearSmoother, filterEngineCount>
         otaResonanceCompensationValue;
+    std::array<MultiplicativeSmoother, filterEngineCount> combFrequencyValue;
+    std::array<LinearSmoother, filterEngineCount> combFeedbackValue;
+    std::array<LinearSmoother, filterEngineCount> combDampingValue;
+    std::array<LinearSmoother, filterEngineCount> combFineTuneValue;
+    std::array<LinearSmoother, filterEngineCount> combPolarityValue;
+    std::array<LinearSmoother, filterEngineCount> combStereoSpreadValue;
+    std::array<LinearSmoother, filterEngineCount> combDispersionValue;
+    std::array<LinearSmoother, filterEngineCount> combLoopSaturationValue;
+    std::array<LinearSmoother, filterEngineCount> combFeedbackLimitValue;
+    std::array<LinearSmoother, filterEngineCount> formantVowelValue;
+    std::array<LinearSmoother, filterEngineCount> formantShiftValue;
+    std::array<LinearSmoother, filterEngineCount> formantFocusValue;
+    std::array<LinearSmoother, filterEngineCount> formantOneLevelValue;
+    std::array<LinearSmoother, filterEngineCount> formantTwoLevelValue;
+    std::array<LinearSmoother, filterEngineCount> formantThreeLevelValue;
+    std::array<LinearSmoother, filterEngineCount> formantBandwidthValue;
+    std::array<LinearSmoother, filterEngineCount> formantSpreadValue;
+    std::array<LinearSmoother, filterEngineCount> formantTiltValue;
+    std::array<MultiplicativeSmoother, filterEngineCount> phaserFrequencyValue;
+    std::array<LinearSmoother, filterEngineCount> phaserFeedbackValue;
+    std::array<LinearSmoother, filterEngineCount> phaserDepthValue;
+    std::array<LinearSmoother, filterEngineCount> phaserStagesValue;
+    std::array<LinearSmoother, filterEngineCount> phaserSpreadValue;
+    std::array<LinearSmoother, filterEngineCount> phaserSkewValue;
+    std::array<LinearSmoother, filterEngineCount> phaserDampingValue;
+    std::array<LinearSmoother, filterEngineCount> phaserStageSaturationValue;
+    std::array<LinearSmoother, filterEngineCount> phaserStereoValue;
+    std::array<int, filterEngineCount> currentCombMode {};
+    std::array<int, filterEngineCount> previousCombMode {};
+    std::array<LinearSmoother, filterEngineCount> combModeCrossfadeValue;
     std::array<LinearSmoother, filterEngineCount> slopeValue;
     std::array<LinearSmoother, filterEngineCount> architectureCrossfadeValue;
     std::array<int, filterEngineCount> currentArchitectureChoice {};
@@ -332,6 +495,26 @@ private:
         slopeIntegratorOne {};
     std::array<std::array<float, filterStateCount>, 3>
         slopeIntegratorTwo {};
+    std::array<std::array<std::vector<float>, filterStateCount>,
+               combModeCount>
+        combDelayBuffer;
+    std::array<std::array<size_t, filterStateCount>, combModeCount>
+        combWritePosition {};
+    std::array<std::array<float, filterStateCount>, combModeCount>
+        combDampingState {};
+    std::array<std::array<float, filterStateCount>, combModeCount>
+        combFractionalState {};
+    std::array<std::array<float, filterStateCount>, combModeCount>
+        combDispersionState {};
+    std::array<std::array<float, filterStateCount>, combModeCount>
+        combLowCutState {};
+    std::array<std::array<float, filterStateCount>, formantBandCount>
+        formantIntegratorOne {};
+    std::array<std::array<float, filterStateCount>, formantBandCount>
+        formantIntegratorTwo {};
+    std::array<std::array<float, filterStateCount>, maximumPhaserStages>
+        phaserAllPassState {};
+    std::array<float, filterStateCount> phaserFeedbackReturn {};
 
     std::array<float, distortionStateCount> rectifyPreviousInput {};
     std::array<float, distortionStateCount> rectifyPreviousOutput {};

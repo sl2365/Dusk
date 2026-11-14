@@ -39,6 +39,24 @@ constexpr std::array<const char*, 3> otaModelParameterSuffixes
     "OtaCellDrive", "OtaFeedbackDamping", "OtaResonanceCompensation"
 }};
 
+constexpr std::array<const char*, 6> combModelParameterSuffixes
+{{
+    "CombFineTune", "CombPolarity", "CombStereoSpread",
+    "CombDispersion", "CombLoopSaturation", "CombFeedbackLimit"
+}};
+
+constexpr std::array<const char*, 6> formantModelParameterSuffixes
+{{
+    "FormantOneLevel", "FormantTwoLevel", "FormantThreeLevel",
+    "FormantBandwidth", "FormantSpread", "FormantTilt"
+}};
+
+constexpr std::array<const char*, 6> phaserModelParameterSuffixes
+{{
+    "PhaserStages", "PhaserSpread", "PhaserSkew",
+    "PhaserDamping", "PhaserStageSaturation", "PhaserStereo"
+}};
+
 struct CleanFactoryModel
 {
     const char* name;
@@ -55,6 +73,24 @@ struct OtaFactoryModel
 {
     const char* name;
     std::array<float, otaModelParameterSuffixes.size()> values;
+};
+
+struct CombFactoryModel
+{
+    const char* name;
+    std::array<float, combModelParameterSuffixes.size()> values;
+};
+
+struct FormantFactoryModel
+{
+    const char* name;
+    std::array<float, formantModelParameterSuffixes.size()> values;
+};
+
+struct PhaserFactoryModel
+{
+    const char* name;
+    std::array<float, phaserModelParameterSuffixes.size()> values;
 };
 
 constexpr std::array<CleanFactoryModel, 4> cleanFactoryModels
@@ -85,9 +121,40 @@ constexpr std::array<OtaFactoryModel, 4> otaFactoryModels
     { "Dark OTA", { 55.0f, 90.0f, 70.0f } }
 }};
 
+constexpr std::array<CombFactoryModel, 4> combFactoryModels
+{{
+    { "Clean Comb", { 0.0f, 100.0f, 0.0f, 0.0f, 0.0f, 100.0f } },
+    { "Metallic Comb", { 18.0f, 100.0f, 8.0f, 70.0f, 22.0f, 72.0f } },
+    { "Hollow Comb", { -12.0f, -100.0f, 0.0f, 28.0f, 8.0f, 84.0f } },
+    { "Wide Stereo Comb", { 0.0f, 100.0f, 72.0f, 42.0f, 18.0f, 76.0f } }
+}};
+
+constexpr std::array<FormantFactoryModel, 4> formantFactoryModels
+{{
+    { "Natural Formant", { 100.0f, 100.0f, 100.0f,
+                             100.0f, 0.0f, 0.0f } },
+    { "Bright Formant", { 85.0f, 115.0f, 140.0f,
+                            72.0f, 18.0f, 55.0f } },
+    { "Deep Formant", { 145.0f, 95.0f, 55.0f,
+                          135.0f, -22.0f, -48.0f } },
+    { "Nasal Formant", { 70.0f, 160.0f, 95.0f,
+                           58.0f, -8.0f, 28.0f } }
+}};
+
+constexpr std::array<PhaserFactoryModel, 4> phaserFactoryModels
+{{
+    { "Clean Phaser", { 6.0f, 50.0f, 0.0f, 20.0f, 0.0f, 0.0f } },
+    { "Classic Phaser", { 4.0f, 45.0f, 0.0f, 15.0f, 25.0f, 0.0f } },
+    { "Deep Cascade", { 12.0f, 72.0f, -20.0f, 42.0f, 68.0f, 0.0f } },
+    { "Wide Phaser", { 8.0f, 62.0f, 24.0f, 30.0f, 38.0f, 82.0f } }
+}};
+
 constexpr int cleanFactoryModelIdBase = 1000;
 constexpr int ladderFactoryModelIdBase = 1100;
 constexpr int otaFactoryModelIdBase = 1200;
+constexpr int combFactoryModelIdBase = 1300;
+constexpr int formantFactoryModelIdBase = 1400;
+constexpr int phaserFactoryModelIdBase = 1500;
 constexpr int userFilterModelIdBase = 2000;
 
 juce::String contextHelpText(const juce::String& title,
@@ -2805,6 +2872,100 @@ void DuskAudioProcessorEditor::ResponseDisplay::paint(juce::Graphics& g)
         parameterValue("filter1OtaResonanceCompensation"),
         parameterValue("filter2OtaResonanceCompensation")
     };
+    const std::array<float, 2> combFrequency {
+        parameterValue("filter1CombFrequency"),
+        parameterValue("filter2CombFrequency")
+    };
+    const std::array<float, 2> combFeedback {
+        parameterValue("filter1CombFeedback"),
+        parameterValue("filter2CombFeedback")
+    };
+    const std::array<float, 2> combDamping {
+        parameterValue("filter1CombDamping"),
+        parameterValue("filter2CombDamping")
+    };
+    const std::array<float, 2> combFineTune {
+        parameterValue("filter1CombFineTune"),
+        parameterValue("filter2CombFineTune")
+    };
+    const std::array<float, 2> combPolarity {
+        parameterValue("filter1CombPolarity"),
+        parameterValue("filter2CombPolarity")
+    };
+    const std::array<float, 2> combDispersion {
+        parameterValue("filter1CombDispersion"),
+        parameterValue("filter2CombDispersion")
+    };
+    const std::array<int, 2> combMode {
+        juce::jlimit(0, 2, juce::roundToInt(
+            parameterValue("filter1CombMode"))),
+        juce::jlimit(0, 2, juce::roundToInt(
+            parameterValue("filter2CombMode")))
+    };
+    const std::array<float, 2> formantVowel {
+        parameterValue("filter1FormantVowel"),
+        parameterValue("filter2FormantVowel")
+    };
+    const std::array<float, 2> formantShift {
+        parameterValue("filter1FormantShift"),
+        parameterValue("filter2FormantShift")
+    };
+    const std::array<float, 2> formantFocus {
+        parameterValue("filter1FormantFocus"),
+        parameterValue("filter2FormantFocus")
+    };
+    const std::array<float, 2> formantOneLevel {
+        parameterValue("filter1FormantOneLevel"),
+        parameterValue("filter2FormantOneLevel")
+    };
+    const std::array<float, 2> formantTwoLevel {
+        parameterValue("filter1FormantTwoLevel"),
+        parameterValue("filter2FormantTwoLevel")
+    };
+    const std::array<float, 2> formantThreeLevel {
+        parameterValue("filter1FormantThreeLevel"),
+        parameterValue("filter2FormantThreeLevel")
+    };
+    const std::array<float, 2> formantBandwidth {
+        parameterValue("filter1FormantBandwidth"),
+        parameterValue("filter2FormantBandwidth")
+    };
+    const std::array<float, 2> formantSpread {
+        parameterValue("filter1FormantSpread"),
+        parameterValue("filter2FormantSpread")
+    };
+    const std::array<float, 2> formantTilt {
+        parameterValue("filter1FormantTilt"),
+        parameterValue("filter2FormantTilt")
+    };
+    const std::array<float, 2> phaserFrequency {
+        parameterValue("filter1PhaserFrequency"),
+        parameterValue("filter2PhaserFrequency")
+    };
+    const std::array<float, 2> phaserFeedback {
+        parameterValue("filter1PhaserFeedback"),
+        parameterValue("filter2PhaserFeedback")
+    };
+    const std::array<float, 2> phaserDepth {
+        parameterValue("filter1PhaserDepth"),
+        parameterValue("filter2PhaserDepth")
+    };
+    const std::array<float, 2> phaserStages {
+        parameterValue("filter1PhaserStages"),
+        parameterValue("filter2PhaserStages")
+    };
+    const std::array<float, 2> phaserSpread {
+        parameterValue("filter1PhaserSpread"),
+        parameterValue("filter2PhaserSpread")
+    };
+    const std::array<float, 2> phaserSkew {
+        parameterValue("filter1PhaserSkew"),
+        parameterValue("filter2PhaserSkew")
+    };
+    const std::array<float, 2> phaserDamping {
+        parameterValue("filter1PhaserDamping"),
+        parameterValue("filter2PhaserDamping")
+    };
     const std::array<int, 2> architecture {
         dusk::architecture::normaliseChoice(juce::roundToInt(
             parameterValue("filter1Architecture"))),
@@ -2847,6 +3008,16 @@ void DuskAudioProcessorEditor::ResponseDisplay::paint(juce::Graphics& g)
                 poleSpread[0], feedback[0], ladderStageSaturation[0],
                 ladderResonanceCompensation[0], otaCellDrive[0],
                 otaFeedbackDamping[0], otaResonanceCompensation[0],
+                combFrequency[0], combFeedback[0], combDamping[0],
+                combFineTune[0], combPolarity[0], combDispersion[0],
+                combMode[0],
+                formantVowel[0], formantShift[0], formantFocus[0],
+                formantOneLevel[0], formantTwoLevel[0],
+                formantThreeLevel[0], formantBandwidth[0],
+                formantSpread[0], formantTilt[0],
+                phaserFrequency[0], phaserFeedback[0], phaserDepth[0],
+                phaserStages[0], phaserSpread[0], phaserSkew[0],
+                phaserDamping[0],
                 filterType[0])
             : std::complex<double>(1.0, 0.0);
         const auto filter2Response = enabled[1]
@@ -2857,6 +3028,16 @@ void DuskAudioProcessorEditor::ResponseDisplay::paint(juce::Graphics& g)
                 poleSpread[1], feedback[1], ladderStageSaturation[1],
                 ladderResonanceCompensation[1], otaCellDrive[1],
                 otaFeedbackDamping[1], otaResonanceCompensation[1],
+                combFrequency[1], combFeedback[1], combDamping[1],
+                combFineTune[1], combPolarity[1], combDispersion[1],
+                combMode[1],
+                formantVowel[1], formantShift[1], formantFocus[1],
+                formantOneLevel[1], formantTwoLevel[1],
+                formantThreeLevel[1], formantBandwidth[1],
+                formantSpread[1], formantTilt[1],
+                phaserFrequency[1], phaserFeedback[1], phaserDepth[1],
+                phaserStages[1], phaserSpread[1], phaserSkew[1],
+                phaserDamping[1],
                 filterType[1])
             : std::complex<double>(1.0, 0.0);
         std::complex<double> combinedResponse;
@@ -3556,6 +3737,36 @@ void DuskAudioProcessorEditor::LookAndFeel::drawPopupMenuItem(
         hasSubMenu, text, shortcutKeyText, icon, textColour);
 }
 
+void DuskAudioProcessorEditor::LookAndFeel::drawPopupMenuSectionHeader(
+    juce::Graphics& g, const juce::Rectangle<int>& area,
+    const juce::String& sectionName)
+{
+    auto font = getPopupMenuFont();
+    const auto itemTextBounds = area.reduced(1);
+    font.setHeight(juce::jmin(
+        font.getHeight(),
+        static_cast<float>(itemTextBounds.getHeight()) / 1.3f));
+    g.setFont(font.boldened());
+    g.setColour(findColour(juce::PopupMenu::headerTextColourId));
+    g.drawFittedText(sectionName, area.reduced(12, 0),
+                     juce::Justification::centredLeft, 1, 1.0f);
+}
+
+void DuskAudioProcessorEditor::LookAndFeel::
+getIdealPopupMenuSectionHeaderSizeWithOptions(
+    const juce::String& text, int standardMenuItemHeight,
+    int& idealWidth, int& idealHeight,
+    const juce::PopupMenu::Options& options)
+{
+    const int rowHeight = options.getStandardItemHeight() > 0
+        ? options.getStandardItemHeight() : standardMenuItemHeight;
+    getIdealPopupMenuItemSizeWithOptions(
+        text, false, rowHeight,
+        idealWidth, idealHeight, options);
+    if (rowHeight > 0)
+        idealHeight = rowHeight;
+}
+
 void DuskAudioProcessorEditor::LookAndFeel::drawPopupMenuBackground(
     juce::Graphics& g, int width, int height)
 {
@@ -3601,7 +3812,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addMouseListener(this, true);
     content.setInterceptsMouseClicks(false, true);
 
-    versionLabel.setText("v0.18.0", juce::dontSendNotification);
+    versionLabel.setText("v0.21.5", juce::dontSendNotification);
     versionLabel.setJustificationType(juce::Justification::centredLeft);
     versionLabel.setColour(juce::Label::textColourId, knobIndicatorColour);
     versionLabel.setFont(juce::Font(juce::FontOptions(8.5f,
@@ -3609,22 +3820,25 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addAndMakeVisible(versionLabel);
 
     const auto configureViewButton = [this](
-        juce::ToggleButton& button, const juce::String& tooltip)
+        juce::ToggleButton& button, const juce::String& tooltip,
+        juce::Colour activeColour)
     {
         button.setClickingTogglesState(true);
         button.setRadioGroupId(0x4455534b);
         button.getProperties().set("fixedLedCentreX", 8.0f);
         button.getProperties().set(
-            "activeColour", knobIndicatorColour.toString());
+            "activeColour", activeColour.toString());
         button.setColour(juce::ToggleButton::textColourId, knobValueColour);
         button.setTooltip(tooltip);
         content.addAndMakeVisible(button);
     };
     configureViewButton(
-        filterViewButton, "Show the main controls for Filter 1 and Filter 2");
+        filterViewButton, "Show the main controls for Filter 1 and Filter 2",
+        controlAccentColour);
     configureViewButton(
         designerViewButton,
-        "Show both context-sensitive Filter Mode Designer areas");
+        "Show both context-sensitive Filter Mode Designer areas",
+        bipolarLedColour);
     if (storedSettings.mainView.equalsIgnoreCase("Designer"))
         mainView = MainView::designer;
     filterViewButton.setToggleState(mainView == MainView::filter,
@@ -3780,7 +3994,225 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
         .setDoubleClickReturnValue(true, 50.0);
     filter2OtaResonanceCompensationDial->slider
         .setDoubleClickReturnValue(true, 50.0);
-    for (auto* designerDial : std::array<Dial*, 28>
+    filter1CombFrequencyDial = addDial(
+        "filter1CombFrequency", "FREQ",
+        "Set Filter 1 Comb's fundamental delay frequency from 20 Hz to 8 kHz. The focused range keeps the upper half useful while harmonic notches or peaks repeat above it.");
+    filter2CombFrequencyDial = addDial(
+        "filter2CombFrequency", "FREQ",
+        "Set Filter 2 Comb's fundamental delay frequency independently from Filter 1.");
+    filter1CombFeedbackDial = addDial(
+        "filter1CombFeedback", "FDBK",
+        "Set Filter 1 Comb's delayed-signal amount. Feedback mode recirculates it; Feedforward and All-pass use the same amount without sharing state.");
+    filter2CombFeedbackDial = addDial(
+        "filter2CombFeedback", "FDBK",
+        "Set Filter 2 Comb's delayed-signal amount independently. High settings remain bounded below unity gain.");
+    filter1CombDampingDial = addDial(
+        "filter1CombDamping", "DAMPING",
+        "Darken Filter 1 Comb's delayed branch. Higher values shorten bright ringing and soften repeated high-frequency teeth.");
+    filter2CombDampingDial = addDial(
+        "filter2CombDamping", "DAMPING",
+        "Darken Filter 2 Comb's delayed branch independently from Filter 1.");
+    filter1CombFineTuneDial = addDial(
+        "filter1CombFineTune", "FINE TUNE",
+        "Tune Filter 1 Comb by plus or minus 100 cents without changing its displayed base Frequency.");
+    filter2CombFineTuneDial = addDial(
+        "filter2CombFineTune", "FINE TUNE",
+        "Tune Filter 2 Comb by plus or minus 100 cents independently.");
+    filter1CombPolarityDial = addDial(
+        "filter1CombPolarity", "POLARITY",
+        "Move Filter 1 Comb continuously between negative and positive delayed polarity. The centre removes the delayed branch.");
+    filter2CombPolarityDial = addDial(
+        "filter2CombPolarity", "POLARITY",
+        "Set Filter 2 Comb's delayed polarity independently; zero removes its comb effect.");
+    filter1CombStereoSpreadDial = addDial(
+        "filter1CombStereoSpread", "STEREO",
+        "Detune Filter 1 Comb oppositely across left and right by up to 100 cents for a wider stereo pattern.");
+    filter2CombStereoSpreadDial = addDial(
+        "filter2CombStereoSpread", "STEREO",
+        "Detune Filter 2 Comb across the stereo field independently from Filter 1.");
+    filter1CombDispersionDial = addDial(
+        "filter1CombDispersion", "DISPERSION",
+        "Add phase dispersion inside Filter 1 Comb's delayed branch, smearing its evenly spaced resonance pattern.");
+    filter2CombDispersionDial = addDial(
+        "filter2CombDispersion", "DISPERSION",
+        "Add independent phase dispersion to Filter 2 Comb's delayed branch.");
+    filter1CombLoopSaturationDial = addDial(
+        "filter1CombLoopSaturation", "LOOP SAT",
+        "Saturate Filter 1 Comb's delayed branch while preserving its small-signal level at 0%. High settings compress ringing strongly.");
+    filter2CombLoopSaturationDial = addDial(
+        "filter2CombLoopSaturation", "LOOP SAT",
+        "Saturate Filter 2 Comb's delayed branch independently from the selectable distortion model.");
+    filter1CombFeedbackLimitDial = addDial(
+        "filter1CombFeedbackLimit", "FB LIMIT",
+        "Set Filter 1 Comb's high-level feedback ceiling. Lower values restrain ringing earlier without changing the graph's small-signal response.");
+    filter2CombFeedbackLimitDial = addDial(
+        "filter2CombFeedbackLimit", "FB LIMIT",
+        "Set Filter 2 Comb's high-level feedback ceiling independently.");
+    for (auto* dial : { filter1CombFineTuneDial, filter2CombFineTuneDial,
+                        filter1CombPolarityDial, filter2CombPolarityDial,
+                        filter1CombStereoSpreadDial,
+                        filter2CombStereoSpreadDial })
+    {
+        dial->slider.setCentreDetent(0.0, 2.0);
+        dial->slider.setDoubleClickReturnValue(true,
+            dial == filter1CombPolarityDial
+                || dial == filter2CombPolarityDial ? 100.0 : 0.0);
+    }
+    for (auto* dial : { filter1CombDispersionDial, filter2CombDispersionDial,
+                        filter1CombLoopSaturationDial,
+                        filter2CombLoopSaturationDial })
+        dial->slider.setDoubleClickReturnValue(true, 0.0);
+    filter1CombFeedbackLimitDial->slider.setDoubleClickReturnValue(true, 100.0);
+    filter2CombFeedbackLimitDial->slider.setDoubleClickReturnValue(true, 100.0);
+    filter1FormantVowelDial = addDial(
+        "filter1FormantVowel", "VOWEL",
+        "Morph Filter 1 continuously through A, E, I, O and U formant positions. Intermediate positions blend all three resonant bands smoothly.");
+    filter2FormantVowelDial = addDial(
+        "filter2FormantVowel", "VOWEL",
+        "Morph Filter 2 independently through the five vocal positions and every intermediate sound.");
+    filter1FormantShiftDial = addDial(
+        "filter1FormantShift", "SHIFT",
+        "Shift all three Filter 1 formants together by plus or minus 24 semitones without changing their vowel relationship.");
+    filter2FormantShiftDial = addDial(
+        "filter2FormantShift", "SHIFT",
+        "Shift Filter 2's complete vocal spectrum independently by plus or minus two octaves.");
+    filter1FormantFocusDial = addDial(
+        "filter1FormantFocus", "FOCUS",
+        "Change Filter 1 from broad, gentle vocal colour to narrower and more prominent formant peaks. Designer Width changes bandwidth without changing peak emphasis.");
+    filter2FormantFocusDial = addDial(
+        "filter2FormantFocus", "FOCUS",
+        "Set Filter 2's formant sharpness and prominence independently; higher values create more focused vowel peaks.");
+    filter1FormantOneLevelDial = addDial(
+        "filter1FormantOneLevel", "F1 LEVEL",
+        "Set the lowest Filter 1 formant band's contribution from silent to twice its natural level.");
+    filter2FormantOneLevelDial = addDial(
+        "filter2FormantOneLevel", "F1 LEVEL",
+        "Set Filter 2's lowest formant band level independently.");
+    filter1FormantTwoLevelDial = addDial(
+        "filter1FormantTwoLevel", "F2 LEVEL",
+        "Set Filter 1's middle formant band level; this band carries much of the vowel identity.");
+    filter2FormantTwoLevelDial = addDial(
+        "filter2FormantTwoLevel", "F2 LEVEL",
+        "Set Filter 2's middle formant band level independently.");
+    filter1FormantThreeLevelDial = addDial(
+        "filter1FormantThreeLevel", "F3 LEVEL",
+        "Set Filter 1's highest formant band level to control vocal presence and articulation.");
+    filter2FormantThreeLevelDial = addDial(
+        "filter2FormantThreeLevel", "F3 LEVEL",
+        "Set Filter 2's highest formant band level independently.");
+    filter1FormantBandwidthDial = addDial(
+        "filter1FormantBandwidth", "WIDTH",
+        "Scale all Filter 1 formant bandwidths from 50% to 200% while preserving their individual vowel proportions.");
+    filter2FormantBandwidthDial = addDial(
+        "filter2FormantBandwidth", "WIDTH",
+        "Scale Filter 2's three formant bandwidths independently from its main Focus control.");
+    filter1FormantSpreadDial = addDial(
+        "filter1FormantSpread", "SPREAD",
+        "Compress or expand Filter 1's outer formants around the middle band by up to half an octave.");
+    filter2FormantSpreadDial = addDial(
+        "filter2FormantSpread", "SPREAD",
+        "Compress or expand Filter 2's outer formant spacing independently.");
+    filter1FormantTiltDial = addDial(
+        "filter1FormantTilt", "TILT",
+        "Tilt Filter 1's formant balance from low and throaty to high and bright without moving the band frequencies.");
+    filter2FormantTiltDial = addDial(
+        "filter2FormantTilt", "TILT",
+        "Tilt Filter 2's formant balance independently from dark to bright.");
+    for (auto* dial : { filter1FormantShiftDial, filter2FormantShiftDial,
+                        filter1FormantSpreadDial, filter2FormantSpreadDial,
+                        filter1FormantTiltDial, filter2FormantTiltDial })
+    {
+        dial->slider.setCentreDetent(0.0, 2.0);
+        dial->slider.setDoubleClickReturnValue(true, 0.0);
+    }
+    filter1FormantVowelDial->slider.setDoubleClickReturnValue(true, 0.0);
+    filter2FormantVowelDial->slider.setDoubleClickReturnValue(true, 0.0);
+    filter1FormantFocusDial->slider.setDoubleClickReturnValue(true, 50.0);
+    filter2FormantFocusDial->slider.setDoubleClickReturnValue(true, 50.0);
+    for (auto* dial : { filter1FormantOneLevelDial,
+                        filter2FormantOneLevelDial,
+                        filter1FormantTwoLevelDial,
+                        filter2FormantTwoLevelDial,
+                        filter1FormantThreeLevelDial,
+                        filter2FormantThreeLevelDial,
+                        filter1FormantBandwidthDial,
+                        filter2FormantBandwidthDial })
+        dial->slider.setDoubleClickReturnValue(true, 100.0);
+    filter1PhaserFrequencyDial = addDial(
+        "filter1PhaserFrequency", "FREQ",
+        "Move Filter 1 Phaser's all-pass cascade from 20 Hz to 20 kHz. This directly sweeps the notch pattern without requiring an internal LFO.");
+    filter2PhaserFrequencyDial = addDial(
+        "filter2PhaserFrequency", "FREQ",
+        "Move Filter 2 Phaser's complete notch pattern independently from Filter 1.");
+    filter1PhaserFeedbackDial = addDial(
+        "filter1PhaserFeedback", "FDBK",
+        "Feed Filter 1 Phaser's cascade output back with positive or negative polarity. Higher magnitudes sharpen and colour the notches.");
+    filter2PhaserFeedbackDial = addDial(
+        "filter2PhaserFeedback", "FDBK",
+        "Set Filter 2 Phaser feedback and polarity independently while its loop remains bounded below unity gain.");
+    filter1PhaserDepthDial = addDial(
+        "filter1PhaserDepth", "DEPTH",
+        "Blend Filter 1's dry and phase-shifted paths internally. Zero is transparent; 100% produces the deepest phase-cancellation notches.");
+    filter2PhaserDepthDial = addDial(
+        "filter2PhaserDepth", "DEPTH",
+        "Set Filter 2 Phaser notch depth independently from the plugin's global Mix control.");
+    filter1PhaserStagesDial = addDial(
+        "filter1PhaserStages", "STAGES",
+        "Continuously blend Filter 1 between 2 and 12 all-pass stages. More stages create a denser multi-notch response.");
+    filter2PhaserStagesDial = addDial(
+        "filter2PhaserStages", "STAGES",
+        "Set Filter 2's all-pass stage density independently without resetting any stage state.");
+    filter1PhaserSpreadDial = addDial(
+        "filter1PhaserSpread", "SPREAD",
+        "Expand Filter 1's all-pass stages around Frequency, from a tight cluster to a broad six-octave pattern.");
+    filter2PhaserSpreadDial = addDial(
+        "filter2PhaserSpread", "SPREAD",
+        "Set Filter 2's notch spacing independently around its centre Frequency.");
+    filter1PhaserSkewDial = addDial(
+        "filter1PhaserSkew", "SKEW",
+        "Redistribute Filter 1's stage frequencies toward or away from the centre while retaining paired low and high stages.");
+    filter2PhaserSkewDial = addDial(
+        "filter2PhaserSkew", "SKEW",
+        "Skew Filter 2's stage distribution independently to reshape the notch spacing.");
+    filter1PhaserDampingDial = addDial(
+        "filter1PhaserDamping", "FB DAMP",
+        "Darken Filter 1's feedback return. Higher values soften bright feedback while leaving the direct all-pass cascade intact.");
+    filter2PhaserDampingDial = addDial(
+        "filter2PhaserDamping", "FB DAMP",
+        "Darken Filter 2's Phaser feedback return independently.");
+    filter1PhaserStageSaturationDial = addDial(
+        "filter1PhaserStageSaturation", "STAGE SAT",
+        "Drive every Filter 1 all-pass stage strongly. The loop guard removes only excess cumulative gain from the feedback return.");
+    filter2PhaserStageSaturationDial = addDial(
+        "filter2PhaserStageSaturation", "STAGE SAT",
+        "Drive every Filter 2 all-pass stage independently. Its strong cumulative output remains available without sustaining feedback squeal.");
+    filter1PhaserStereoDial = addDial(
+        "filter1PhaserStereo", "STEREO",
+        "Shift Filter 1's left and right Phaser patterns in opposite directions by up to three quarters of an octave.");
+    filter2PhaserStereoDial = addDial(
+        "filter2PhaserStereo", "STEREO",
+        "Set Filter 2's opposite-channel Phaser offset independently; the centre position is mono-aligned.");
+    for (auto* dial : { filter1PhaserFeedbackDial,
+                        filter2PhaserFeedbackDial,
+                        filter1PhaserSkewDial, filter2PhaserSkewDial,
+                        filter1PhaserStereoDial, filter2PhaserStereoDial })
+    {
+        dial->slider.setCentreDetent(0.0, 2.0);
+        dial->slider.setDoubleClickReturnValue(true, 0.0);
+    }
+    filter1PhaserFrequencyDial->slider.setDoubleClickReturnValue(true, 1000.0);
+    filter2PhaserFrequencyDial->slider.setDoubleClickReturnValue(true, 1000.0);
+    filter1PhaserDepthDial->slider.setDoubleClickReturnValue(true, 75.0);
+    filter2PhaserDepthDial->slider.setDoubleClickReturnValue(true, 75.0);
+    filter1PhaserStagesDial->slider.setDoubleClickReturnValue(true, 6.0);
+    filter2PhaserStagesDial->slider.setDoubleClickReturnValue(true, 6.0);
+    filter1PhaserSpreadDial->slider.setDoubleClickReturnValue(true, 50.0);
+    filter2PhaserSpreadDial->slider.setDoubleClickReturnValue(true, 50.0);
+    filter1PhaserDampingDial->slider.setDoubleClickReturnValue(true, 20.0);
+    filter2PhaserDampingDial->slider.setDoubleClickReturnValue(true, 20.0);
+    filter1PhaserStageSaturationDial->slider.setDoubleClickReturnValue(true, 0.0);
+    filter2PhaserStageSaturationDial->slider.setDoubleClickReturnValue(true, 0.0);
+    for (auto* designerDial : std::array<Dial*, 64>
          { filter1ResonanceShapeDial, filter2ResonanceShapeDial,
            filter1ResonanceLimitDial, filter2ResonanceLimitDial,
            filter1BassLossDial, filter2BassLossDial,
@@ -3799,7 +4231,26 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
            filter1OtaFeedbackDampingDial,
            filter2OtaFeedbackDampingDial,
            filter1OtaResonanceCompensationDial,
-           filter2OtaResonanceCompensationDial })
+           filter2OtaResonanceCompensationDial,
+           filter1CombFineTuneDial, filter2CombFineTuneDial,
+           filter1CombPolarityDial, filter2CombPolarityDial,
+           filter1CombStereoSpreadDial, filter2CombStereoSpreadDial,
+           filter1CombDispersionDial, filter2CombDispersionDial,
+           filter1CombLoopSaturationDial, filter2CombLoopSaturationDial,
+           filter1CombFeedbackLimitDial, filter2CombFeedbackLimitDial,
+           filter1FormantOneLevelDial, filter2FormantOneLevelDial,
+           filter1FormantTwoLevelDial, filter2FormantTwoLevelDial,
+           filter1FormantThreeLevelDial, filter2FormantThreeLevelDial,
+           filter1FormantBandwidthDial, filter2FormantBandwidthDial,
+           filter1FormantSpreadDial, filter2FormantSpreadDial,
+           filter1FormantTiltDial, filter2FormantTiltDial,
+           filter1PhaserStagesDial, filter2PhaserStagesDial,
+           filter1PhaserSpreadDial, filter2PhaserSpreadDial,
+           filter1PhaserSkewDial, filter2PhaserSkewDial,
+           filter1PhaserDampingDial, filter2PhaserDampingDial,
+           filter1PhaserStageSaturationDial,
+           filter2PhaserStageSaturationDial,
+           filter1PhaserStereoDial, filter2PhaserStereoDial })
         designerDial->label.setFont(juce::Font(juce::FontOptions(
             9.0f, juce::Font::bold)));
     filter1SlopeDial = addDial(
@@ -3934,6 +4385,10 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
         { "LPF", "BPF", "HPF", "NOTCH", "PEAK" }, 1);
     filter2TypeBox.addItemList(
         { "LPF", "BPF", "HPF", "NOTCH", "PEAK" }, 1);
+    filter1CombModeBox.addItemList(
+        { "Feedback", "Feedforward", "All-pass" }, 1);
+    filter2CombModeBox.addItemList(
+        { "Feedback", "Feedforward", "All-pass" }, 1);
     filter1DistortionTypeBox.addItemList(distortionTypeNames, 1);
     filter2DistortionTypeBox.addItemList(distortionTypeNames, 1);
     filter1DistortionPlacementBox.addItemList(
@@ -3952,16 +4407,20 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
         "Choose Filter 1's standard response: low-pass, band-pass, high-pass, notch or resonant peak.");
     configureCombo(filter2TypeBox, filter2TypeLabel, "Type",
         "Choose Filter 2's standard response independently from Filter 1.");
+    configureCombo(filter1CombModeBox, filter1CombModeLabel, "Comb Mode",
+        "Choose Filter 1 Comb's Feedback, Feedforward or All-pass structure. Each mode keeps independent live delay state and changes safely by crossfade.");
+    configureCombo(filter2CombModeBox, filter2CombModeLabel, "Comb Mode",
+        "Choose Filter 2 Comb's independent Feedback, Feedforward or All-pass structure.");
     configureCombo(filter1DistortionTypeBox, filter1DistortionTypeLabel,
         "Dist Type", "Choose Filter 1's independent distortion model.");
     configureCombo(filter2DistortionTypeBox, filter2DistortionTypeLabel,
         "Dist Type", "Choose Filter 2's independent distortion model.");
     configureCombo(filter1DistortionPlacementBox,
         filter1DistortionPlacementLabel, "Placement",
-        "Place Filter 1 distortion before its input, inside its feedback path, or after its output.");
+        "Place Filter 1 distortion before its input, inside its selected architecture, or after its output.");
     configureCombo(filter2DistortionPlacementBox,
         filter2DistortionPlacementLabel, "Placement",
-        "Place Filter 2 distortion before its input, inside its feedback path, or after its output.");
+        "Place Filter 2 distortion before its input, inside its selected architecture, or after its output.");
     configureCombo(filter1ModelBox, filter1ModelLabel, "Model",
         "Recall a Factory or User configuration of Filter 1's Architecture and Designer controls. Standard FILTER controls and Filter 2 remain unchanged.");
     configureCombo(filter2ModelBox, filter2ModelLabel, "Model",
@@ -4016,6 +4475,12 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     filter2TypeAttachment = std::make_unique<
         juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
             processor.parameters, "filter2Type", filter2TypeBox);
+    filter1CombModeAttachment = std::make_unique<
+        juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+            processor.parameters, "filter1CombMode", filter1CombModeBox);
+    filter2CombModeAttachment = std::make_unique<
+        juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+            processor.parameters, "filter2CombMode", filter2CombModeBox);
     filter1DistortionTypeAttachment = std::make_unique<
         juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
             processor.parameters, "filter1DistortionType",
@@ -4295,12 +4760,12 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     randomButton.getProperties().set(
         "activeColour", knobIndicatorColour.toString());
     randomButton.setTooltip(
-        "Randomise both filters' standard controls and Clean SVF, Ladder and OTA Designer values plus a safe OUT level while leaving Architecture, routing, filter power, placement, Mix, main Power and the sequencer unchanged");
+        "Randomise both filters' standard and architecture-specific controls, including Phaser, plus a safe OUT level while leaving Architecture, routing, filter power, placement, Mix, main Power and the sequencer unchanged");
     randomButton.onClick = [this] { randomiseEffectParameters(); };
     content.addAndMakeVisible(randomButton);
 
     information.setText(
-        "DUSK 0.18.0 | Pre, Internal and Post now provide three genuine distortion positions.",
+        "DUSK 0.21.5 | Phaser output strength retained; cumulative stage gain can no longer sustain a feedback squeal.",
         juce::dontSendNotification);
     information.setColour(juce::Label::textColourId,
                           juce::Colours::lightgrey);
@@ -4608,6 +5073,26 @@ bool DuskAudioProcessorEditor::isFilterModelParameter(
             if (suffix == candidate)
                 return true;
     }
+    else if (architecture == static_cast<int>(dusk::architecture::Id::comb))
+    {
+        for (const auto* candidate : combModelParameterSuffixes)
+            if (suffix == candidate)
+                return true;
+    }
+    else if (architecture
+             == static_cast<int>(dusk::architecture::Id::formant))
+    {
+        for (const auto* candidate : formantModelParameterSuffixes)
+            if (suffix == candidate)
+                return true;
+    }
+    else if (architecture
+             == static_cast<int>(dusk::architecture::Id::phaser))
+    {
+        for (const auto* candidate : phaserModelParameterSuffixes)
+            if (suffix == candidate)
+                return true;
+    }
     else
     {
         for (const auto* candidate : cleanModelParameterSuffixes)
@@ -4623,7 +5108,7 @@ void DuskAudioProcessorEditor::markFilterModelCustom(int filterIndex)
         return;
     const auto index = static_cast<size_t>(juce::jlimit(1, 2, filterIndex) - 1);
     selectedFactoryFilterModels[index].clear();
-    selectedUserFilterModelFiles[index] = {};
+    selectedUserFilterModelFiles[index] = juce::File();
     auto& box = filterIndex == 2 ? filter2ModelBox : filter1ModelBox;
     box.setSelectedId(0, juce::dontSendNotification);
     box.setTextWhenNothingSelected("CUSTOM");
@@ -4663,6 +5148,21 @@ void DuskAudioProcessorEditor::refreshFilterModelBoxes()
             box.addItem(otaFactoryModels[index].name,
                         otaFactoryModelIdBase
                             + static_cast<int>(index) + 1);
+        box.addSectionHeading("FACTORY / COMB");
+        for (size_t index = 0; index < combFactoryModels.size(); ++index)
+            box.addItem(combFactoryModels[index].name,
+                        combFactoryModelIdBase
+                            + static_cast<int>(index) + 1);
+        box.addSectionHeading("FACTORY / FORMANT");
+        for (size_t index = 0; index < formantFactoryModels.size(); ++index)
+            box.addItem(formantFactoryModels[index].name,
+                        formantFactoryModelIdBase
+                            + static_cast<int>(index) + 1);
+        box.addSectionHeading("FACTORY / PHASER");
+        for (size_t index = 0; index < phaserFactoryModels.size(); ++index)
+            box.addItem(phaserFactoryModels[index].name,
+                        phaserFactoryModelIdBase
+                            + static_cast<int>(index) + 1);
         if (! userFilterModelFiles.isEmpty())
         {
             box.addSectionHeading("USER");
@@ -4701,6 +5201,23 @@ void DuskAudioProcessorEditor::refreshFilterModelBoxes()
                         == otaFactoryModels[index].name)
                     selectedId = otaFactoryModelIdBase
                         + static_cast<int>(index) + 1;
+            for (size_t index = 0; index < combFactoryModels.size(); ++index)
+                if (selectedFactoryFilterModels[stateIndex]
+                        == combFactoryModels[index].name)
+                    selectedId = combFactoryModelIdBase
+                        + static_cast<int>(index) + 1;
+            for (size_t index = 0; index < formantFactoryModels.size();
+                 ++index)
+                if (selectedFactoryFilterModels[stateIndex]
+                        == formantFactoryModels[index].name)
+                    selectedId = formantFactoryModelIdBase
+                        + static_cast<int>(index) + 1;
+            for (size_t index = 0; index < phaserFactoryModels.size();
+                 ++index)
+                if (selectedFactoryFilterModels[stateIndex]
+                        == phaserFactoryModels[index].name)
+                    selectedId = phaserFactoryModelIdBase
+                        + static_cast<int>(index) + 1;
         }
         box.setSelectedId(selectedId, juce::dontSendNotification);
     }
@@ -4721,6 +5238,9 @@ void DuskAudioProcessorEditor::applyFactoryFilterModel(
     const int cleanIndex = selectedId - cleanFactoryModelIdBase - 1;
     const int ladderIndex = selectedId - ladderFactoryModelIdBase - 1;
     const int otaIndex = selectedId - otaFactoryModelIdBase - 1;
+    const int combIndex = selectedId - combFactoryModelIdBase - 1;
+    const int formantIndex = selectedId - formantFactoryModelIdBase - 1;
+    const int phaserIndex = selectedId - phaserFactoryModelIdBase - 1;
     if (juce::isPositiveAndBelow(
             cleanIndex, static_cast<int>(cleanFactoryModels.size())))
     {
@@ -4765,11 +5285,57 @@ void DuskAudioProcessorEditor::applyFactoryFilterModel(
                 parameterId(otaModelParameterSuffixes[index])),
                 model.values[index]);
     }
+    else if (juce::isPositiveAndBelow(
+                 combIndex, static_cast<int>(combFactoryModels.size())))
+    {
+        const auto& model = combFactoryModels[static_cast<size_t>(combIndex)];
+        modelName = model.name;
+        setParameterActualValue(processor.parameters.getParameter(
+            parameterId("Architecture")),
+            static_cast<float>(dusk::architecture::Id::comb));
+        for (size_t index = 0; index < combModelParameterSuffixes.size();
+             ++index)
+            setParameterActualValue(processor.parameters.getParameter(
+                parameterId(combModelParameterSuffixes[index])),
+                model.values[index]);
+    }
+    else if (juce::isPositiveAndBelow(
+                 formantIndex,
+                 static_cast<int>(formantFactoryModels.size())))
+    {
+        const auto& model = formantFactoryModels[
+            static_cast<size_t>(formantIndex)];
+        modelName = model.name;
+        setParameterActualValue(processor.parameters.getParameter(
+            parameterId("Architecture")),
+            static_cast<float>(dusk::architecture::Id::formant));
+        for (size_t index = 0; index < formantModelParameterSuffixes.size();
+             ++index)
+            setParameterActualValue(processor.parameters.getParameter(
+                parameterId(formantModelParameterSuffixes[index])),
+                model.values[index]);
+    }
+    else if (juce::isPositiveAndBelow(
+                 phaserIndex,
+                 static_cast<int>(phaserFactoryModels.size())))
+    {
+        const auto& model = phaserFactoryModels[
+            static_cast<size_t>(phaserIndex)];
+        modelName = model.name;
+        setParameterActualValue(processor.parameters.getParameter(
+            parameterId("Architecture")),
+            static_cast<float>(dusk::architecture::Id::phaser));
+        for (size_t index = 0; index < phaserModelParameterSuffixes.size();
+             ++index)
+            setParameterActualValue(processor.parameters.getParameter(
+                parameterId(phaserModelParameterSuffixes[index])),
+                model.values[index]);
+    }
     if (modelName.isEmpty())
         return;
 
     selectedFactoryFilterModels[stateIndex] = modelName;
-    selectedUserFilterModelFiles[stateIndex] = {};
+    selectedUserFilterModelFiles[stateIndex] = juce::File();
     updateArchitectureContext();
     updatePresetBrowserVisibility();
     information.setText(contextHelpText(
@@ -4823,6 +5389,14 @@ juce::Result DuskAudioProcessorEditor::loadUserFilterModel(
         complete = appendRequiredSettings(ladderModelParameterSuffixes);
     else if (architecture == static_cast<int>(dusk::architecture::Id::ota))
         complete = appendRequiredSettings(otaModelParameterSuffixes);
+    else if (architecture == static_cast<int>(dusk::architecture::Id::comb))
+        complete = appendRequiredSettings(combModelParameterSuffixes);
+    else if (architecture
+             == static_cast<int>(dusk::architecture::Id::formant))
+        complete = appendRequiredSettings(formantModelParameterSuffixes);
+    else if (architecture
+             == static_cast<int>(dusk::architecture::Id::phaser))
+        complete = appendRequiredSettings(phaserModelParameterSuffixes);
     else
         complete = appendRequiredSettings(cleanModelParameterSuffixes);
     if (! complete)
@@ -4880,6 +5454,17 @@ juce::Result DuskAudioProcessorEditor::saveFilterModelToFile(
     else if (architecture == static_cast<int>(dusk::architecture::Id::ota))
         for (const auto* suffix : otaModelParameterSuffixes)
             addSetting(suffix);
+    else if (architecture == static_cast<int>(dusk::architecture::Id::comb))
+        for (const auto* suffix : combModelParameterSuffixes)
+            addSetting(suffix);
+    else if (architecture
+             == static_cast<int>(dusk::architecture::Id::formant))
+        for (const auto* suffix : formantModelParameterSuffixes)
+            addSetting(suffix);
+    else if (architecture
+             == static_cast<int>(dusk::architecture::Id::phaser))
+        for (const auto* suffix : phaserModelParameterSuffixes)
+            addSetting(suffix);
     else
         for (const auto* suffix : cleanModelParameterSuffixes)
             addSetting(suffix);
@@ -4922,7 +5507,8 @@ void DuskAudioProcessorEditor::showSaveFilterModelAs(int filterIndex)
                     if (safeThis->selectedUserFilterModelFiles[otherIndex]
                         == file)
                     {
-                        safeThis->selectedUserFilterModelFiles[otherIndex] = {};
+                        safeThis->selectedUserFilterModelFiles[otherIndex]
+                            = juce::File();
                         safeThis->selectedFactoryFilterModels[otherIndex]
                             .clear();
                     }
@@ -4998,7 +5584,16 @@ void DuskAudioProcessorEditor::handleFilterModelSelection(int filterIndex)
                 + static_cast<int>(ladderFactoryModels.size()))
         || (selectedId > otaFactoryModelIdBase
             && selectedId <= otaFactoryModelIdBase
-                + static_cast<int>(otaFactoryModels.size())))
+                + static_cast<int>(otaFactoryModels.size()))
+        || (selectedId > combFactoryModelIdBase
+            && selectedId <= combFactoryModelIdBase
+                + static_cast<int>(combFactoryModels.size()))
+        || (selectedId > formantFactoryModelIdBase
+            && selectedId <= formantFactoryModelIdBase
+                + static_cast<int>(formantFactoryModels.size()))
+        || (selectedId > phaserFactoryModelIdBase
+            && selectedId <= phaserFactoryModelIdBase
+                + static_cast<int>(phaserFactoryModels.size())))
     {
         applyFactoryFilterModel(filterIndex, selectedId);
         return;
@@ -5038,11 +5633,11 @@ void DuskAudioProcessorEditor::setMainView(MainView view)
     updatePresetBrowserVisibility();
     if (mainView == MainView::designer)
         information.setText(
-            "DESIGNER | Each side follows its filter's selected DSP architecture.\nClean SVF, Ladder and OTA expose only the controls that genuinely belong to their own engines.",
+            "DESIGNER | Each side follows its filter's selected DSP architecture.\nClean SVF, Ladder, OTA, Comb, Formant and Phaser expose only the controls that belong to their own engines.",
             juce::dontSendNotification);
     else
         information.setText(
-            "FILTER VIEW | Select each filter's Architecture and standard LPF, BPF, HPF, NOTCH or PEAK response.\nThe graph shows F1, F2 and the routing-aware combined small-signal response.",
+            "FILTER VIEW | Standard architectures use Type; Comb, Formant and Phaser supply their own main controls.\nThe graph shows F1, F2 and the routing-aware combined small-signal response.",
             juce::dontSendNotification);
     saveInterfaceSettings();
 }
@@ -5086,6 +5681,18 @@ void DuskAudioProcessorEditor::updatePresetBrowserVisibility()
         == static_cast<int>(dusk::architecture::Id::ota);
     const bool filter2UsesOta = architectureChoiceForFilter(2)
         == static_cast<int>(dusk::architecture::Id::ota);
+    const bool filter1UsesComb = architectureChoiceForFilter(1)
+        == static_cast<int>(dusk::architecture::Id::comb);
+    const bool filter2UsesComb = architectureChoiceForFilter(2)
+        == static_cast<int>(dusk::architecture::Id::comb);
+    const bool filter1UsesFormant = architectureChoiceForFilter(1)
+        == static_cast<int>(dusk::architecture::Id::formant);
+    const bool filter2UsesFormant = architectureChoiceForFilter(2)
+        == static_cast<int>(dusk::architecture::Id::formant);
+    const bool filter1UsesPhaser = architectureChoiceForFilter(1)
+        == static_cast<int>(dusk::architecture::Id::phaser);
+    const bool filter2UsesPhaser = architectureChoiceForFilter(2)
+        == static_cast<int>(dusk::architecture::Id::phaser);
     for (const auto& dial : dials)
     {
         bool visible = false;
@@ -5098,12 +5705,40 @@ void DuskAudioProcessorEditor::updatePresetBrowserVisibility()
                 || (showFilterControls
                     && (dial.get() == filter1DriveDial
                         || dial.get() == filter2DriveDial
-                        || dial.get() == filter1CutoffDial
-                        || dial.get() == filter2CutoffDial
-                        || dial.get() == filter1ResonanceDial
-                        || dial.get() == filter2ResonanceDial
-                        || dial.get() == filter1SlopeDial
-                        || dial.get() == filter2SlopeDial))
+                        || (! filter1UsesComb && ! filter1UsesFormant
+                            && ! filter1UsesPhaser
+                            && (dial.get() == filter1CutoffDial
+                                || dial.get() == filter1ResonanceDial
+                                || dial.get() == filter1SlopeDial))
+                        || (! filter2UsesComb && ! filter2UsesFormant
+                            && ! filter2UsesPhaser
+                            && (dial.get() == filter2CutoffDial
+                                || dial.get() == filter2ResonanceDial
+                                || dial.get() == filter2SlopeDial))
+                        || (filter1UsesComb
+                            && (dial.get() == filter1CombFrequencyDial
+                                || dial.get() == filter1CombFeedbackDial
+                                || dial.get() == filter1CombDampingDial))
+                        || (filter2UsesComb
+                            && (dial.get() == filter2CombFrequencyDial
+                                || dial.get() == filter2CombFeedbackDial
+                                || dial.get() == filter2CombDampingDial))
+                        || (filter1UsesFormant
+                            && (dial.get() == filter1FormantVowelDial
+                                || dial.get() == filter1FormantShiftDial
+                                || dial.get() == filter1FormantFocusDial))
+                        || (filter2UsesFormant
+                            && (dial.get() == filter2FormantVowelDial
+                                || dial.get() == filter2FormantShiftDial
+                                || dial.get() == filter2FormantFocusDial))
+                        || (filter1UsesPhaser
+                            && (dial.get() == filter1PhaserFrequencyDial
+                                || dial.get() == filter1PhaserFeedbackDial
+                                || dial.get() == filter1PhaserDepthDial))
+                        || (filter2UsesPhaser
+                            && (dial.get() == filter2PhaserFrequencyDial
+                                || dial.get() == filter2PhaserFeedbackDial
+                                || dial.get() == filter2PhaserDepthDial))))
                 || (showDesignerControls
                     && ((filter1UsesCleanSvf
                             && (dial.get() == filter1ResonanceShapeDial
@@ -5148,16 +5783,62 @@ void DuskAudioProcessorEditor::updatePresetBrowserVisibility()
                                 || dial.get()
                                     == filter2OtaFeedbackDampingDial
                                 || dial.get()
-                                    == filter2OtaResonanceCompensationDial))));
+                                    == filter2OtaResonanceCompensationDial))
+                        || (filter1UsesComb
+                            && (dial.get() == filter1CombFineTuneDial
+                                || dial.get() == filter1CombPolarityDial
+                                || dial.get() == filter1CombStereoSpreadDial
+                                || dial.get() == filter1CombDispersionDial
+                                || dial.get() == filter1CombLoopSaturationDial
+                                || dial.get() == filter1CombFeedbackLimitDial))
+                        || (filter2UsesComb
+                            && (dial.get() == filter2CombFineTuneDial
+                                || dial.get() == filter2CombPolarityDial
+                                || dial.get() == filter2CombStereoSpreadDial
+                                || dial.get() == filter2CombDispersionDial
+                                || dial.get() == filter2CombLoopSaturationDial
+                                || dial.get() == filter2CombFeedbackLimitDial))
+                        || (filter1UsesFormant
+                            && (dial.get() == filter1FormantOneLevelDial
+                                || dial.get() == filter1FormantTwoLevelDial
+                                || dial.get() == filter1FormantThreeLevelDial
+                                || dial.get() == filter1FormantBandwidthDial
+                                || dial.get() == filter1FormantSpreadDial
+                                || dial.get() == filter1FormantTiltDial))
+                        || (filter2UsesFormant
+                            && (dial.get() == filter2FormantOneLevelDial
+                                || dial.get() == filter2FormantTwoLevelDial
+                                || dial.get() == filter2FormantThreeLevelDial
+                                || dial.get() == filter2FormantBandwidthDial
+                                || dial.get() == filter2FormantSpreadDial
+                                || dial.get() == filter2FormantTiltDial))
+                        || (filter1UsesPhaser
+                            && (dial.get() == filter1PhaserStagesDial
+                                || dial.get() == filter1PhaserSpreadDial
+                                || dial.get() == filter1PhaserSkewDial
+                                || dial.get() == filter1PhaserDampingDial
+                                || dial.get()
+                                    == filter1PhaserStageSaturationDial
+                                || dial.get() == filter1PhaserStereoDial))
+                        || (filter2UsesPhaser
+                            && (dial.get() == filter2PhaserStagesDial
+                                || dial.get() == filter2PhaserSpreadDial
+                                || dial.get() == filter2PhaserSkewDial
+                                || dial.get() == filter2PhaserDampingDial
+                                || dial.get()
+                                    == filter2PhaserStageSaturationDial
+                                || dial.get() == filter2PhaserStereoDial))));
         dial->slider.setVisible(visible);
         dial->label.setVisible(visible);
     }
 
-    for (auto* component : std::array<juce::Component*, 16>
+    for (auto* component : std::array<juce::Component*, 20>
          { &filter1ArchitectureBox, &filter2ArchitectureBox,
            &filter1ArchitectureLabel, &filter2ArchitectureLabel,
            &filter1TypeBox, &filter2TypeBox,
            &filter1TypeLabel, &filter2TypeLabel,
+           &filter1CombModeBox, &filter2CombModeBox,
+           &filter1CombModeLabel, &filter2CombModeLabel,
            &filter1DistortionTypeBox, &filter2DistortionTypeBox,
            &filter1DistortionPlacementBox,
            &filter2DistortionPlacementBox,
@@ -5165,6 +5846,18 @@ void DuskAudioProcessorEditor::updatePresetBrowserVisibility()
            &filter1DistortionPlacementLabel,
            &filter2DistortionPlacementLabel })
         component->setVisible(showFilterControls);
+    filter1TypeBox.setVisible(showFilterControls
+        && ! filter1UsesComb && ! filter1UsesFormant && ! filter1UsesPhaser);
+    filter1TypeLabel.setVisible(showFilterControls
+        && ! filter1UsesComb && ! filter1UsesFormant && ! filter1UsesPhaser);
+    filter2TypeBox.setVisible(showFilterControls
+        && ! filter2UsesComb && ! filter2UsesFormant && ! filter2UsesPhaser);
+    filter2TypeLabel.setVisible(showFilterControls
+        && ! filter2UsesComb && ! filter2UsesFormant && ! filter2UsesPhaser);
+    filter1CombModeBox.setVisible(showFilterControls && filter1UsesComb);
+    filter1CombModeLabel.setVisible(showFilterControls && filter1UsesComb);
+    filter2CombModeBox.setVisible(showFilterControls && filter2UsesComb);
+    filter2CombModeLabel.setVisible(showFilterControls && filter2UsesComb);
     filter1TitleLabel.setVisible(showFilterControls);
     filter2TitleLabel.setVisible(showFilterControls);
     responseDisplay.setVisible(! presetBrowserOpen);
@@ -5273,6 +5966,10 @@ void DuskAudioProcessorEditor::randomiseEffectParameters()
     {
         return 20.0f * std::pow(1000.0f, random.nextFloat());
     };
+    const auto randomCombFrequency = [&random]
+    {
+        return 20.0f * std::pow(400.0f, random.nextFloat());
+    };
     setParameterActualValue(
         processor.parameters.getParameter("filter1Cutoff"), randomCutoff());
     setParameterActualValue(
@@ -5325,6 +6022,90 @@ void DuskAudioProcessorEditor::randomiseEffectParameters()
         processor.parameters.getParameter(
             "filter1OtaResonanceCompensation"),
         random.nextFloat() * 100.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1CombMode"),
+        static_cast<float>(random.nextInt(3)));
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1CombFrequency"),
+        randomCombFrequency());
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1CombFeedback"),
+        20.0f + random.nextFloat() * 75.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1CombDamping"),
+        random.nextFloat() * 100.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1CombFineTune"),
+        -100.0f + random.nextFloat() * 200.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1CombPolarity"),
+        -100.0f + random.nextFloat() * 200.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1CombStereoSpread"),
+        -100.0f + random.nextFloat() * 200.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1CombDispersion"),
+        random.nextFloat() * 100.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1CombLoopSaturation"),
+        random.nextFloat() * 85.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1CombFeedbackLimit"),
+        35.0f + random.nextFloat() * 65.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1FormantVowel"),
+        random.nextFloat() * 100.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1FormantShift"),
+        -18.0f + random.nextFloat() * 36.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1FormantFocus"),
+        20.0f + random.nextFloat() * 80.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1FormantOneLevel"),
+        40.0f + random.nextFloat() * 130.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1FormantTwoLevel"),
+        40.0f + random.nextFloat() * 130.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1FormantThreeLevel"),
+        40.0f + random.nextFloat() * 130.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1FormantBandwidth"),
+        55.0f + random.nextFloat() * 125.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1FormantSpread"),
+        -75.0f + random.nextFloat() * 150.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1FormantTilt"),
+        -75.0f + random.nextFloat() * 150.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1PhaserFrequency"),
+        randomCutoff());
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1PhaserFeedback"),
+        -75.0f + random.nextFloat() * 150.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1PhaserDepth"),
+        30.0f + random.nextFloat() * 70.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1PhaserStages"),
+        2.0f + random.nextFloat() * 10.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1PhaserSpread"),
+        random.nextFloat() * 100.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1PhaserSkew"),
+        -75.0f + random.nextFloat() * 150.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1PhaserDamping"),
+        random.nextFloat() * 85.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1PhaserStageSaturation"),
+        random.nextFloat() * 75.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter1PhaserStereo"),
+        -75.0f + random.nextFloat() * 150.0f);
     setParameterActualValue(
         processor.parameters.getParameter("filter1Slope"),
         6.0f + random.nextFloat() * 42.0f);
@@ -5393,13 +6174,97 @@ void DuskAudioProcessorEditor::randomiseEffectParameters()
             "filter2OtaResonanceCompensation"),
         random.nextFloat() * 100.0f);
     setParameterActualValue(
+        processor.parameters.getParameter("filter2CombMode"),
+        static_cast<float>(random.nextInt(3)));
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2CombFrequency"),
+        randomCombFrequency());
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2CombFeedback"),
+        20.0f + random.nextFloat() * 75.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2CombDamping"),
+        random.nextFloat() * 100.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2CombFineTune"),
+        -100.0f + random.nextFloat() * 200.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2CombPolarity"),
+        -100.0f + random.nextFloat() * 200.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2CombStereoSpread"),
+        -100.0f + random.nextFloat() * 200.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2CombDispersion"),
+        random.nextFloat() * 100.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2CombLoopSaturation"),
+        random.nextFloat() * 85.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2CombFeedbackLimit"),
+        35.0f + random.nextFloat() * 65.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2FormantVowel"),
+        random.nextFloat() * 100.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2FormantShift"),
+        -18.0f + random.nextFloat() * 36.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2FormantFocus"),
+        20.0f + random.nextFloat() * 80.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2FormantOneLevel"),
+        40.0f + random.nextFloat() * 130.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2FormantTwoLevel"),
+        40.0f + random.nextFloat() * 130.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2FormantThreeLevel"),
+        40.0f + random.nextFloat() * 130.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2FormantBandwidth"),
+        55.0f + random.nextFloat() * 125.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2FormantSpread"),
+        -75.0f + random.nextFloat() * 150.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2FormantTilt"),
+        -75.0f + random.nextFloat() * 150.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2PhaserFrequency"),
+        randomCutoff());
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2PhaserFeedback"),
+        -75.0f + random.nextFloat() * 150.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2PhaserDepth"),
+        30.0f + random.nextFloat() * 70.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2PhaserStages"),
+        2.0f + random.nextFloat() * 10.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2PhaserSpread"),
+        random.nextFloat() * 100.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2PhaserSkew"),
+        -75.0f + random.nextFloat() * 150.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2PhaserDamping"),
+        random.nextFloat() * 85.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2PhaserStageSaturation"),
+        random.nextFloat() * 75.0f);
+    setParameterActualValue(
+        processor.parameters.getParameter("filter2PhaserStereo"),
+        -75.0f + random.nextFloat() * 150.0f);
+    setParameterActualValue(
         processor.parameters.getParameter("filter2Slope"),
         6.0f + random.nextFloat() * 42.0f);
     setParameterActualValue(
         processor.parameters.getParameter("output"),
         -6.0f + random.nextFloat() * 6.0f);
     information.setText(
-        "RANDOMISE | Both standard controls and all Clean SVF, Ladder and OTA Designer parameter sets plus a safe OUT level were randomised.\nArchitecture, MIX, filter power, main Power, routing, placement and the complete sequencer were left unchanged.",
+        "RANDOMISE | Standard controls and all architecture-specific Designer parameters, including Phaser, plus a safe OUT level were randomised.\nArchitecture, MIX, filter power, main Power, routing, placement and the complete sequencer were left unchanged.",
         juce::dontSendNotification);
 }
 
@@ -6348,6 +7213,24 @@ void DuskAudioProcessorEditor::resized()
     placeDial(filter2ResonanceDial, 742, 81);
     placeDial(filter2DriveDial, 677, 154);
     placeDial(filter2SlopeDial, 742, 154);
+    placeDial(filter1CombFrequencyDial, 160, 81);
+    placeDial(filter1CombFeedbackDial, 225, 81);
+    placeDial(filter1CombDampingDial, 225, 154);
+    placeDial(filter2CombFrequencyDial, 677, 81);
+    placeDial(filter2CombFeedbackDial, 742, 81);
+    placeDial(filter2CombDampingDial, 742, 154);
+    placeDial(filter1FormantVowelDial, 160, 81);
+    placeDial(filter1FormantShiftDial, 225, 81);
+    placeDial(filter1FormantFocusDial, 225, 154);
+    placeDial(filter2FormantVowelDial, 677, 81);
+    placeDial(filter2FormantShiftDial, 742, 81);
+    placeDial(filter2FormantFocusDial, 742, 154);
+    placeDial(filter1PhaserFrequencyDial, 160, 81);
+    placeDial(filter1PhaserFeedbackDial, 225, 81);
+    placeDial(filter1PhaserDepthDial, 225, 154);
+    placeDial(filter2PhaserFrequencyDial, 677, 81);
+    placeDial(filter2PhaserFeedbackDial, 742, 81);
+    placeDial(filter2PhaserDepthDial, 742, 154);
     placeDesignerDial(filter1ResonanceShapeDial, 30, 89);
     placeDesignerDial(filter1ResonanceLimitDial, 105, 89);
     placeDesignerDial(filter1BassLossDial, 180, 89);
@@ -6362,6 +7245,24 @@ void DuskAudioProcessorEditor::resized()
     placeDesignerDial(filter1OtaCellDriveDial, 30, 89);
     placeDesignerDial(filter1OtaFeedbackDampingDial, 105, 89);
     placeDesignerDial(filter1OtaResonanceCompensationDial, 180, 89);
+    placeDesignerDial(filter1CombFineTuneDial, 30, 89);
+    placeDesignerDial(filter1CombPolarityDial, 105, 89);
+    placeDesignerDial(filter1CombStereoSpreadDial, 180, 89);
+    placeDesignerDial(filter1CombDispersionDial, 30, 159);
+    placeDesignerDial(filter1CombLoopSaturationDial, 105, 159);
+    placeDesignerDial(filter1CombFeedbackLimitDial, 180, 159);
+    placeDesignerDial(filter1FormantOneLevelDial, 30, 89);
+    placeDesignerDial(filter1FormantTwoLevelDial, 105, 89);
+    placeDesignerDial(filter1FormantThreeLevelDial, 180, 89);
+    placeDesignerDial(filter1FormantBandwidthDial, 30, 159);
+    placeDesignerDial(filter1FormantSpreadDial, 105, 159);
+    placeDesignerDial(filter1FormantTiltDial, 180, 159);
+    placeDesignerDial(filter1PhaserStagesDial, 30, 89);
+    placeDesignerDial(filter1PhaserSpreadDial, 105, 89);
+    placeDesignerDial(filter1PhaserSkewDial, 180, 89);
+    placeDesignerDial(filter1PhaserDampingDial, 30, 159);
+    placeDesignerDial(filter1PhaserStageSaturationDial, 105, 159);
+    placeDesignerDial(filter1PhaserStereoDial, 180, 159);
     placeDesignerDial(filter2ResonanceShapeDial, 547, 89);
     placeDesignerDial(filter2ResonanceLimitDial, 622, 89);
     placeDesignerDial(filter2BassLossDial, 697, 89);
@@ -6376,6 +7277,24 @@ void DuskAudioProcessorEditor::resized()
     placeDesignerDial(filter2OtaCellDriveDial, 547, 89);
     placeDesignerDial(filter2OtaFeedbackDampingDial, 622, 89);
     placeDesignerDial(filter2OtaResonanceCompensationDial, 697, 89);
+    placeDesignerDial(filter2CombFineTuneDial, 547, 89);
+    placeDesignerDial(filter2CombPolarityDial, 622, 89);
+    placeDesignerDial(filter2CombStereoSpreadDial, 697, 89);
+    placeDesignerDial(filter2CombDispersionDial, 547, 159);
+    placeDesignerDial(filter2CombLoopSaturationDial, 622, 159);
+    placeDesignerDial(filter2CombFeedbackLimitDial, 697, 159);
+    placeDesignerDial(filter2FormantOneLevelDial, 547, 89);
+    placeDesignerDial(filter2FormantTwoLevelDial, 622, 89);
+    placeDesignerDial(filter2FormantThreeLevelDial, 697, 89);
+    placeDesignerDial(filter2FormantBandwidthDial, 547, 159);
+    placeDesignerDial(filter2FormantSpreadDial, 622, 159);
+    placeDesignerDial(filter2FormantTiltDial, 697, 159);
+    placeDesignerDial(filter2PhaserStagesDial, 547, 89);
+    placeDesignerDial(filter2PhaserSpreadDial, 622, 89);
+    placeDesignerDial(filter2PhaserSkewDial, 697, 89);
+    placeDesignerDial(filter2PhaserDampingDial, 547, 159);
+    placeDesignerDial(filter2PhaserStageSaturationDial, 622, 159);
+    placeDesignerDial(filter2PhaserStereoDial, 697, 159);
     placeDial(mixDial, 845, 67);
     placeDial(outputDial, 845, 154);
 
@@ -6409,6 +7328,8 @@ void DuskAudioProcessorEditor::resized()
     filter1ArchitectureBox.setBounds(47, 93, 90, 20);
     filter1TypeLabel.setBounds(47, 120, 90, 12);
     filter1TypeBox.setBounds(47, 132, 90, 20);
+    filter1CombModeLabel.setBounds(47, 120, 90, 12);
+    filter1CombModeBox.setBounds(47, 132, 90, 20);
     filter1DistortionTypeLabel.setBounds(47, 159, 90, 12);
     filter1DistortionTypeBox.setBounds(47, 171, 90, 20);
     filter1DistortionPlacementLabel.setBounds(47, 198, 90, 12);
@@ -6417,6 +7338,8 @@ void DuskAudioProcessorEditor::resized()
     filter2ArchitectureBox.setBounds(564, 93, 90, 20);
     filter2TypeLabel.setBounds(564, 120, 90, 12);
     filter2TypeBox.setBounds(564, 132, 90, 20);
+    filter2CombModeLabel.setBounds(564, 120, 90, 12);
+    filter2CombModeBox.setBounds(564, 132, 90, 20);
     filter2DistortionTypeLabel.setBounds(564, 159, 90, 12);
     filter2DistortionTypeBox.setBounds(564, 171, 90, 20);
     filter2DistortionPlacementLabel.setBounds(564, 198, 90, 12);

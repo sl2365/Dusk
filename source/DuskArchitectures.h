@@ -9,7 +9,10 @@ enum class Id : int
 {
     cleanSvf = 0,
     ladder,
-    ota
+    ota,
+    comb,
+    formant,
+    phaser
 };
 
 struct Descriptor
@@ -22,7 +25,7 @@ struct Descriptor
     const char* summaryLineThree;
 };
 
-inline constexpr std::array<Descriptor, 3> descriptors
+inline constexpr std::array<Descriptor, 6> descriptors
 {{
     {
         Id::cleanSvf,
@@ -47,6 +50,30 @@ inline constexpr std::array<Descriptor, 3> descriptors
         "NONLINEAR TRANSCONDUCTANCE CELLS",
         "LPF  BPF  HPF  NOTCH  PEAK",
         "CELL DRIVE + FB DAMP + RES COMP"
+    },
+    {
+        Id::comb,
+        "Comb",
+        "COMB DESIGNER",
+        "FRACTIONAL-DELAY FILTER CORE",
+        "FEEDBACK  FEEDFORWARD  ALL-PASS",
+        "6 CONTEXT DESIGNER CONTROLS"
+    },
+    {
+        Id::formant,
+        "Formant",
+        "FORMANT DESIGNER",
+        "THREE-BAND VOCAL RESONATOR",
+        "A  E  I  O  U  CONTINUOUS MORPH",
+        "6 CONTEXT DESIGNER CONTROLS"
+    },
+    {
+        Id::phaser,
+        "Phaser",
+        "PHASER DESIGNER",
+        "MULTI-STAGE ALL-PASS CASCADE",
+        "CONTINUOUS NOTCH DEPTH + FEEDBACK",
+        "6 CONTEXT DESIGNER CONTROLS"
     }
 }};
 

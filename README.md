@@ -32,8 +32,8 @@ Dusk creates a portable `Dusk` data folder beside the installed plugin. If the c
 
 1. Select `Filter 1`, `Filter 2`, `1 > 2` or `1 + 2` from Routing.
 2. Use each amber filter LED to switch that filter on or off. Lit means on.
-3. Choose an Architecture and a standard filter Type for each active filter.
-4. Set Cutoff, Resonance and the continuous 6–48 dB/octave Slope.
+3. Choose an Architecture for each active filter. Clean SVF, Ladder and OTA use the standard Type control; Comb, Formant and Phaser provide their own main controls.
+4. For standard architectures, set Cutoff, Resonance and the continuous 6–48 dB/octave Slope. Comb uses Frequency, Feedback and Damping; Formant uses Vowel, Shift and Focus; Phaser uses Frequency, Feedback and Depth.
 5. Add Drive, choose a distortion Type, then choose its Pre, Internal or Post Placement.
 6. Open DESIGNER to change the controls belonging to the selected Architecture or recall a Model.
 7. Use MIX and OUT to set the final wet balance and level.
@@ -49,7 +49,7 @@ Hover any control or its label to see its matching description in the fixed help
 | 1 > 2 | Filter 1 feeds Filter 2 in series |
 | 1 + 2 | Both filters process the input in parallel and are gain-compensated before mixing |
 
-The response display follows the selected architectures, Types, Cutoff, Resonance, Slope and applicable Designer controls. It shows the exact small-signal filter response; nonlinear saturation and selectable distortion cannot be represented by one fixed level-independent curve.
+The response display follows the selected architectures and their applicable FILTER and DESIGNER controls. It shows the exact small-signal filter response; nonlinear saturation, high-level limiting and selectable distortion cannot be represented by one fixed level-independent curve. Comb Stereo Spread and Phaser Stereo are excluded because the compact display represents the centre-tuned mono response.
 
 ## FILTER view
 
@@ -57,11 +57,21 @@ Each side controls one independent filter engine.
 
 | Control | Function |
 |---|---|
-| Architecture | Selects the genuine DSP structure: Clean SVF, Ladder or OTA |
-| Type | Selects LPF, BPF, HPF, NOTCH or PEAK |
-| Cutoff | Sets the principal frequency from 20 Hz to 20 kHz |
-| Resonance | Emphasises the response around Cutoff |
-| Slope | Continuously changes the response from 6 to 48 dB/octave |
+| Architecture | Selects the genuine DSP structure: Clean SVF, Ladder, OTA, Comb, Formant or Phaser |
+| Type | For Clean SVF, Ladder and OTA, selects LPF, BPF, HPF, NOTCH or PEAK |
+| Cutoff | For Clean SVF, Ladder and OTA, sets the principal frequency from 20 Hz to 20 kHz |
+| Resonance | For Clean SVF, Ladder and OTA, emphasises the response around Cutoff |
+| Slope | For Clean SVF, Ladder and OTA, continuously changes the response from 6 to 48 dB/octave |
+| Comb Mode | For Comb, selects Feedback, Feedforward or All-pass |
+| Frequency | For Comb, sets the fundamental delay frequency from 20 Hz to 8 kHz |
+| Feedback | For Comb, sets the amount and strength of the delayed branch |
+| Damping | For Comb, darkens the delayed branch and shortens bright ringing |
+| Vowel | For Formant, morphs continuously through A, E, I, O and U |
+| Shift | For Formant, moves all three vocal bands together by plus or minus 24 semitones |
+| Focus | For Formant, changes the three vocal bands from broad and gentle to sharp and prominent |
+| Frequency | For Phaser, moves the complete phase-cancellation pattern from 20 Hz to 20 kHz |
+| Feedback | For Phaser, sets positive or negative bounded feedback around the all-pass cascade |
+| Depth | For Phaser, changes the internal dry/all-pass blend from transparent to deep notches |
 | Drive | Sets the amount sent to the selected distortion model |
 | Dist Type | Selects one of the 17 distortion models |
 | Placement | Places that distortion before, inside or after the filter |
@@ -85,11 +95,31 @@ A nonlinear cascaded-pole filter with one to eight continuously blended poles. T
 
 A nonlinear cascade of one to eight transconductance-style cells with a damped bounded feedback return. The 24 dB position uses four cells.
 
-There is not currently a Comb filter architecture. `Comb` in the Dist Type list is a distortion model with a short resonator and should not be confused with a dedicated Comb filter.
+### Comb
+
+A fractional-delay filter with three independently running structures. Feedback recirculates the delayed branch for resonant ringing, Feedforward creates a non-recurring notch/peak pattern, and All-pass changes phase while retaining a nominally flat linear magnitude response. Changing Mode crossfades the live engines instead of interpolating incompatible coefficients or clearing their state.
+
+Frequency movement uses perceptual smoothing so long, low-frequency delay times do not jump abruptly while the control is moved or automated. The 20 Hz–8 kHz range keeps meaningful repeated teeth available throughout the knob instead of spending its upper section above the useful audible Comb range. A magnitude-preserving fractional-delay stage retains much more of the delayed branch at high frequencies than linear interpolation.
+
+Feedback and audible delayed-branch level use separate curves: the recirculating loop remains safely below unity while the output branch is strong enough to make low and moderate Feedback positions clearly audible. Damping uses a gentler shaped range, retaining substantially more brightness at ordinary settings while still becoming dark at its upper extreme. At very high Feedback and low Frequency, a gentle internal low-cut progressively restrains sub-bass accumulation while leaving the main pitched and metallic Comb character intact. This protection is included in the response display and requires no extra control.
+
+The Comb Architecture and the `Comb` distortion model are separate. The Architecture is a complete filter engine with Frequency, Feedback, Damping and dedicated Designer controls; the distortion model is a short resonant colour available in the Dist Type list.
+
+### Formant
+
+A three-band vocal resonator built from independent topology-preserving band-pass filters. Vowel morphs logarithmically through A, E, I, O and U rather than switching between fixed snapshots, so the intermediate positions remain usable sounds. Shift moves the complete vocal spectrum without changing its internal proportions, while Focus changes the prominence and sharpness of all three bands. Designer Width changes their bandwidth separately without changing peak emphasis.
+
+Formant has no standard LPF/BPF/HPF Type because its three simultaneous vocal bands are the architecture. Its complete linear response, including every Designer level, Width, Spread and Tilt setting, is shown in the permanent response display.
+
+### Phaser
+
+A cascade of twelve continuously running first-order all-pass stages. The Stages control blends between the outputs of 2, 4, 6, 8, 10 and 12 stages instead of clearing state or abruptly switching DSP. Frequency moves the complete stage pattern, positive or negative Feedback reshapes the notches, and Depth controls the internal cancellation blend. Stage Sat's cumulative gain remains in the audible output, while an automatic loop-gain guard removes only that excess gain from the feedback return when it would cross the stable margin. This prevents a sustained squeal without flattening Stages or Stage Sat.
+
+Phaser has no fixed internal LFO. Move or automate Frequency directly, or assign it to Dusk's sequencer for rhythmic and continuously repeating sweeps. The permanent response display includes Frequency, Feedback, Depth, Stages, Spread, Skew and feedback Damping. Stage Saturation, Stereo and selectable distortion are intentionally excluded from the mono small-signal curve.
 
 ## DESIGNER view
 
-Designer controls edit the character of the selected Architecture. They do not replace the standard Type, Cutoff, Resonance, Slope or Drive controls on FILTER.
+Designer controls edit the character of the selected Architecture. Clean SVF, Ladder and OTA keep the standard Type, Cutoff, Resonance and Slope controls on FILTER. Comb provides Mode, Frequency, Feedback and Damping; Formant provides Vowel, Shift and Focus; Phaser provides Frequency, Feedback and Depth. Drive remains available for every Architecture.
 
 ### Clean SVF Designer
 
@@ -120,11 +150,44 @@ Designer controls edit the character of the selected Architecture. They do not r
 | FB Damp | Low-pass damps and restrains the OTA resonance return |
 | Res Comp | Restores level as Resonance rises |
 
+### Comb Designer
+
+| Control | Function |
+|---|---|
+| Fine Tune | Offsets the Comb frequency by plus or minus 100 cents |
+| Polarity | Moves continuously between negative and positive delayed polarity; 0% removes the delayed branch |
+| Stereo | Detunes the left and right delay frequencies in opposite directions by up to 100 cents |
+| Dispersion | Adds all-pass phase dispersion inside the delayed branch |
+| Loop Sat | Saturates and compresses the delayed branch at higher levels |
+| FB Limit | Sets the high-level ceiling used to restrain ringing |
+
+### Formant Designer
+
+| Control | Function |
+|---|---|
+| F1 Level | Sets the lowest vocal resonance from silent to twice its natural level |
+| F2 Level | Sets the middle resonance that carries much of the vowel identity |
+| F3 Level | Sets the highest resonance controlling presence and articulation |
+| Width | Scales all three vowel bandwidths from 50% to 200% |
+| Spread | Compresses or expands the outer formants around the middle band by up to half an octave |
+| Tilt | Rebalances the formants continuously from low and throaty to high and bright |
+
+### Phaser Designer
+
+| Control | Function |
+|---|---|
+| Stages | Continuously blends from 2 to 12 active all-pass stages; more stages create more notches |
+| Spread | Expands the paired stage frequencies from a tight cluster to a broad six-octave pattern |
+| Skew | Redistributes the stage frequencies around the centre without moving Frequency |
+| FB Damp | Low-pass damps the Phaser feedback return |
+| Stage Sat | Strongly saturates every all-pass stage, producing cumulative colour and level interaction as Stages increases; the protected feedback return prevents runaway resonance |
+| Stereo | Moves the left and right stage patterns in opposite directions by up to three quarters of an octave |
+
 ## Filter Models
 
 A Model is an editable configuration of one Architecture and its supported Designer controls. It is not another filter Type and it does not change Type, Cutoff, Resonance, Slope, Drive, routing, sequencer settings or the other filter.
 
-Factory Models provide starting points for Clean SVF, Ladder and OTA. After recalling one, move any included Designer control to customise it; the Model display then changes to `CUSTOM` without undoing the recalled values.
+Factory Models provide starting points for Clean SVF, Ladder, OTA, Comb, Formant and Phaser. After recalling one, move any included Designer control to customise it; the Model display then changes to `CUSTOM` without undoing the recalled values.
 
 Use the `...` button beside either Model selector to:
 
@@ -153,6 +216,9 @@ Internal behaves according to the selected Architecture:
 - Clean SVF shapes the bounded Designer Feedback return, so it requires the Clean SVF `Feedback` control to be above 0%.
 - Ladder shapes the stored resonance feedback component before the protected delay-free solve, so it requires `Resonance`.
 - OTA shapes the damped bounded resonance return before it is subtracted from the input, so it requires `Resonance`.
+- Comb shapes each Mode's delayed branch before its loop saturation, limiting and output/write calculation. Its three Modes keep separate internal distortion memory.
+- Formant shapes each of its three vocal bands independently before their level, Tilt and final summing stages. Every band keeps separate internal distortion memory.
+- Phaser shapes the selected all-pass output inside its bounded feedback return. The direct phase-cancellation path remains separate, and the Phaser has its own distortion-state memory.
 
 The external Pre/Post path and each Architecture's Internal path use separate state memory. Stateful models such as Comb therefore cannot carry external-placement history into an Architecture's feedback path, or internal history from one Architecture into another.
 

@@ -25,7 +25,7 @@ set "BUNDLE_BINARY=%BUILD_DIR%\Dusk_artefacts\Release\VST3\Dusk.vst3\Contents\x8
 set "FINAL_PLUGIN=%DIST_DIR%\Dusk.vst3"
 
 echo.
-echo Dusk 64-bit VST3 - v0.18.0 Build
+echo Dusk 64-bit VST3 - v0.21.5 Build
 echo ======================================
 echo.
 
@@ -41,7 +41,7 @@ echo.
 echo [1/4] Checking requirements...
 if not exist "%CMAKE_EXE%" goto :missing_cmake
 if not exist "%JUCE_CMAKE%" goto :missing_juce
-for %%F in (CMakeLists.txt PluginProcessor.cpp PluginProcessor.h PluginEditor.cpp PluginEditor.h DuskDistortion.cpp DuskSequencer.h) do (
+for %%F in (CMakeLists.txt PluginProcessor.cpp PluginProcessor.h PluginEditor.cpp PluginEditor.h DuskDistortion.cpp DuskComb.cpp DuskFormant.cpp DuskPhaser.cpp DuskSequencer.h) do (
     if not exist "%SOURCE_DIR%\%%F" goto :missing_source
 )
 if not exist "%PROJECT_ROOT%Resources\logo.svg" goto :missing_logo

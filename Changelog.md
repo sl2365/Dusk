@@ -1,5 +1,98 @@
 # Dusk Changelog
 
+## 0.21.5 — Phaser Feedback Squeal Correction — 14 November 2026
+
+- Identified the sustained squeal as a feedback-loop fault rather than excessive Stage Sat output. The restored per-stage saturation makeup could multiply the small-signal loop gain above unity as Stages increased.
+- Kept the strong 0.21.4 Stage Sat curve and direct Phaser output unchanged.
+- Added a smooth loop-gain guard that begins only when the calculated cumulative stage gain would push the feedback return beyond the stable margin. It leaves values below the knee unchanged and asymptotically limits the effective loop gain to 0.90.
+- Retained the existing final soft limiter as a second protection layer, but no longer relies on amplitude limiting to stop an already-sustained oscillation.
+- Verified that the previously persistent reference state now decays to silence after excitation, including the 5.8–6-stage region, while the strong output-side Stage Sat and Stages interaction remains.
+- Kept all parameter IDs, ranges, defaults, Models and sequencer target numbers unchanged; state schema remains version 20.
+
+## 0.21.4 — Phaser Strength Restoration — 14 November 2026
+
+- Restored Phaser Stage Sat to a strong cumulative per-stage curve, reducing the original maximum drive only modestly from nine-times to eight-times rather than making it gain-neutral.
+- Restored maximum Phaser feedback from the over-restrained 0.82 to 0.86, close to the original 0.88, with no stage-dependent attenuation.
+- Retained the separate smooth feedback safety limiter from 0.21.3. It acts on excessive loop level rather than weakening Stages or Stage Sat throughout their normal ranges.
+- Measured Stage Sat and the four-to-eight-stage interaction within approximately 1–3 dB of the original Phaser behaviour in the reference test, instead of the 8–16 dB reduction in 0.21.3.
+- Retained the corrected Model heading font calculation from 0.21.3 and kept all parameter IDs, ranges, defaults, Models and sequencer target numbers unchanged.
+
+## 0.21.3 — Model Heading and Phaser Control Correction — 14 November 2026
+
+- Matched Model section-heading glyph height to the exact ordinary-entry calculation, including the two-pixel text-area reduction used by JUCE's entry renderer. Headings retain bold weight and colour but are no longer visually larger.
+- Restored most of the Phaser's original feedback strength instead of reducing it progressively with Stages, so moving Stages again produces an obvious change in notch density and character.
+- Replaced the stage-dependent feedback reduction with a smooth, gain-preserving soft limiter inside the feedback return. Normal levels retain their character while excessive resonance can no longer run away around the six-stage transition.
+- Strengthened Stage Sat's drive and wet curve substantially while retaining unity small-signal gain. It is clearly audible again without reinstating the previous gain multiplication through every stage.
+- Kept all parameter IDs, ranges, defaults, Models and sequencer target numbers unchanged; state schema remains version 20.
+
+## 0.21.2 — Model Heading Size and Phaser Restraint — 14 November 2026
+
+- Corrected the actual Model section-heading glyph size. Headings now use the identical height cap used by ordinary popup entries, while retaining the requested bold weight and existing colour.
+- Retained the ordinary one-row heading height with no added spacing above or below the title text.
+- Reworked Phaser Stage Sat to preserve unity small-signal gain. Saturation no longer multiplies gain through every active all-pass stage or becomes disproportionately loud above six stages.
+- Reduced the Stage Sat drive curve from an extreme nine-times maximum to a controlled four-times maximum while preserving progressive nonlinear colour.
+- Reduced maximum Phaser feedback and added smooth stage-count compensation. Feedback strength now falls gradually as the cascade approaches twelve stages, preventing the loud resonance jump around 5.8–6 stages.
+- Updated the exact Phaser response display for the compensated feedback law and retained continuous stage interpolation, 50 ms parameter smoothing and independent state memory.
+- Kept all parameter IDs, displayed ranges, defaults, Models and sequencer target numbers unchanged; state schema remains version 20.
+
+## 0.21.1 — Comb Presence and Upper-Range Correction — 14 November 2026
+
+- Increased the audible delayed-branch level in Feedback and Feedforward Modes without raising the recirculating loop above its existing stable 0.98 limit.
+- Replaced the short-delay linear interpolator with a magnitude-preserving first-order all-pass fractional delay, restoring high-frequency Comb strength and keeping the calculated response matched to the audio path.
+- Reshaped Damping so ordinary positions retain substantially more high-frequency energy; 35% now reaches roughly 10 kHz instead of rolling the delayed branch down near 4 kHz.
+- Focused Comb Frequency on 20 Hz–8 kHz. The complete control travel now produces useful audible teeth instead of placing the final portion above the range where a repeated Comb pattern can exist below Nyquist.
+- Updated the exact Feedback and Feedforward response calculations for the stronger audible branch while retaining the All-pass Mode's unity-magnitude linear structure.
+- Kept the established 85 ms multiplicative Frequency smoothing, high-feedback sub-bass protection, Designer controls, parameter IDs, Models and sequencer target numbers unchanged.
+- Kept state schema version 20 because no parameter IDs or stored-state structure changed during this pre-release correction.
+
+## 0.21.0 — Phaser Architecture and Compact Model Headings — 14 November 2026
+
+- Added Phaser as a sixth genuine per-filter DSP Architecture, built from twelve continuously running first-order all-pass stages rather than a relabelled preset.
+- Added Frequency, bipolar Feedback and Depth controls on FILTER. Phaser hides the unrelated standard Type, Cutoff, Resonance and Slope controls while retaining shared Drive and distortion controls.
+- Added six context-sensitive Phaser Designer controls per filter: continuously blended 2–12 Stages, Spread, Skew, feedback Damping, per-stage Saturation and Stereo offset.
+- Added the exact linear Phaser response to the permanent display, including the continuously interpolated stage taps and bounded damped feedback loop. Nonlinear Stage Saturation, Stereo and selectable distortion remain outside the mono small-signal curve.
+- Inserted Internal distortion into the Phaser feedback return with its own state-memory bank, separate from every existing Architecture and the external Pre/Post path.
+- Added Clean Phaser, Classic Phaser, Deep Cascade and Wide Phaser Factory Models plus Phaser User Model save/load whitelisting.
+- Added 18 F1/F2 Phaser sequencer targets for all three continuous FILTER controls and all six Designer controls, appended after the existing target numbers.
+- Removed the PopupMenu framework's extra 50% section-heading height. Factory and User Model headings now use exactly the same font size and row height as ordinary entries while retaining their colour and bold style.
+- Added bounded Phaser randomisation, 50 ms coefficient smoothing and direct architecture crossfading without resetting all-pass state.
+- Advanced the pre-release state schema to version 20 for the 18 new automatable Phaser parameters.
+
+## 0.20.0 — Formant Architecture — 14 November 2026
+
+- Added Formant as a fifth genuine per-filter DSP Architecture beside Clean SVF, Ladder, OTA and Comb.
+- Added continuous Vowel morphing through A, E, I, O and U plus two-octave Shift and broad/gentle-to-sharp/prominent Focus controls on FILTER. Formant hides the unrelated standard Type, Cutoff, Resonance and Slope controls.
+- Built the audio path from three independently stateful topology-preserving band-pass filters. Vowel centre frequencies interpolate logarithmically and every coefficient-driving control uses 50 ms smoothing.
+- Added six context-sensitive Formant Designer controls per filter: F1 Level, F2 Level, F3 Level, Width, Spread and Tilt.
+- Added the exact linear three-band Formant response to the permanent display, including Vowel, Shift, Focus and every Designer setting.
+- Made Internal distortion process the three Formant bands separately before their level, Tilt and summing stages, with independent state memory for each band.
+- Added Natural Formant, Bright Formant, Deep Formant and Nasal Formant Factory Models plus Formant User Model save/load whitelisting.
+- Added 18 F1/F2 Formant sequencer targets for all continuous FILTER and Designer controls, appended after the existing target numbers.
+- Advanced the pre-release state schema to version 19 for the 18 new automatable Formant parameters.
+
+## 0.19.1 — Comb Frequency Smoothing and Interface Refinement — 14 November 2026
+
+- Changed Comb Frequency from 20 ms linear-Hz smoothing to 85 ms multiplicative smoothing, giving perceptually even movement and substantially smoother delay-time changes in the low-frequency range.
+- Added a gentle feedback-dependent low-cut inside every live Comb delayed branch. It begins only above 70% Feedback, progressively targets frequencies below 320 Hz and blends up to 45% of a 45 Hz high-pass, restraining sub-bass buildup without removing the established Comb character.
+- Included the new linear low-frequency protection in the calculated Comb response so the permanent graph remains accurate.
+- Shortened the Comb FILTER captions from `FREQUENCY` and `FEEDBACK` to `FREQ` and `FDBK` without changing parameter names, IDs, ranges or automation.
+- Reduced Factory/User Model dropdown section headings to the same visual text size as the menu items while retaining bold emphasis.
+- Changed the FILTER tab selector LED to aqua and the DESIGNER selector LED to the Sequencer's established Bipolar red.
+- Kept state schema version 18 because no parameter, range, default, model format or sequencer-target mapping changed.
+
+## 0.19.0 — Comb Filter Architecture — 14 November 2026
+
+- Added `Comb` as a fourth genuine per-filter DSP Architecture beside Clean SVF, Ladder and OTA, using independent fractional-delay state for both filters and channels.
+- Made the FILTER view context-sensitive: Comb replaces Type, Cutoff, Resonance and Slope with Mode, Frequency, Feedback and Damping while retaining the shared Drive and distortion controls.
+- Added independently running Feedback, Feedforward and All-pass Comb Modes. Mode changes use a direct 50 ms crossfade between live engines rather than coefficient interpolation or state resets.
+- Added six Comb Designer controls per filter: Fine Tune, Polarity, Stereo Spread, Dispersion, Loop Saturation and Feedback Limit.
+- Added the exact linear Comb response to the permanent graph, including fractional delay, Damping, Dispersion, Fine Tune, Polarity and Mode. Stereo Spread and nonlinear Loop Saturation, Feedback Limit and selectable distortion remain outside the mono small-signal curve.
+- Inserted `Internal` distortion into each Comb Mode's delayed branch and allocated separate distortion-state memory for all three live Modes.
+- Added Clean Comb, Metallic Comb, Hollow Comb and Wide Stereo Comb Factory Models plus Comb-specific User Model save/load whitelisting.
+- Added 18 F1/F2 Comb sequencer targets for the three continuous FILTER controls and six Designer controls, appended after all existing target numbers. Mode remains a deliberate dropdown choice rather than a continuously modulated target.
+- Included all Comb controls in bounded randomisation and retained natural, uncondensed control labels throughout the context-sensitive layout.
+- Advanced the pre-release state schema to version 18 for the 20 new automatable Comb parameters.
+
 ## 0.18.0 — Internal Distortion Placement — 13 November 2026
 
 - Enabled the existing per-filter `Internal` distortion Placement for all three implemented filter Architectures and removed the former unavailable label and disabled menu item.

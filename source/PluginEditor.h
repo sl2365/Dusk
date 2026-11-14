@@ -176,6 +176,12 @@ private:
                                const juce::String&, const juce::String&,
                                const juce::Drawable*,
                                const juce::Colour*) override;
+        void drawPopupMenuSectionHeader(
+            juce::Graphics&, const juce::Rectangle<int>&,
+            const juce::String&) override;
+        void getIdealPopupMenuSectionHeaderSizeWithOptions(
+            const juce::String&, int, int&, int&,
+            const juce::PopupMenu::Options&) override;
         void drawPopupMenuBackground(juce::Graphics&, int, int) override;
         juce::PopupMenu::Options getOptionsForComboBoxPopupMenu(
             juce::ComboBox&, juce::Label&) override;
@@ -230,6 +236,60 @@ private:
     Dial* filter2OtaFeedbackDampingDial = nullptr;
     Dial* filter1OtaResonanceCompensationDial = nullptr;
     Dial* filter2OtaResonanceCompensationDial = nullptr;
+    Dial* filter1CombFrequencyDial = nullptr;
+    Dial* filter2CombFrequencyDial = nullptr;
+    Dial* filter1CombFeedbackDial = nullptr;
+    Dial* filter2CombFeedbackDial = nullptr;
+    Dial* filter1CombDampingDial = nullptr;
+    Dial* filter2CombDampingDial = nullptr;
+    Dial* filter1CombFineTuneDial = nullptr;
+    Dial* filter2CombFineTuneDial = nullptr;
+    Dial* filter1CombPolarityDial = nullptr;
+    Dial* filter2CombPolarityDial = nullptr;
+    Dial* filter1CombStereoSpreadDial = nullptr;
+    Dial* filter2CombStereoSpreadDial = nullptr;
+    Dial* filter1CombDispersionDial = nullptr;
+    Dial* filter2CombDispersionDial = nullptr;
+    Dial* filter1CombLoopSaturationDial = nullptr;
+    Dial* filter2CombLoopSaturationDial = nullptr;
+    Dial* filter1CombFeedbackLimitDial = nullptr;
+    Dial* filter2CombFeedbackLimitDial = nullptr;
+    Dial* filter1FormantVowelDial = nullptr;
+    Dial* filter2FormantVowelDial = nullptr;
+    Dial* filter1FormantShiftDial = nullptr;
+    Dial* filter2FormantShiftDial = nullptr;
+    Dial* filter1FormantFocusDial = nullptr;
+    Dial* filter2FormantFocusDial = nullptr;
+    Dial* filter1FormantOneLevelDial = nullptr;
+    Dial* filter2FormantOneLevelDial = nullptr;
+    Dial* filter1FormantTwoLevelDial = nullptr;
+    Dial* filter2FormantTwoLevelDial = nullptr;
+    Dial* filter1FormantThreeLevelDial = nullptr;
+    Dial* filter2FormantThreeLevelDial = nullptr;
+    Dial* filter1FormantBandwidthDial = nullptr;
+    Dial* filter2FormantBandwidthDial = nullptr;
+    Dial* filter1FormantSpreadDial = nullptr;
+    Dial* filter2FormantSpreadDial = nullptr;
+    Dial* filter1FormantTiltDial = nullptr;
+    Dial* filter2FormantTiltDial = nullptr;
+    Dial* filter1PhaserFrequencyDial = nullptr;
+    Dial* filter2PhaserFrequencyDial = nullptr;
+    Dial* filter1PhaserFeedbackDial = nullptr;
+    Dial* filter2PhaserFeedbackDial = nullptr;
+    Dial* filter1PhaserDepthDial = nullptr;
+    Dial* filter2PhaserDepthDial = nullptr;
+    Dial* filter1PhaserStagesDial = nullptr;
+    Dial* filter2PhaserStagesDial = nullptr;
+    Dial* filter1PhaserSpreadDial = nullptr;
+    Dial* filter2PhaserSpreadDial = nullptr;
+    Dial* filter1PhaserSkewDial = nullptr;
+    Dial* filter2PhaserSkewDial = nullptr;
+    Dial* filter1PhaserDampingDial = nullptr;
+    Dial* filter2PhaserDampingDial = nullptr;
+    Dial* filter1PhaserStageSaturationDial = nullptr;
+    Dial* filter2PhaserStageSaturationDial = nullptr;
+    Dial* filter1PhaserStereoDial = nullptr;
+    Dial* filter2PhaserStereoDial = nullptr;
     Dial* filter1SlopeDial = nullptr;
     Dial* filter2SlopeDial = nullptr;
     Dial* mixDial = nullptr;
@@ -243,6 +303,8 @@ private:
     SteppedComboBox filter2ArchitectureBox;
     SteppedComboBox filter1TypeBox;
     SteppedComboBox filter2TypeBox;
+    SteppedComboBox filter1CombModeBox;
+    SteppedComboBox filter2CombModeBox;
     SteppedComboBox filter1DistortionTypeBox;
     SteppedComboBox filter2DistortionTypeBox;
     SteppedComboBox filter1DistortionPlacementBox;
@@ -254,6 +316,8 @@ private:
     juce::Label filter2ArchitectureLabel;
     juce::Label filter1TypeLabel;
     juce::Label filter2TypeLabel;
+    juce::Label filter1CombModeLabel;
+    juce::Label filter2CombModeLabel;
     juce::Label filter1DistortionTypeLabel;
     juce::Label filter2DistortionTypeLabel;
     juce::Label filter1DistortionPlacementLabel;
@@ -273,6 +337,7 @@ private:
         routingAttachment,
         filter1ArchitectureAttachment, filter2ArchitectureAttachment,
         filter1TypeAttachment, filter2TypeAttachment,
+        filter1CombModeAttachment, filter2CombModeAttachment,
         filter1DistortionTypeAttachment, filter2DistortionTypeAttachment,
         filter1DistortionPlacementAttachment,
         filter2DistortionPlacementAttachment;

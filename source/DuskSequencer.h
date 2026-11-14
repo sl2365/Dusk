@@ -52,7 +52,7 @@ struct TargetInfo
     const char* displayName;
 };
 
-inline constexpr std::array<TargetInfo, 46> targets
+inline constexpr std::array<TargetInfo, 100> targets
 {{
     { "mix", "Dry / Wet" },
     { "output", "Output" },
@@ -99,7 +99,61 @@ inline constexpr std::array<TargetInfo, 46> targets
     { "filter1OtaFeedbackDamping", "F1 OTA Damping" },
     { "filter2OtaFeedbackDamping", "F2 OTA Damping" },
     { "filter1OtaResonanceCompensation", "F1 OTA Res Comp" },
-    { "filter2OtaResonanceCompensation", "F2 OTA Res Comp" }
+    { "filter2OtaResonanceCompensation", "F2 OTA Res Comp" },
+    { "filter1CombFrequency", "F1 Comb Frequency" },
+    { "filter2CombFrequency", "F2 Comb Frequency" },
+    { "filter1CombFeedback", "F1 Comb Feedback" },
+    { "filter2CombFeedback", "F2 Comb Feedback" },
+    { "filter1CombDamping", "F1 Comb Damping" },
+    { "filter2CombDamping", "F2 Comb Damping" },
+    { "filter1CombFineTune", "F1 Comb Fine Tune" },
+    { "filter2CombFineTune", "F2 Comb Fine Tune" },
+    { "filter1CombPolarity", "F1 Comb Polarity" },
+    { "filter2CombPolarity", "F2 Comb Polarity" },
+    { "filter1CombStereoSpread", "F1 Comb Stereo" },
+    { "filter2CombStereoSpread", "F2 Comb Stereo" },
+    { "filter1CombDispersion", "F1 Comb Dispersion" },
+    { "filter2CombDispersion", "F2 Comb Dispersion" },
+    { "filter1CombLoopSaturation", "F1 Comb Loop Sat" },
+    { "filter2CombLoopSaturation", "F2 Comb Loop Sat" },
+    { "filter1CombFeedbackLimit", "F1 Comb FB Limit" },
+    { "filter2CombFeedbackLimit", "F2 Comb FB Limit" },
+    { "filter1FormantVowel", "F1 Formant Vowel" },
+    { "filter2FormantVowel", "F2 Formant Vowel" },
+    { "filter1FormantShift", "F1 Formant Shift" },
+    { "filter2FormantShift", "F2 Formant Shift" },
+    { "filter1FormantFocus", "F1 Formant Focus" },
+    { "filter2FormantFocus", "F2 Formant Focus" },
+    { "filter1FormantOneLevel", "F1 Formant 1 Level" },
+    { "filter2FormantOneLevel", "F2 Formant 1 Level" },
+    { "filter1FormantTwoLevel", "F1 Formant 2 Level" },
+    { "filter2FormantTwoLevel", "F2 Formant 2 Level" },
+    { "filter1FormantThreeLevel", "F1 Formant 3 Level" },
+    { "filter2FormantThreeLevel", "F2 Formant 3 Level" },
+    { "filter1FormantBandwidth", "F1 Formant Width" },
+    { "filter2FormantBandwidth", "F2 Formant Width" },
+    { "filter1FormantSpread", "F1 Formant Spread" },
+    { "filter2FormantSpread", "F2 Formant Spread" },
+    { "filter1FormantTilt", "F1 Formant Tilt" },
+    { "filter2FormantTilt", "F2 Formant Tilt" },
+    { "filter1PhaserFrequency", "F1 Phaser Frequency" },
+    { "filter2PhaserFrequency", "F2 Phaser Frequency" },
+    { "filter1PhaserFeedback", "F1 Phaser Feedback" },
+    { "filter2PhaserFeedback", "F2 Phaser Feedback" },
+    { "filter1PhaserDepth", "F1 Phaser Depth" },
+    { "filter2PhaserDepth", "F2 Phaser Depth" },
+    { "filter1PhaserStages", "F1 Phaser Stages" },
+    { "filter2PhaserStages", "F2 Phaser Stages" },
+    { "filter1PhaserSpread", "F1 Phaser Spread" },
+    { "filter2PhaserSpread", "F2 Phaser Spread" },
+    { "filter1PhaserSkew", "F1 Phaser Skew" },
+    { "filter2PhaserSkew", "F2 Phaser Skew" },
+    { "filter1PhaserDamping", "F1 Phaser Damping" },
+    { "filter2PhaserDamping", "F2 Phaser Damping" },
+    { "filter1PhaserStageSaturation", "F1 Phaser Stage Sat" },
+    { "filter2PhaserStageSaturation", "F2 Phaser Stage Sat" },
+    { "filter1PhaserStereo", "F1 Phaser Stereo" },
+    { "filter2PhaserStereo", "F2 Phaser Stereo" }
 }};
 
 inline constexpr int mixTargetChoice = 1;
@@ -148,6 +202,60 @@ inline constexpr int filter1OtaFeedbackDampingTargetChoice = 43;
 inline constexpr int filter2OtaFeedbackDampingTargetChoice = 44;
 inline constexpr int filter1OtaResonanceCompensationTargetChoice = 45;
 inline constexpr int filter2OtaResonanceCompensationTargetChoice = 46;
+inline constexpr int filter1CombFrequencyTargetChoice = 47;
+inline constexpr int filter2CombFrequencyTargetChoice = 48;
+inline constexpr int filter1CombFeedbackTargetChoice = 49;
+inline constexpr int filter2CombFeedbackTargetChoice = 50;
+inline constexpr int filter1CombDampingTargetChoice = 51;
+inline constexpr int filter2CombDampingTargetChoice = 52;
+inline constexpr int filter1CombFineTuneTargetChoice = 53;
+inline constexpr int filter2CombFineTuneTargetChoice = 54;
+inline constexpr int filter1CombPolarityTargetChoice = 55;
+inline constexpr int filter2CombPolarityTargetChoice = 56;
+inline constexpr int filter1CombStereoSpreadTargetChoice = 57;
+inline constexpr int filter2CombStereoSpreadTargetChoice = 58;
+inline constexpr int filter1CombDispersionTargetChoice = 59;
+inline constexpr int filter2CombDispersionTargetChoice = 60;
+inline constexpr int filter1CombLoopSaturationTargetChoice = 61;
+inline constexpr int filter2CombLoopSaturationTargetChoice = 62;
+inline constexpr int filter1CombFeedbackLimitTargetChoice = 63;
+inline constexpr int filter2CombFeedbackLimitTargetChoice = 64;
+inline constexpr int filter1FormantVowelTargetChoice = 65;
+inline constexpr int filter2FormantVowelTargetChoice = 66;
+inline constexpr int filter1FormantShiftTargetChoice = 67;
+inline constexpr int filter2FormantShiftTargetChoice = 68;
+inline constexpr int filter1FormantFocusTargetChoice = 69;
+inline constexpr int filter2FormantFocusTargetChoice = 70;
+inline constexpr int filter1FormantOneLevelTargetChoice = 71;
+inline constexpr int filter2FormantOneLevelTargetChoice = 72;
+inline constexpr int filter1FormantTwoLevelTargetChoice = 73;
+inline constexpr int filter2FormantTwoLevelTargetChoice = 74;
+inline constexpr int filter1FormantThreeLevelTargetChoice = 75;
+inline constexpr int filter2FormantThreeLevelTargetChoice = 76;
+inline constexpr int filter1FormantBandwidthTargetChoice = 77;
+inline constexpr int filter2FormantBandwidthTargetChoice = 78;
+inline constexpr int filter1FormantSpreadTargetChoice = 79;
+inline constexpr int filter2FormantSpreadTargetChoice = 80;
+inline constexpr int filter1FormantTiltTargetChoice = 81;
+inline constexpr int filter2FormantTiltTargetChoice = 82;
+inline constexpr int filter1PhaserFrequencyTargetChoice = 83;
+inline constexpr int filter2PhaserFrequencyTargetChoice = 84;
+inline constexpr int filter1PhaserFeedbackTargetChoice = 85;
+inline constexpr int filter2PhaserFeedbackTargetChoice = 86;
+inline constexpr int filter1PhaserDepthTargetChoice = 87;
+inline constexpr int filter2PhaserDepthTargetChoice = 88;
+inline constexpr int filter1PhaserStagesTargetChoice = 89;
+inline constexpr int filter2PhaserStagesTargetChoice = 90;
+inline constexpr int filter1PhaserSpreadTargetChoice = 91;
+inline constexpr int filter2PhaserSpreadTargetChoice = 92;
+inline constexpr int filter1PhaserSkewTargetChoice = 93;
+inline constexpr int filter2PhaserSkewTargetChoice = 94;
+inline constexpr int filter1PhaserDampingTargetChoice = 95;
+inline constexpr int filter2PhaserDampingTargetChoice = 96;
+inline constexpr int filter1PhaserStageSaturationTargetChoice = 97;
+inline constexpr int filter2PhaserStageSaturationTargetChoice = 98;
+inline constexpr int filter1PhaserStereoTargetChoice = 99;
+inline constexpr int filter2PhaserStereoTargetChoice = 100;
 
 inline int targetChoiceForParameter(const juce::String& parameterId)
 {

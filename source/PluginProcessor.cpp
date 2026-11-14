@@ -55,6 +55,64 @@ constexpr auto filter1OtaResonanceCompensation =
     "filter1OtaResonanceCompensation";
 constexpr auto filter2OtaResonanceCompensation =
     "filter2OtaResonanceCompensation";
+constexpr auto filter1CombMode = "filter1CombMode";
+constexpr auto filter2CombMode = "filter2CombMode";
+constexpr auto filter1CombFrequency = "filter1CombFrequency";
+constexpr auto filter2CombFrequency = "filter2CombFrequency";
+constexpr auto filter1CombFeedback = "filter1CombFeedback";
+constexpr auto filter2CombFeedback = "filter2CombFeedback";
+constexpr auto filter1CombDamping = "filter1CombDamping";
+constexpr auto filter2CombDamping = "filter2CombDamping";
+constexpr auto filter1CombFineTune = "filter1CombFineTune";
+constexpr auto filter2CombFineTune = "filter2CombFineTune";
+constexpr auto filter1CombPolarity = "filter1CombPolarity";
+constexpr auto filter2CombPolarity = "filter2CombPolarity";
+constexpr auto filter1CombStereoSpread = "filter1CombStereoSpread";
+constexpr auto filter2CombStereoSpread = "filter2CombStereoSpread";
+constexpr auto filter1CombDispersion = "filter1CombDispersion";
+constexpr auto filter2CombDispersion = "filter2CombDispersion";
+constexpr auto filter1CombLoopSaturation = "filter1CombLoopSaturation";
+constexpr auto filter2CombLoopSaturation = "filter2CombLoopSaturation";
+constexpr auto filter1CombFeedbackLimit = "filter1CombFeedbackLimit";
+constexpr auto filter2CombFeedbackLimit = "filter2CombFeedbackLimit";
+constexpr auto filter1FormantVowel = "filter1FormantVowel";
+constexpr auto filter2FormantVowel = "filter2FormantVowel";
+constexpr auto filter1FormantShift = "filter1FormantShift";
+constexpr auto filter2FormantShift = "filter2FormantShift";
+constexpr auto filter1FormantFocus = "filter1FormantFocus";
+constexpr auto filter2FormantFocus = "filter2FormantFocus";
+constexpr auto filter1FormantOneLevel = "filter1FormantOneLevel";
+constexpr auto filter2FormantOneLevel = "filter2FormantOneLevel";
+constexpr auto filter1FormantTwoLevel = "filter1FormantTwoLevel";
+constexpr auto filter2FormantTwoLevel = "filter2FormantTwoLevel";
+constexpr auto filter1FormantThreeLevel = "filter1FormantThreeLevel";
+constexpr auto filter2FormantThreeLevel = "filter2FormantThreeLevel";
+constexpr auto filter1FormantBandwidth = "filter1FormantBandwidth";
+constexpr auto filter2FormantBandwidth = "filter2FormantBandwidth";
+constexpr auto filter1FormantSpread = "filter1FormantSpread";
+constexpr auto filter2FormantSpread = "filter2FormantSpread";
+constexpr auto filter1FormantTilt = "filter1FormantTilt";
+constexpr auto filter2FormantTilt = "filter2FormantTilt";
+constexpr auto filter1PhaserFrequency = "filter1PhaserFrequency";
+constexpr auto filter2PhaserFrequency = "filter2PhaserFrequency";
+constexpr auto filter1PhaserFeedback = "filter1PhaserFeedback";
+constexpr auto filter2PhaserFeedback = "filter2PhaserFeedback";
+constexpr auto filter1PhaserDepth = "filter1PhaserDepth";
+constexpr auto filter2PhaserDepth = "filter2PhaserDepth";
+constexpr auto filter1PhaserStages = "filter1PhaserStages";
+constexpr auto filter2PhaserStages = "filter2PhaserStages";
+constexpr auto filter1PhaserSpread = "filter1PhaserSpread";
+constexpr auto filter2PhaserSpread = "filter2PhaserSpread";
+constexpr auto filter1PhaserSkew = "filter1PhaserSkew";
+constexpr auto filter2PhaserSkew = "filter2PhaserSkew";
+constexpr auto filter1PhaserDamping = "filter1PhaserDamping";
+constexpr auto filter2PhaserDamping = "filter2PhaserDamping";
+constexpr auto filter1PhaserStageSaturation =
+    "filter1PhaserStageSaturation";
+constexpr auto filter2PhaserStageSaturation =
+    "filter2PhaserStageSaturation";
+constexpr auto filter1PhaserStereo = "filter1PhaserStereo";
+constexpr auto filter2PhaserStereo = "filter2PhaserStereo";
 constexpr auto filter1Slope = "filter1Slope";
 constexpr auto filter2Slope = "filter2Slope";
 constexpr auto filter1Enabled = "filter1Enabled";
@@ -72,6 +130,7 @@ constexpr auto bypass = "bypass";
 
 constexpr float smoothingSeconds = 0.020f;
 constexpr float nonlinearSmoothingSeconds = 0.050f;
+constexpr float combFrequencySmoothingSeconds = 0.085f;
 constexpr float maximumDriveGain = 16.0f;
 constexpr int externalDistortionStateBank = 0;
 constexpr int cleanInternalDistortionStateBank = 1;
@@ -310,6 +369,9 @@ DuskAudioProcessor::createParameterLayout()
     auto cutoffRange = juce::NormalisableRange<float>(
         20.0f, 20000.0f, 0.1f);
     cutoffRange.setSkewForCentre(1000.0f);
+    auto combFrequencyRange = juce::NormalisableRange<float>(
+        20.0f, 8000.0f, 0.1f);
+    combFrequencyRange.setSkewForCentre(440.0f);
     const auto cutoffAttributes = juce::AudioParameterFloatAttributes()
         .withStringFromValueFunction([](float value, int)
         {
@@ -335,13 +397,69 @@ DuskAudioProcessor::createParameterLayout()
         {
             return text.getFloatValue();
         });
+    const auto centsAttributes = juce::AudioParameterFloatAttributes()
+        .withLabel("ct")
+        .withStringFromValueFunction([](float value, int)
+        {
+            return juce::String(value, 1) + " ct";
+        })
+        .withValueFromStringFunction([](const juce::String& text)
+        {
+            return text.getFloatValue();
+        });
+    const auto semitoneAttributes = juce::AudioParameterFloatAttributes()
+        .withLabel("st")
+        .withStringFromValueFunction([](float value, int)
+        {
+            return juce::String(value, 1) + " st";
+        })
+        .withValueFromStringFunction([](const juce::String& text)
+        {
+            return text.getFloatValue();
+        });
+    const auto vowelAttributes = juce::AudioParameterFloatAttributes()
+        .withStringFromValueFunction([](float value, int)
+        {
+            constexpr std::array<const char*, 5> names
+                { "A", "E", "I", "O", "U" };
+            const float position = juce::jlimit(0.0f, 4.0f, value * 0.04f);
+            const int left = juce::jlimit(
+                0, 4, static_cast<int>(std::floor(position)));
+            const int right = juce::jmin(4, left + 1);
+            const float fraction = position - static_cast<float>(left);
+            if (left == right || fraction < 0.005f)
+                return juce::String(names[static_cast<size_t>(left)]);
+            return juce::String(names[static_cast<size_t>(left)]) + ">"
+                + names[static_cast<size_t>(right)] + " "
+                + juce::String(juce::roundToInt(fraction * 100.0f));
+        })
+        .withValueFromStringFunction([](const juce::String& text)
+        {
+            const auto trimmed = text.trim().toUpperCase();
+            constexpr std::array<const char*, 5> names
+                { "A", "E", "I", "O", "U" };
+            for (size_t index = 0; index < names.size(); ++index)
+                if (trimmed == names[index])
+                    return static_cast<float>(index) * 25.0f;
+            return text.getFloatValue();
+        });
+    const auto stageCountAttributes = juce::AudioParameterFloatAttributes()
+        .withLabel("stages")
+        .withStringFromValueFunction([](float value, int)
+        {
+            return juce::String(value, 1) + " stages";
+        })
+        .withValueFromStringFunction([](const juce::String& text)
+        {
+            return text.getFloatValue();
+        });
 
     juce::StringArray architectureNames;
     for (const auto& descriptor : dusk::architecture::descriptors)
         architectureNames.add(descriptor.displayName);
 
-    // Architecture is independent per filter. Clean SVF, Ladder and OTA are
-    // separate engines rather than relabelled Models.
+    // Architecture is independent per filter. Clean SVF, Ladder, OTA, Comb,
+    // Formant and Phaser are separate engines rather than relabelled Models.
     layout.push_back(std::make_unique<APC>(
         juce::ParameterID(ParameterIds::routing, 1), "Filter Routing",
         juce::StringArray { "Filter 1", "Filter 2", "Serial 1 to 2",
@@ -432,6 +550,143 @@ DuskAudioProcessor::createParameterLayout()
             ParameterIds::filter1OtaResonanceCompensation, 1),
         "Filter 1 OTA Resonance Compensation",
         juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 50.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APC>(
+        juce::ParameterID(ParameterIds::filter1CombMode, 1),
+        "Filter 1 Comb Mode",
+        juce::StringArray { "Feedback", "Feedforward", "All-pass" }, 0));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1CombFrequency, 1),
+        "Filter 1 Comb Frequency", combFrequencyRange, 440.0f,
+        cutoffAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1CombFeedback, 1),
+        "Filter 1 Comb Feedback",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 65.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1CombDamping, 1),
+        "Filter 1 Comb Damping",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 35.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1CombFineTune, 1),
+        "Filter 1 Comb Fine Tune",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 0.0f,
+        centsAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1CombPolarity, 1),
+        "Filter 1 Comb Polarity",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 100.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1CombStereoSpread, 1),
+        "Filter 1 Comb Stereo Spread",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 0.0f,
+        centsAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1CombDispersion, 1),
+        "Filter 1 Comb Dispersion",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1CombLoopSaturation, 1),
+        "Filter 1 Comb Loop Saturation",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1CombFeedbackLimit, 1),
+        "Filter 1 Comb Feedback Limit",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 100.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1FormantVowel, 1),
+        "Filter 1 Formant Vowel",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 0.0f,
+        vowelAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1FormantShift, 1),
+        "Filter 1 Formant Shift",
+        juce::NormalisableRange<float>(-24.0f, 24.0f, 0.1f), 0.0f,
+        semitoneAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1FormantFocus, 1),
+        "Filter 1 Formant Focus",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 50.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1FormantOneLevel, 1),
+        "Filter 1 Formant 1 Level",
+        juce::NormalisableRange<float>(0.0f, 200.0f, 0.1f), 100.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1FormantTwoLevel, 1),
+        "Filter 1 Formant 2 Level",
+        juce::NormalisableRange<float>(0.0f, 200.0f, 0.1f), 100.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1FormantThreeLevel, 1),
+        "Filter 1 Formant 3 Level",
+        juce::NormalisableRange<float>(0.0f, 200.0f, 0.1f), 100.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1FormantBandwidth, 1),
+        "Filter 1 Formant Bandwidth",
+        juce::NormalisableRange<float>(50.0f, 200.0f, 0.1f), 100.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1FormantSpread, 1),
+        "Filter 1 Formant Spread",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1FormantTilt, 1),
+        "Filter 1 Formant Tilt",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1PhaserFrequency, 1),
+        "Filter 1 Phaser Frequency", cutoffRange, 1000.0f,
+        cutoffAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1PhaserFeedback, 1),
+        "Filter 1 Phaser Feedback",
+        juce::NormalisableRange<float>(-95.0f, 95.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1PhaserDepth, 1),
+        "Filter 1 Phaser Depth",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 75.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1PhaserStages, 1),
+        "Filter 1 Phaser Stages",
+        juce::NormalisableRange<float>(2.0f, 12.0f, 0.1f), 6.0f,
+        stageCountAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1PhaserSpread, 1),
+        "Filter 1 Phaser Spread",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 50.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1PhaserSkew, 1),
+        "Filter 1 Phaser Skew",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1PhaserDamping, 1),
+        "Filter 1 Phaser Damping",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 20.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1PhaserStageSaturation, 1),
+        "Filter 1 Phaser Stage Saturation",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter1PhaserStereo, 1),
+        "Filter 1 Phaser Stereo",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 0.0f,
         percentageAttributes));
     layout.push_back(std::make_unique<APF>(
         juce::ParameterID(ParameterIds::filter1Slope, 1),
@@ -527,6 +782,143 @@ DuskAudioProcessor::createParameterLayout()
             ParameterIds::filter2OtaResonanceCompensation, 1),
         "Filter 2 OTA Resonance Compensation",
         juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 50.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APC>(
+        juce::ParameterID(ParameterIds::filter2CombMode, 1),
+        "Filter 2 Comb Mode",
+        juce::StringArray { "Feedback", "Feedforward", "All-pass" }, 0));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2CombFrequency, 1),
+        "Filter 2 Comb Frequency", combFrequencyRange, 440.0f,
+        cutoffAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2CombFeedback, 1),
+        "Filter 2 Comb Feedback",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 65.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2CombDamping, 1),
+        "Filter 2 Comb Damping",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 35.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2CombFineTune, 1),
+        "Filter 2 Comb Fine Tune",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 0.0f,
+        centsAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2CombPolarity, 1),
+        "Filter 2 Comb Polarity",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 100.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2CombStereoSpread, 1),
+        "Filter 2 Comb Stereo Spread",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 0.0f,
+        centsAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2CombDispersion, 1),
+        "Filter 2 Comb Dispersion",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2CombLoopSaturation, 1),
+        "Filter 2 Comb Loop Saturation",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2CombFeedbackLimit, 1),
+        "Filter 2 Comb Feedback Limit",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 100.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2FormantVowel, 1),
+        "Filter 2 Formant Vowel",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 0.0f,
+        vowelAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2FormantShift, 1),
+        "Filter 2 Formant Shift",
+        juce::NormalisableRange<float>(-24.0f, 24.0f, 0.1f), 0.0f,
+        semitoneAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2FormantFocus, 1),
+        "Filter 2 Formant Focus",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 50.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2FormantOneLevel, 1),
+        "Filter 2 Formant 1 Level",
+        juce::NormalisableRange<float>(0.0f, 200.0f, 0.1f), 100.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2FormantTwoLevel, 1),
+        "Filter 2 Formant 2 Level",
+        juce::NormalisableRange<float>(0.0f, 200.0f, 0.1f), 100.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2FormantThreeLevel, 1),
+        "Filter 2 Formant 3 Level",
+        juce::NormalisableRange<float>(0.0f, 200.0f, 0.1f), 100.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2FormantBandwidth, 1),
+        "Filter 2 Formant Bandwidth",
+        juce::NormalisableRange<float>(50.0f, 200.0f, 0.1f), 100.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2FormantSpread, 1),
+        "Filter 2 Formant Spread",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2FormantTilt, 1),
+        "Filter 2 Formant Tilt",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2PhaserFrequency, 1),
+        "Filter 2 Phaser Frequency", cutoffRange, 1000.0f,
+        cutoffAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2PhaserFeedback, 1),
+        "Filter 2 Phaser Feedback",
+        juce::NormalisableRange<float>(-95.0f, 95.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2PhaserDepth, 1),
+        "Filter 2 Phaser Depth",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 75.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2PhaserStages, 1),
+        "Filter 2 Phaser Stages",
+        juce::NormalisableRange<float>(2.0f, 12.0f, 0.1f), 6.0f,
+        stageCountAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2PhaserSpread, 1),
+        "Filter 2 Phaser Spread",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 50.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2PhaserSkew, 1),
+        "Filter 2 Phaser Skew",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2PhaserDamping, 1),
+        "Filter 2 Phaser Damping",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 20.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2PhaserStageSaturation, 1),
+        "Filter 2 Phaser Stage Saturation",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 0.0f,
+        percentageAttributes));
+    layout.push_back(std::make_unique<APF>(
+        juce::ParameterID(ParameterIds::filter2PhaserStereo, 1),
+        "Filter 2 Phaser Stereo",
+        juce::NormalisableRange<float>(-100.0f, 100.0f, 0.1f), 0.0f,
         percentageAttributes));
     layout.push_back(std::make_unique<APF>(
         juce::ParameterID(ParameterIds::filter2Slope, 1),
@@ -737,6 +1129,78 @@ void DuskAudioProcessor::bindParameterPointers()
         ParameterIds::filter1OtaResonanceCompensation);
     raw.filter2OtaResonanceCompensation = bind(
         ParameterIds::filter2OtaResonanceCompensation);
+    raw.filter1CombMode = bind(ParameterIds::filter1CombMode);
+    raw.filter2CombMode = bind(ParameterIds::filter2CombMode);
+    raw.filter1CombFrequency = bind(ParameterIds::filter1CombFrequency);
+    raw.filter2CombFrequency = bind(ParameterIds::filter2CombFrequency);
+    raw.filter1CombFeedback = bind(ParameterIds::filter1CombFeedback);
+    raw.filter2CombFeedback = bind(ParameterIds::filter2CombFeedback);
+    raw.filter1CombDamping = bind(ParameterIds::filter1CombDamping);
+    raw.filter2CombDamping = bind(ParameterIds::filter2CombDamping);
+    raw.filter1CombFineTune = bind(ParameterIds::filter1CombFineTune);
+    raw.filter2CombFineTune = bind(ParameterIds::filter2CombFineTune);
+    raw.filter1CombPolarity = bind(ParameterIds::filter1CombPolarity);
+    raw.filter2CombPolarity = bind(ParameterIds::filter2CombPolarity);
+    raw.filter1CombStereoSpread = bind(
+        ParameterIds::filter1CombStereoSpread);
+    raw.filter2CombStereoSpread = bind(
+        ParameterIds::filter2CombStereoSpread);
+    raw.filter1CombDispersion = bind(ParameterIds::filter1CombDispersion);
+    raw.filter2CombDispersion = bind(ParameterIds::filter2CombDispersion);
+    raw.filter1CombLoopSaturation = bind(
+        ParameterIds::filter1CombLoopSaturation);
+    raw.filter2CombLoopSaturation = bind(
+        ParameterIds::filter2CombLoopSaturation);
+    raw.filter1CombFeedbackLimit = bind(
+        ParameterIds::filter1CombFeedbackLimit);
+    raw.filter2CombFeedbackLimit = bind(
+        ParameterIds::filter2CombFeedbackLimit);
+    raw.filter1FormantVowel = bind(ParameterIds::filter1FormantVowel);
+    raw.filter2FormantVowel = bind(ParameterIds::filter2FormantVowel);
+    raw.filter1FormantShift = bind(ParameterIds::filter1FormantShift);
+    raw.filter2FormantShift = bind(ParameterIds::filter2FormantShift);
+    raw.filter1FormantFocus = bind(ParameterIds::filter1FormantFocus);
+    raw.filter2FormantFocus = bind(ParameterIds::filter2FormantFocus);
+    raw.filter1FormantOneLevel = bind(
+        ParameterIds::filter1FormantOneLevel);
+    raw.filter2FormantOneLevel = bind(
+        ParameterIds::filter2FormantOneLevel);
+    raw.filter1FormantTwoLevel = bind(
+        ParameterIds::filter1FormantTwoLevel);
+    raw.filter2FormantTwoLevel = bind(
+        ParameterIds::filter2FormantTwoLevel);
+    raw.filter1FormantThreeLevel = bind(
+        ParameterIds::filter1FormantThreeLevel);
+    raw.filter2FormantThreeLevel = bind(
+        ParameterIds::filter2FormantThreeLevel);
+    raw.filter1FormantBandwidth = bind(
+        ParameterIds::filter1FormantBandwidth);
+    raw.filter2FormantBandwidth = bind(
+        ParameterIds::filter2FormantBandwidth);
+    raw.filter1FormantSpread = bind(ParameterIds::filter1FormantSpread);
+    raw.filter2FormantSpread = bind(ParameterIds::filter2FormantSpread);
+    raw.filter1FormantTilt = bind(ParameterIds::filter1FormantTilt);
+    raw.filter2FormantTilt = bind(ParameterIds::filter2FormantTilt);
+    raw.filter1PhaserFrequency = bind(ParameterIds::filter1PhaserFrequency);
+    raw.filter2PhaserFrequency = bind(ParameterIds::filter2PhaserFrequency);
+    raw.filter1PhaserFeedback = bind(ParameterIds::filter1PhaserFeedback);
+    raw.filter2PhaserFeedback = bind(ParameterIds::filter2PhaserFeedback);
+    raw.filter1PhaserDepth = bind(ParameterIds::filter1PhaserDepth);
+    raw.filter2PhaserDepth = bind(ParameterIds::filter2PhaserDepth);
+    raw.filter1PhaserStages = bind(ParameterIds::filter1PhaserStages);
+    raw.filter2PhaserStages = bind(ParameterIds::filter2PhaserStages);
+    raw.filter1PhaserSpread = bind(ParameterIds::filter1PhaserSpread);
+    raw.filter2PhaserSpread = bind(ParameterIds::filter2PhaserSpread);
+    raw.filter1PhaserSkew = bind(ParameterIds::filter1PhaserSkew);
+    raw.filter2PhaserSkew = bind(ParameterIds::filter2PhaserSkew);
+    raw.filter1PhaserDamping = bind(ParameterIds::filter1PhaserDamping);
+    raw.filter2PhaserDamping = bind(ParameterIds::filter2PhaserDamping);
+    raw.filter1PhaserStageSaturation = bind(
+        ParameterIds::filter1PhaserStageSaturation);
+    raw.filter2PhaserStageSaturation = bind(
+        ParameterIds::filter2PhaserStageSaturation);
+    raw.filter1PhaserStereo = bind(ParameterIds::filter1PhaserStereo);
+    raw.filter2PhaserStereo = bind(ParameterIds::filter2PhaserStereo);
     raw.filter1Slope = bind(ParameterIds::filter1Slope);
     raw.filter2Slope = bind(ParameterIds::filter2Slope);
     raw.filter1Enabled = bind(ParameterIds::filter1Enabled);
@@ -913,11 +1377,18 @@ void DuskAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     freshToneCoefficient = onePoleCoefficient(3400.0f, currentSampleRate);
     fuzzDcCoefficient = onePoleCoefficient(18.0f, currentSampleRate);
     fuzzToneCoefficient = onePoleCoefficient(5200.0f, currentSampleRate);
+    prepareCombState();
     resetProcessingState();
 
     const auto resetSmoother = [this](LinearSmoother& smoother, float value)
     {
         smoother.reset(currentSampleRate, smoothingSeconds);
+        smoother.setCurrentAndTargetValue(value);
+    };
+    const auto resetNonlinearSmoother = [this](
+        LinearSmoother& smoother, float value)
+    {
+        smoother.reset(currentSampleRate, nonlinearSmoothingSeconds);
         smoother.setCurrentAndTargetValue(value);
     };
     const std::array<const std::atomic<float>*, filterEngineCount> drives {
@@ -992,6 +1463,84 @@ void DuskAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
             raw.filter1OtaResonanceCompensation,
             raw.filter2OtaResonanceCompensation
         };
+    const std::array<const std::atomic<float>*, filterEngineCount> combModes {
+        raw.filter1CombMode, raw.filter2CombMode
+    };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        combFrequencies { raw.filter1CombFrequency, raw.filter2CombFrequency };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        combFeedbacks { raw.filter1CombFeedback, raw.filter2CombFeedback };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        combDampings { raw.filter1CombDamping, raw.filter2CombDamping };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        combFineTunes { raw.filter1CombFineTune, raw.filter2CombFineTune };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        combPolarities { raw.filter1CombPolarity, raw.filter2CombPolarity };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        combStereoSpreads {
+            raw.filter1CombStereoSpread, raw.filter2CombStereoSpread
+        };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        combDispersions { raw.filter1CombDispersion, raw.filter2CombDispersion };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        combLoopSaturations {
+            raw.filter1CombLoopSaturation, raw.filter2CombLoopSaturation
+        };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        combFeedbackLimits {
+            raw.filter1CombFeedbackLimit, raw.filter2CombFeedbackLimit
+        };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        formantVowels { raw.filter1FormantVowel, raw.filter2FormantVowel };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        formantShifts { raw.filter1FormantShift, raw.filter2FormantShift };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        formantFocuses { raw.filter1FormantFocus, raw.filter2FormantFocus };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        formantOneLevels {
+            raw.filter1FormantOneLevel, raw.filter2FormantOneLevel
+        };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        formantTwoLevels {
+            raw.filter1FormantTwoLevel, raw.filter2FormantTwoLevel
+        };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        formantThreeLevels {
+            raw.filter1FormantThreeLevel, raw.filter2FormantThreeLevel
+        };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        formantBandwidths {
+            raw.filter1FormantBandwidth, raw.filter2FormantBandwidth
+        };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        formantSpreads { raw.filter1FormantSpread, raw.filter2FormantSpread };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        formantTilts { raw.filter1FormantTilt, raw.filter2FormantTilt };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        phaserFrequencies {
+            raw.filter1PhaserFrequency, raw.filter2PhaserFrequency
+        };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        phaserFeedbacks {
+            raw.filter1PhaserFeedback, raw.filter2PhaserFeedback
+        };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        phaserDepths { raw.filter1PhaserDepth, raw.filter2PhaserDepth };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        phaserStages { raw.filter1PhaserStages, raw.filter2PhaserStages };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        phaserSpreads { raw.filter1PhaserSpread, raw.filter2PhaserSpread };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        phaserSkews { raw.filter1PhaserSkew, raw.filter2PhaserSkew };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        phaserDampings { raw.filter1PhaserDamping, raw.filter2PhaserDamping };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        phaserStageSaturations {
+            raw.filter1PhaserStageSaturation,
+            raw.filter2PhaserStageSaturation
+        };
+    const std::array<const std::atomic<float>*, filterEngineCount>
+        phaserStereos { raw.filter1PhaserStereo, raw.filter2PhaserStereo };
     const std::array<const std::atomic<float>*, filterEngineCount>
         architectures {
             raw.filter1Architecture, raw.filter2Architecture
@@ -1069,6 +1618,71 @@ void DuskAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
         otaResonanceCompensationValue[index].setCurrentAndTargetValue(
             juce::jlimit(0.0f, 1.0f,
                 load(otaResonanceCompensations[index]) * 0.01f));
+        combFrequencyValue[index].reset(
+            currentSampleRate, combFrequencySmoothingSeconds);
+        combFrequencyValue[index].setCurrentAndTargetValue(juce::jlimit(
+            20.0f, 8000.0f, load(combFrequencies[index])));
+        resetSmoother(combFeedbackValue[index], juce::jlimit(
+            0.0f, 1.0f, load(combFeedbacks[index]) * 0.01f));
+        resetSmoother(combDampingValue[index], juce::jlimit(
+            0.0f, 1.0f, load(combDampings[index]) * 0.01f));
+        resetSmoother(combFineTuneValue[index], juce::jlimit(
+            -100.0f, 100.0f, load(combFineTunes[index])));
+        resetSmoother(combPolarityValue[index], juce::jlimit(
+            -1.0f, 1.0f, load(combPolarities[index]) * 0.01f));
+        resetSmoother(combStereoSpreadValue[index], juce::jlimit(
+            -100.0f, 100.0f, load(combStereoSpreads[index])));
+        resetSmoother(combDispersionValue[index], juce::jlimit(
+            0.0f, 1.0f, load(combDispersions[index]) * 0.01f));
+        resetSmoother(combLoopSaturationValue[index], juce::jlimit(
+            0.0f, 1.0f, load(combLoopSaturations[index]) * 0.01f));
+        resetSmoother(combFeedbackLimitValue[index], juce::jlimit(
+            0.0f, 1.0f, load(combFeedbackLimits[index]) * 0.01f));
+        resetNonlinearSmoother(formantVowelValue[index], juce::jlimit(
+            0.0f, 100.0f, load(formantVowels[index])));
+        resetNonlinearSmoother(formantShiftValue[index], juce::jlimit(
+            -24.0f, 24.0f, load(formantShifts[index])));
+        resetNonlinearSmoother(formantFocusValue[index], juce::jlimit(
+            0.0f, 100.0f, load(formantFocuses[index])));
+        resetNonlinearSmoother(formantOneLevelValue[index], juce::jlimit(
+            0.0f, 200.0f, load(formantOneLevels[index])));
+        resetNonlinearSmoother(formantTwoLevelValue[index], juce::jlimit(
+            0.0f, 200.0f, load(formantTwoLevels[index])));
+        resetNonlinearSmoother(formantThreeLevelValue[index], juce::jlimit(
+            0.0f, 200.0f, load(formantThreeLevels[index])));
+        resetNonlinearSmoother(formantBandwidthValue[index], juce::jlimit(
+            50.0f, 200.0f, load(formantBandwidths[index])));
+        resetNonlinearSmoother(formantSpreadValue[index], juce::jlimit(
+            -100.0f, 100.0f, load(formantSpreads[index])));
+        resetNonlinearSmoother(formantTiltValue[index], juce::jlimit(
+            -100.0f, 100.0f, load(formantTilts[index])));
+        phaserFrequencyValue[index].reset(
+            currentSampleRate, nonlinearSmoothingSeconds);
+        phaserFrequencyValue[index].setCurrentAndTargetValue(juce::jlimit(
+            20.0f, 20000.0f, load(phaserFrequencies[index])));
+        resetNonlinearSmoother(phaserFeedbackValue[index], juce::jlimit(
+            -95.0f, 95.0f, load(phaserFeedbacks[index])));
+        resetNonlinearSmoother(phaserDepthValue[index], juce::jlimit(
+            0.0f, 100.0f, load(phaserDepths[index])));
+        resetNonlinearSmoother(phaserStagesValue[index], juce::jlimit(
+            2.0f, 12.0f, load(phaserStages[index])));
+        resetNonlinearSmoother(phaserSpreadValue[index], juce::jlimit(
+            0.0f, 100.0f, load(phaserSpreads[index])));
+        resetNonlinearSmoother(phaserSkewValue[index], juce::jlimit(
+            -100.0f, 100.0f, load(phaserSkews[index])));
+        resetNonlinearSmoother(phaserDampingValue[index], juce::jlimit(
+            0.0f, 100.0f, load(phaserDampings[index])));
+        resetNonlinearSmoother(phaserStageSaturationValue[index],
+            juce::jlimit(0.0f, 100.0f,
+                load(phaserStageSaturations[index])));
+        resetNonlinearSmoother(phaserStereoValue[index], juce::jlimit(
+            -100.0f, 100.0f, load(phaserStereos[index])));
+        const int selectedCombMode = juce::jlimit(
+            0, combModeCount - 1,
+            static_cast<int>(std::lround(load(combModes[index]))));
+        currentCombMode[index] = selectedCombMode;
+        previousCombMode[index] = selectedCombMode;
+        resetSmoother(combModeCrossfadeValue[index], 1.0f);
         resetSmoother(slopeValue[index], juce::jlimit(
             6.0f, 48.0f, load(slopes[index])));
         const int selectedArchitecture = dusk::architecture::normaliseChoice(
@@ -1117,6 +1731,14 @@ void DuskAudioProcessor::resetFilterState() noexcept
         stage.fill(0.0f);
     otaFeedbackReturn.fill(0.0f);
     otaFeedbackDampingState.fill(0.0f);
+    resetCombState();
+    for (auto& band : formantIntegratorOne)
+        band.fill(0.0f);
+    for (auto& band : formantIntegratorTwo)
+        band.fill(0.0f);
+    for (auto& stage : phaserAllPassState)
+        stage.fill(0.0f);
+    phaserFeedbackReturn.fill(0.0f);
     for (auto& stage : slopeIntegratorOne)
         stage.fill(0.0f);
     for (auto& stage : slopeIntegratorTwo)
@@ -1472,6 +2094,19 @@ std::complex<double> DuskAudioProcessor::getArchitectureResponse(
     float ladderResonanceCompensationPercent,
     float otaCellDrivePercent, float otaFeedbackDampingPercent,
     float otaResonanceCompensationPercent,
+    float combFrequencyHz, float combFeedbackPercent,
+    float combDampingPercent, float combFineTuneCents,
+    float combPolarityPercent, float combDispersionPercent,
+    int combModeChoice,
+    float formantVowelPercent, float formantShiftSemitones,
+    float formantFocusPercent, float formantOneLevelPercent,
+    float formantTwoLevelPercent, float formantThreeLevelPercent,
+    float formantBandwidthPercent, float formantSpreadPercent,
+    float formantTiltPercent,
+    float phaserFrequencyHz, float phaserFeedbackPercent,
+    float phaserDepthPercent, float phaserStages,
+    float phaserSpreadPercent, float phaserSkewPercent,
+    float phaserDampingPercent,
     int filterTypeChoice) noexcept
 {
     juce::ignoreUnused(ladderStageSaturationPercent, otaCellDrivePercent);
@@ -1488,6 +2123,25 @@ std::complex<double> DuskAudioProcessor::getArchitectureResponse(
                 frequencyHz, sampleRate, cutoffHz, resonancePercent,
                 slopeDbPerOctave, otaFeedbackDampingPercent,
                 otaResonanceCompensationPercent, filterTypeChoice);
+        case dusk::architecture::Id::comb:
+            return getCombResponse(
+                frequencyHz, sampleRate, combFrequencyHz,
+                combFeedbackPercent, combDampingPercent,
+                combFineTuneCents, combPolarityPercent,
+                combDispersionPercent, combModeChoice);
+        case dusk::architecture::Id::formant:
+            return getFormantResponse(
+                frequencyHz, sampleRate, formantVowelPercent,
+                formantShiftSemitones, formantFocusPercent,
+                formantOneLevelPercent, formantTwoLevelPercent,
+                formantThreeLevelPercent, formantBandwidthPercent,
+                formantSpreadPercent, formantTiltPercent);
+        case dusk::architecture::Id::phaser:
+            return getPhaserResponse(
+                frequencyHz, sampleRate, phaserFrequencyHz,
+                phaserFeedbackPercent, phaserDepthPercent, phaserStages,
+                phaserSpreadPercent, phaserSkewPercent,
+                phaserDampingPercent);
         case dusk::architecture::Id::cleanSvf:
         default:
             return getCleanSvfResponse(
@@ -2080,6 +2734,20 @@ float DuskAudioProcessor::processFilterArchitecture(
     float ladderResonanceCompensation, float otaCellDrive,
     float otaFeedbackDamping,
     float otaResonanceCompensation,
+    int previousCombMode, int currentCombMode,
+    float combModeCrossfade, float combFrequency,
+    float combFeedback, float combDamping, float combFineTune,
+    float combPolarity, float combStereoSpread,
+    float combDispersion, float combLoopSaturation,
+    float combFeedbackLimit,
+    float formantVowel, float formantShift, float formantFocus,
+    float formantOneLevel, float formantTwoLevel,
+    float formantThreeLevel, float formantBandwidth,
+    float formantSpread, float formantTilt,
+    float phaserFrequency, float phaserFeedback, float phaserDepth,
+    float phaserStages, float phaserSpread, float phaserSkew,
+    float phaserDamping, float phaserStageSaturation,
+    float phaserStereo,
     bool internalDistortion, float distortionAmount,
     int currentDistortion, int previousDistortion,
     float distortionCrossfade) noexcept
@@ -2102,14 +2770,50 @@ float DuskAudioProcessor::processFilterArchitecture(
         otaFeedbackDamping, otaResonanceCompensation, internalDistortion,
         distortionAmount, currentDistortion, previousDistortion,
         distortionCrossfade);
-    const auto outputForArchitecture = [cleanOutput, ladderOutput, otaOutput](
-        int architecture)
+    const float combOutput = processCombFilter(
+        sample, engine, channel, previousCombMode, currentCombMode,
+        combModeCrossfade, combFrequency, combFeedback, combDamping,
+        combFineTune, combPolarity, combStereoSpread, combDispersion,
+        combLoopSaturation, combFeedbackLimit, internalDistortion,
+        distortionAmount, currentDistortion, previousDistortion,
+        distortionCrossfade);
+    const auto formantChoice = static_cast<int>(
+        dusk::architecture::Id::formant);
+    const bool formantIsLive = previousArchitecture == formantChoice
+        || currentArchitecture == formantChoice;
+    const float formantOutput = formantIsLive
+        ? processFormantFilter(
+            sample, engine, channel, formantVowel, formantShift,
+            formantFocus, formantOneLevel, formantTwoLevel,
+            formantThreeLevel, formantBandwidth, formantSpread,
+            formantTilt, internalDistortion, distortionAmount,
+            currentDistortion, previousDistortion, distortionCrossfade)
+        : sample;
+    const auto phaserChoice = static_cast<int>(
+        dusk::architecture::Id::phaser);
+    const bool phaserIsLive = previousArchitecture == phaserChoice
+        || currentArchitecture == phaserChoice;
+    const float phaserOutput = phaserIsLive
+        ? processPhaserFilter(
+            sample, engine, channel, phaserFrequency, phaserFeedback,
+            phaserDepth, phaserStages, phaserSpread, phaserSkew,
+            phaserDamping, phaserStageSaturation, phaserStereo,
+            internalDistortion, distortionAmount, currentDistortion,
+            previousDistortion, distortionCrossfade)
+        : sample;
+    const auto outputForArchitecture = [cleanOutput, ladderOutput, otaOutput,
+                                        combOutput,
+                                        formantOutput,
+                                        phaserOutput](int architecture)
     {
         switch (static_cast<dusk::architecture::Id>(
             dusk::architecture::normaliseChoice(architecture)))
         {
             case dusk::architecture::Id::ladder: return ladderOutput;
             case dusk::architecture::Id::ota: return otaOutput;
+            case dusk::architecture::Id::comb: return combOutput;
+            case dusk::architecture::Id::formant: return formantOutput;
+            case dusk::architecture::Id::phaser: return phaserOutput;
             case dusk::architecture::Id::cleanSvf:
             default: return cleanOutput;
         }
@@ -2426,6 +3130,222 @@ void DuskAudioProcessor::processBlock(
         0.0f, 1.0f, sequenced(
             dusk::sequencer::filter2OtaResonanceCompensationTargetChoice,
             raw.filter2OtaResonanceCompensation) * 0.01f));
+    combFrequencyValue[0].setTargetValue(juce::jlimit(
+        20.0f, 8000.0f, sequenced(
+            dusk::sequencer::filter1CombFrequencyTargetChoice,
+            raw.filter1CombFrequency)));
+    combFrequencyValue[1].setTargetValue(juce::jlimit(
+        20.0f, 8000.0f, sequenced(
+            dusk::sequencer::filter2CombFrequencyTargetChoice,
+            raw.filter2CombFrequency)));
+    combFeedbackValue[0].setTargetValue(juce::jlimit(
+        0.0f, 1.0f, sequenced(
+            dusk::sequencer::filter1CombFeedbackTargetChoice,
+            raw.filter1CombFeedback) * 0.01f));
+    combFeedbackValue[1].setTargetValue(juce::jlimit(
+        0.0f, 1.0f, sequenced(
+            dusk::sequencer::filter2CombFeedbackTargetChoice,
+            raw.filter2CombFeedback) * 0.01f));
+    combDampingValue[0].setTargetValue(juce::jlimit(
+        0.0f, 1.0f, sequenced(
+            dusk::sequencer::filter1CombDampingTargetChoice,
+            raw.filter1CombDamping) * 0.01f));
+    combDampingValue[1].setTargetValue(juce::jlimit(
+        0.0f, 1.0f, sequenced(
+            dusk::sequencer::filter2CombDampingTargetChoice,
+            raw.filter2CombDamping) * 0.01f));
+    combFineTuneValue[0].setTargetValue(juce::jlimit(
+        -100.0f, 100.0f, sequenced(
+            dusk::sequencer::filter1CombFineTuneTargetChoice,
+            raw.filter1CombFineTune)));
+    combFineTuneValue[1].setTargetValue(juce::jlimit(
+        -100.0f, 100.0f, sequenced(
+            dusk::sequencer::filter2CombFineTuneTargetChoice,
+            raw.filter2CombFineTune)));
+    combPolarityValue[0].setTargetValue(juce::jlimit(
+        -1.0f, 1.0f, sequenced(
+            dusk::sequencer::filter1CombPolarityTargetChoice,
+            raw.filter1CombPolarity) * 0.01f));
+    combPolarityValue[1].setTargetValue(juce::jlimit(
+        -1.0f, 1.0f, sequenced(
+            dusk::sequencer::filter2CombPolarityTargetChoice,
+            raw.filter2CombPolarity) * 0.01f));
+    combStereoSpreadValue[0].setTargetValue(juce::jlimit(
+        -100.0f, 100.0f, sequenced(
+            dusk::sequencer::filter1CombStereoSpreadTargetChoice,
+            raw.filter1CombStereoSpread)));
+    combStereoSpreadValue[1].setTargetValue(juce::jlimit(
+        -100.0f, 100.0f, sequenced(
+            dusk::sequencer::filter2CombStereoSpreadTargetChoice,
+            raw.filter2CombStereoSpread)));
+    combDispersionValue[0].setTargetValue(juce::jlimit(
+        0.0f, 1.0f, sequenced(
+            dusk::sequencer::filter1CombDispersionTargetChoice,
+            raw.filter1CombDispersion) * 0.01f));
+    combDispersionValue[1].setTargetValue(juce::jlimit(
+        0.0f, 1.0f, sequenced(
+            dusk::sequencer::filter2CombDispersionTargetChoice,
+            raw.filter2CombDispersion) * 0.01f));
+    combLoopSaturationValue[0].setTargetValue(juce::jlimit(
+        0.0f, 1.0f, sequenced(
+            dusk::sequencer::filter1CombLoopSaturationTargetChoice,
+            raw.filter1CombLoopSaturation) * 0.01f));
+    combLoopSaturationValue[1].setTargetValue(juce::jlimit(
+        0.0f, 1.0f, sequenced(
+            dusk::sequencer::filter2CombLoopSaturationTargetChoice,
+            raw.filter2CombLoopSaturation) * 0.01f));
+    combFeedbackLimitValue[0].setTargetValue(juce::jlimit(
+        0.0f, 1.0f, sequenced(
+            dusk::sequencer::filter1CombFeedbackLimitTargetChoice,
+            raw.filter1CombFeedbackLimit) * 0.01f));
+    combFeedbackLimitValue[1].setTargetValue(juce::jlimit(
+        0.0f, 1.0f, sequenced(
+            dusk::sequencer::filter2CombFeedbackLimitTargetChoice,
+            raw.filter2CombFeedbackLimit) * 0.01f));
+    formantVowelValue[0].setTargetValue(juce::jlimit(
+        0.0f, 100.0f, sequenced(
+            dusk::sequencer::filter1FormantVowelTargetChoice,
+            raw.filter1FormantVowel)));
+    formantVowelValue[1].setTargetValue(juce::jlimit(
+        0.0f, 100.0f, sequenced(
+            dusk::sequencer::filter2FormantVowelTargetChoice,
+            raw.filter2FormantVowel)));
+    formantShiftValue[0].setTargetValue(juce::jlimit(
+        -24.0f, 24.0f, sequenced(
+            dusk::sequencer::filter1FormantShiftTargetChoice,
+            raw.filter1FormantShift)));
+    formantShiftValue[1].setTargetValue(juce::jlimit(
+        -24.0f, 24.0f, sequenced(
+            dusk::sequencer::filter2FormantShiftTargetChoice,
+            raw.filter2FormantShift)));
+    formantFocusValue[0].setTargetValue(juce::jlimit(
+        0.0f, 100.0f, sequenced(
+            dusk::sequencer::filter1FormantFocusTargetChoice,
+            raw.filter1FormantFocus)));
+    formantFocusValue[1].setTargetValue(juce::jlimit(
+        0.0f, 100.0f, sequenced(
+            dusk::sequencer::filter2FormantFocusTargetChoice,
+            raw.filter2FormantFocus)));
+    formantOneLevelValue[0].setTargetValue(juce::jlimit(
+        0.0f, 200.0f, sequenced(
+            dusk::sequencer::filter1FormantOneLevelTargetChoice,
+            raw.filter1FormantOneLevel)));
+    formantOneLevelValue[1].setTargetValue(juce::jlimit(
+        0.0f, 200.0f, sequenced(
+            dusk::sequencer::filter2FormantOneLevelTargetChoice,
+            raw.filter2FormantOneLevel)));
+    formantTwoLevelValue[0].setTargetValue(juce::jlimit(
+        0.0f, 200.0f, sequenced(
+            dusk::sequencer::filter1FormantTwoLevelTargetChoice,
+            raw.filter1FormantTwoLevel)));
+    formantTwoLevelValue[1].setTargetValue(juce::jlimit(
+        0.0f, 200.0f, sequenced(
+            dusk::sequencer::filter2FormantTwoLevelTargetChoice,
+            raw.filter2FormantTwoLevel)));
+    formantThreeLevelValue[0].setTargetValue(juce::jlimit(
+        0.0f, 200.0f, sequenced(
+            dusk::sequencer::filter1FormantThreeLevelTargetChoice,
+            raw.filter1FormantThreeLevel)));
+    formantThreeLevelValue[1].setTargetValue(juce::jlimit(
+        0.0f, 200.0f, sequenced(
+            dusk::sequencer::filter2FormantThreeLevelTargetChoice,
+            raw.filter2FormantThreeLevel)));
+    formantBandwidthValue[0].setTargetValue(juce::jlimit(
+        50.0f, 200.0f, sequenced(
+            dusk::sequencer::filter1FormantBandwidthTargetChoice,
+            raw.filter1FormantBandwidth)));
+    formantBandwidthValue[1].setTargetValue(juce::jlimit(
+        50.0f, 200.0f, sequenced(
+            dusk::sequencer::filter2FormantBandwidthTargetChoice,
+            raw.filter2FormantBandwidth)));
+    formantSpreadValue[0].setTargetValue(juce::jlimit(
+        -100.0f, 100.0f, sequenced(
+            dusk::sequencer::filter1FormantSpreadTargetChoice,
+            raw.filter1FormantSpread)));
+    formantSpreadValue[1].setTargetValue(juce::jlimit(
+        -100.0f, 100.0f, sequenced(
+            dusk::sequencer::filter2FormantSpreadTargetChoice,
+            raw.filter2FormantSpread)));
+    formantTiltValue[0].setTargetValue(juce::jlimit(
+        -100.0f, 100.0f, sequenced(
+            dusk::sequencer::filter1FormantTiltTargetChoice,
+            raw.filter1FormantTilt)));
+    formantTiltValue[1].setTargetValue(juce::jlimit(
+        -100.0f, 100.0f, sequenced(
+            dusk::sequencer::filter2FormantTiltTargetChoice,
+            raw.filter2FormantTilt)));
+    phaserFrequencyValue[0].setTargetValue(juce::jlimit(
+        20.0f, 20000.0f, sequenced(
+            dusk::sequencer::filter1PhaserFrequencyTargetChoice,
+            raw.filter1PhaserFrequency)));
+    phaserFrequencyValue[1].setTargetValue(juce::jlimit(
+        20.0f, 20000.0f, sequenced(
+            dusk::sequencer::filter2PhaserFrequencyTargetChoice,
+            raw.filter2PhaserFrequency)));
+    phaserFeedbackValue[0].setTargetValue(juce::jlimit(
+        -95.0f, 95.0f, sequenced(
+            dusk::sequencer::filter1PhaserFeedbackTargetChoice,
+            raw.filter1PhaserFeedback)));
+    phaserFeedbackValue[1].setTargetValue(juce::jlimit(
+        -95.0f, 95.0f, sequenced(
+            dusk::sequencer::filter2PhaserFeedbackTargetChoice,
+            raw.filter2PhaserFeedback)));
+    phaserDepthValue[0].setTargetValue(juce::jlimit(
+        0.0f, 100.0f, sequenced(
+            dusk::sequencer::filter1PhaserDepthTargetChoice,
+            raw.filter1PhaserDepth)));
+    phaserDepthValue[1].setTargetValue(juce::jlimit(
+        0.0f, 100.0f, sequenced(
+            dusk::sequencer::filter2PhaserDepthTargetChoice,
+            raw.filter2PhaserDepth)));
+    phaserStagesValue[0].setTargetValue(juce::jlimit(
+        2.0f, 12.0f, sequenced(
+            dusk::sequencer::filter1PhaserStagesTargetChoice,
+            raw.filter1PhaserStages)));
+    phaserStagesValue[1].setTargetValue(juce::jlimit(
+        2.0f, 12.0f, sequenced(
+            dusk::sequencer::filter2PhaserStagesTargetChoice,
+            raw.filter2PhaserStages)));
+    phaserSpreadValue[0].setTargetValue(juce::jlimit(
+        0.0f, 100.0f, sequenced(
+            dusk::sequencer::filter1PhaserSpreadTargetChoice,
+            raw.filter1PhaserSpread)));
+    phaserSpreadValue[1].setTargetValue(juce::jlimit(
+        0.0f, 100.0f, sequenced(
+            dusk::sequencer::filter2PhaserSpreadTargetChoice,
+            raw.filter2PhaserSpread)));
+    phaserSkewValue[0].setTargetValue(juce::jlimit(
+        -100.0f, 100.0f, sequenced(
+            dusk::sequencer::filter1PhaserSkewTargetChoice,
+            raw.filter1PhaserSkew)));
+    phaserSkewValue[1].setTargetValue(juce::jlimit(
+        -100.0f, 100.0f, sequenced(
+            dusk::sequencer::filter2PhaserSkewTargetChoice,
+            raw.filter2PhaserSkew)));
+    phaserDampingValue[0].setTargetValue(juce::jlimit(
+        0.0f, 100.0f, sequenced(
+            dusk::sequencer::filter1PhaserDampingTargetChoice,
+            raw.filter1PhaserDamping)));
+    phaserDampingValue[1].setTargetValue(juce::jlimit(
+        0.0f, 100.0f, sequenced(
+            dusk::sequencer::filter2PhaserDampingTargetChoice,
+            raw.filter2PhaserDamping)));
+    phaserStageSaturationValue[0].setTargetValue(juce::jlimit(
+        0.0f, 100.0f, sequenced(
+            dusk::sequencer::filter1PhaserStageSaturationTargetChoice,
+            raw.filter1PhaserStageSaturation)));
+    phaserStageSaturationValue[1].setTargetValue(juce::jlimit(
+        0.0f, 100.0f, sequenced(
+            dusk::sequencer::filter2PhaserStageSaturationTargetChoice,
+            raw.filter2PhaserStageSaturation)));
+    phaserStereoValue[0].setTargetValue(juce::jlimit(
+        -100.0f, 100.0f, sequenced(
+            dusk::sequencer::filter1PhaserStereoTargetChoice,
+            raw.filter1PhaserStereo)));
+    phaserStereoValue[1].setTargetValue(juce::jlimit(
+        -100.0f, 100.0f, sequenced(
+            dusk::sequencer::filter2PhaserStereoTargetChoice,
+            raw.filter2PhaserStereo)));
     slopeValue[0].setTargetValue(juce::jlimit(
         6.0f, 48.0f, sequenced(
             dusk::sequencer::filter1SlopeTargetChoice,
@@ -2462,6 +3382,25 @@ void DuskAudioProcessor::processBlock(
                 currentSampleRate, smoothingSeconds);
             distortionTypeCrossfade[index].setTargetValue(1.0f);
         }
+    }
+
+    const std::array<int, filterEngineCount> combModes {
+        juce::jlimit(0, combModeCount - 1,
+            static_cast<int>(std::lround(load(raw.filter1CombMode)))),
+        juce::jlimit(0, combModeCount - 1,
+            static_cast<int>(std::lround(load(raw.filter2CombMode))))
+    };
+    for (int engine = 0; engine < filterEngineCount; ++engine)
+    {
+        const auto index = static_cast<size_t>(engine);
+        if (combModes[index] == currentCombMode[index])
+            continue;
+        previousCombMode[index] = currentCombMode[index];
+        currentCombMode[index] = combModes[index];
+        combModeCrossfadeValue[index].setCurrentAndTargetValue(0.0f);
+        combModeCrossfadeValue[index].reset(
+            currentSampleRate, nonlinearSmoothingSeconds);
+        combModeCrossfadeValue[index].setTargetValue(1.0f);
     }
 
     const int routing = juce::jlimit(
@@ -2606,6 +3545,118 @@ void DuskAudioProcessor::processBlock(
                 otaResonanceCompensationValue[0].getNextValue(),
                 otaResonanceCompensationValue[1].getNextValue()
             };
+        const std::array<float, filterEngineCount> combFrequency {
+            combFrequencyValue[0].getNextValue(),
+            combFrequencyValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> combFeedback {
+            combFeedbackValue[0].getNextValue(),
+            combFeedbackValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> combDamping {
+            combDampingValue[0].getNextValue(),
+            combDampingValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> combFineTune {
+            combFineTuneValue[0].getNextValue(),
+            combFineTuneValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> combPolarity {
+            combPolarityValue[0].getNextValue(),
+            combPolarityValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> combStereoSpread {
+            combStereoSpreadValue[0].getNextValue(),
+            combStereoSpreadValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> combDispersion {
+            combDispersionValue[0].getNextValue(),
+            combDispersionValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> combLoopSaturation {
+            combLoopSaturationValue[0].getNextValue(),
+            combLoopSaturationValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> combFeedbackLimit {
+            combFeedbackLimitValue[0].getNextValue(),
+            combFeedbackLimitValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> formantVowel {
+            formantVowelValue[0].getNextValue(),
+            formantVowelValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> formantShift {
+            formantShiftValue[0].getNextValue(),
+            formantShiftValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> formantFocus {
+            formantFocusValue[0].getNextValue(),
+            formantFocusValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> formantOneLevel {
+            formantOneLevelValue[0].getNextValue(),
+            formantOneLevelValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> formantTwoLevel {
+            formantTwoLevelValue[0].getNextValue(),
+            formantTwoLevelValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> formantThreeLevel {
+            formantThreeLevelValue[0].getNextValue(),
+            formantThreeLevelValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> formantBandwidth {
+            formantBandwidthValue[0].getNextValue(),
+            formantBandwidthValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> formantSpread {
+            formantSpreadValue[0].getNextValue(),
+            formantSpreadValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> formantTilt {
+            formantTiltValue[0].getNextValue(),
+            formantTiltValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> phaserFrequency {
+            phaserFrequencyValue[0].getNextValue(),
+            phaserFrequencyValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> phaserFeedback {
+            phaserFeedbackValue[0].getNextValue(),
+            phaserFeedbackValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> phaserDepth {
+            phaserDepthValue[0].getNextValue(),
+            phaserDepthValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> phaserStages {
+            phaserStagesValue[0].getNextValue(),
+            phaserStagesValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> phaserSpread {
+            phaserSpreadValue[0].getNextValue(),
+            phaserSpreadValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> phaserSkew {
+            phaserSkewValue[0].getNextValue(),
+            phaserSkewValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> phaserDamping {
+            phaserDampingValue[0].getNextValue(),
+            phaserDampingValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> phaserStageSaturation {
+            phaserStageSaturationValue[0].getNextValue(),
+            phaserStageSaturationValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> phaserStereo {
+            phaserStereoValue[0].getNextValue(),
+            phaserStereoValue[1].getNextValue()
+        };
+        const std::array<float, filterEngineCount> combModeCrossfade {
+            combModeCrossfadeValue[0].getNextValue(),
+            combModeCrossfadeValue[1].getNextValue()
+        };
         const std::array<float, filterEngineCount> architectureCrossfade {
             architectureCrossfadeValue[0].getNextValue(),
             architectureCrossfadeValue[1].getNextValue()
@@ -2630,6 +3681,20 @@ void DuskAudioProcessor::processBlock(
                                     &ladderResonanceCompensation,
                                     &otaCellDrive, &otaFeedbackDamping,
                                     &otaResonanceCompensation,
+                                    &combFrequency, &combFeedback,
+                                    &combDamping, &combFineTune,
+                                    &combPolarity, &combStereoSpread,
+                                    &combDispersion, &combLoopSaturation,
+                                    &combFeedbackLimit, &combModeCrossfade,
+                                    &formantVowel, &formantShift,
+                                    &formantFocus, &formantOneLevel,
+                                    &formantTwoLevel, &formantThreeLevel,
+                                    &formantBandwidth, &formantSpread,
+                                    &formantTilt, &phaserFrequency,
+                                    &phaserFeedback, &phaserDepth,
+                                    &phaserStages, &phaserSpread,
+                                    &phaserSkew, &phaserDamping,
+                                    &phaserStageSaturation, &phaserStereo,
                                     &filterEnabled, &typeBlend, &placement,
                                     &architectureCrossfade,
                                     &resonanceAmount](
@@ -2662,7 +3727,23 @@ void DuskAudioProcessor::processBlock(
                 ladderFeedbackSaturation[index],
                 ladderResonanceCompensation[index], otaCellDrive[index],
                 otaFeedbackDamping[index],
-                otaResonanceCompensation[index], placement[index] == 1,
+                otaResonanceCompensation[index], previousCombMode[index],
+                currentCombMode[index], combModeCrossfade[index],
+                combFrequency[index], combFeedback[index],
+                combDamping[index], combFineTune[index],
+                combPolarity[index], combStereoSpread[index],
+                combDispersion[index], combLoopSaturation[index],
+                combFeedbackLimit[index], formantVowel[index],
+                formantShift[index], formantFocus[index],
+                formantOneLevel[index], formantTwoLevel[index],
+                formantThreeLevel[index], formantBandwidth[index],
+                formantSpread[index], formantTilt[index],
+                phaserFrequency[index], phaserFeedback[index],
+                phaserDepth[index], phaserStages[index],
+                phaserSpread[index], phaserSkew[index],
+                phaserDamping[index], phaserStageSaturation[index],
+                phaserStereo[index],
+                placement[index] == 1,
                 drive[index], currentDistortionType[index],
                 previousDistortionType[index], typeBlend[index]);
             if (placement[index] == 2)
@@ -2710,6 +3791,8 @@ void DuskAudioProcessor::processBlock(
         const auto index = static_cast<size_t>(engine);
         if (! distortionTypeCrossfade[index].isSmoothing())
             previousDistortionType[index] = currentDistortionType[index];
+        if (! combModeCrossfadeValue[index].isSmoothing())
+            previousCombMode[index] = currentCombMode[index];
     }
 }
 
