@@ -1,5 +1,18 @@
 # Dusk Changelog
 
+## 0.25.0 — Steiner-Parker, EQ Types and Audio-Thread Optimisation — 15 November 2026
+
+- Fixed the principal audio-thread CPU fault: each sample previously ran Clean SVF, Ladder, OTA and Comb even when another Architecture was selected, while a previous Architecture could remain active after its transition. Steady-state processing now runs only the selected Architecture; two engines run only during the 50 ms Architecture crossfade.
+- Added immediate DSP skips for fully disabled filter engines and a steady-state early return when Dusk's main Power is bypassed. Existing smooth power transitions remain intact.
+- Added Steiner-Parker as a tenth genuine per-filter DSP Architecture: a nonlinear diode multimode state-variable core with continuously blended 6–48 dB/octave operation and independent state for both filters/channels.
+- Added six context-sensitive Steiner-Parker Designer controls per filter: Diode Drive, Feedback Clip, bipolar Bias, bipolar Pole Spread, bipolar Resonance Curve and Resonance Compensation.
+- Added Clean Steiner, Classic Steiner, Acid Multimode, Wide Steiner and Hot Steiner Factory Models plus Steiner-Parker User Model save/load whitelisting.
+- Added four standard Types to Clean SVF, Ladder, Diode Ladder, Steiner-Parker, OTA and Sallen-Key: Low Shelf, High Shelf, a true gain-controlled Bell and Tilt.
+- Added a -18 to +18 dB Gain control per filter. For the four EQ Types it occupies the FILTER view's Slope position; the five existing Types continue to show the unchanged continuous 6–48 dB/octave Slope control.
+- Fixed EQ Types to each Architecture's 12 dB/two-pole core so a hidden Slope value cannot silently alter their response. Gain, Resonance and all applicable Architecture character controls remain editable and visible in the permanent response display.
+- Added an isolated Steiner-Parker Internal distortion state bank, 14 F1/F2 Gain/Designer sequencer targets after every existing target number, 50 ms parameter smoothing, bounded randomisation and matching double-click defaults.
+- Advanced the pre-release state schema to version 24 for the 14 new automatable parameters. Existing parameter IDs and sequencer target numbers remain unchanged; new entries are appended.
+
 ## 0.24.0 — Diode Ladder Architecture — 15 November 2026
 
 - Added Diode Ladder as a ninth genuine per-filter DSP Architecture, separate from the existing Ladder rather than presented as another Model.
