@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Release](https://img.shields.io/github/v/release/sl2365/Dusk?style=for-the-badge-square&logo=github&logoColor=white&color=orange)](https://github.com/sl2365/Dusk/releases/latest/download/Dusk.rar)
+[![Release](https://img.shields.io/github/v/release/sl2365/Dusk?style=for-the-badge-square&logo=github&logoColor=white&color=purple)](https://github.com/sl2365/Dusk/releases/latest/download/Dusk.rar)
 [![Release Date](https://img.shields.io/github/release-date/sl2365/Dusk?style=for-the-badge-square&logo=github&logoColor=white&color=yellow)](https://github.com/sl2365/Dusk/releases)
 
 [![Latest Asset Downloads](https://img.shields.io/github/downloads/sl2365/Dusk/latest/Dusk.rar?style=for-the-badge-square&logo=github&logoColor=white&label=downloads-latest&displayAssetName=false&color=blue)](https://github.com/sl2365/Dusk/releases/latest)
@@ -32,7 +32,7 @@ Dusk creates a portable `Dusk` data folder beside the installed plugin. If the c
 
 1. Select `Filter 1`, `Filter 2`, `1 > 2` or `1 + 2` from Routing.
 2. Use each amber filter LED to switch that filter on or off. Lit means on.
-3. Choose an Architecture for each active filter. Clean SVF, Ladder, OTA and Sallen-Key use the standard Type control; Comb, Formant, Phaser and Modal Resonator provide their own main controls.
+3. Choose an Architecture for each active filter. Clean SVF, Ladder, Diode Ladder, OTA and Sallen-Key use the standard Type control; Comb, Formant, Phaser and Modal Resonator provide their own main controls.
 4. For standard architectures, set Cutoff, Resonance and the continuous 6–48 dB/octave Slope. Comb uses Frequency, Feedback and Damping; Formant uses Vowel, Shift and Focus; Phaser uses Frequency, Feedback and Depth; Modal Resonator uses Frequency, Decay and Body.
 5. Add Drive, choose a distortion Type, then choose its Pre, Internal or Post Placement.
 6. Open DESIGNER to change the controls belonging to the selected Architecture or recall a Model.
@@ -49,7 +49,7 @@ Hover any control or its label to see its matching description in the fixed help
 | 1 > 2 | Filter 1 feeds Filter 2 in series |
 | 1 + 2 | Both filters process the input in parallel and are gain-compensated before mixing |
 
-The response display follows the selected architectures and their applicable FILTER and DESIGNER controls. It shows the exact small-signal filter response; nonlinear saturation, high-level limiting and selectable distortion cannot be represented by one fixed level-independent curve. Comb Stereo Spread and Phaser Stereo are excluded because the compact display represents the centre-tuned mono response. Modal Resonator shows every active mode, its decay envelope and the Body blend. Sallen-Key includes Q Curve, Cell Gain, Stage Coupling, Component Variation and HF Damping; Op Sat is nonlinear and therefore excluded from the small-signal curve.
+The response display follows the selected architectures and their applicable FILTER and DESIGNER controls. It shows the exact small-signal filter response; nonlinear saturation, high-level limiting and selectable distortion cannot be represented by one fixed level-independent curve. Comb Stereo Spread and Phaser Stereo are excluded because the compact display represents the centre-tuned mono response. Modal Resonator shows every active mode, its decay envelope and the Body blend. Sallen-Key includes Q Curve, Cell Gain, Stage Coupling, Component Variation and HF Damping; Op Sat is nonlinear and therefore excluded. Diode Ladder includes Stage Tilt, Resonance Loss, Resonance Compensation and its 5 Hz DC protection; Diode Sat, Feedback Clip and Bias are nonlinear and are excluded from the level-independent curve.
 
 ## FILTER view
 
@@ -57,11 +57,11 @@ Each side controls one independent filter engine.
 
 | Control | Function |
 |---|---|
-| Architecture | Selects the genuine DSP structure: Clean SVF, Ladder, OTA, Comb, Formant, Phaser, Modal Resonator or Sallen-Key |
-| Type | For Clean SVF, Ladder, OTA and Sallen-Key, selects LPF, BPF, HPF, NOTCH or PEAK |
-| Cutoff | For Clean SVF, Ladder, OTA and Sallen-Key, sets the principal frequency from 20 Hz to 20 kHz |
-| Resonance | For Clean SVF, Ladder, OTA and Sallen-Key, emphasises the response around Cutoff |
-| Slope | For Clean SVF, Ladder, OTA and Sallen-Key, continuously changes the response from 6 to 48 dB/octave |
+| Architecture | Selects the genuine DSP structure: Clean SVF, Ladder, Diode Ladder, OTA, Comb, Formant, Phaser, Modal Resonator or Sallen-Key |
+| Type | For Clean SVF, Ladder, Diode Ladder, OTA and Sallen-Key, selects LPF, BPF, HPF, NOTCH or PEAK |
+| Cutoff | For Clean SVF, Ladder, Diode Ladder, OTA and Sallen-Key, sets the principal frequency from 20 Hz to 20 kHz |
+| Resonance | For Clean SVF, Ladder, Diode Ladder, OTA and Sallen-Key, emphasises the response around Cutoff |
+| Slope | For Clean SVF, Ladder, Diode Ladder, OTA and Sallen-Key, continuously changes the response from 6 to 48 dB/octave |
 | Comb Mode | For Comb, selects Feedback, Feedforward or All-pass |
 | Frequency | For Comb, sets the fundamental delay frequency from 20 Hz to 8 kHz |
 | Feedback | For Comb, sets the amount and strength of the delayed branch |
@@ -93,6 +93,12 @@ A topology-preserving state-variable core with continuously blended one-pole and
 ### Ladder
 
 A nonlinear cascaded-pole filter with one to eight continuously blended poles. The 24 dB position uses four poles. Resonance is handled by a delay-free feedback solution rather than by relabelling the Clean SVF.
+
+### Diode Ladder
+
+A separate diode-coupled cascade with one to eight continuously blended stages. It keeps the familiar Type, Cutoff, Resonance and Slope workflow, but its stage nonlinearity, asymmetric diode thresholds and clipped feedback solve produce a sharper and more aggressive character than the existing Ladder.
+
+Diode Sat controls nonlinear compression inside every stage. Feedback Clip shapes the resonance return separately, while Bias offsets the positive and negative diode thresholds without leaving a permanent DC offset. Stage Tilt spreads the eight internal stage frequencies around Cutoff. Resonance Loss progressively reduces available feedback as Resonance rises, and Resonance Compensation restores level independently. The engine uses a delay-free iterative feedback solution, bounded output and a gentle 5 Hz DC blocker; all eight stage states remain live during Architecture crossfades.
 
 ### OTA
 
@@ -136,7 +142,7 @@ Q Curve changes how the Resonance knob reaches the available cell Q. Cell Gain i
 
 ## DESIGNER view
 
-Designer controls edit the character of the selected Architecture. Clean SVF, Ladder, OTA and Sallen-Key keep the standard Type, Cutoff, Resonance and Slope controls on FILTER. Comb provides Mode, Frequency, Feedback and Damping; Formant provides Vowel, Shift and Focus; Phaser provides Frequency, Feedback and Depth; Modal Resonator provides Frequency, Decay and Body. Drive remains available for every Architecture.
+Designer controls edit the character of the selected Architecture. Clean SVF, Ladder, Diode Ladder, OTA and Sallen-Key keep the standard Type, Cutoff, Resonance and Slope controls on FILTER. Comb provides Mode, Frequency, Feedback and Damping; Formant provides Vowel, Shift and Focus; Phaser provides Frequency, Feedback and Depth; Modal Resonator provides Frequency, Decay and Body. Drive remains available for every Architecture.
 
 ### Clean SVF Designer
 
@@ -157,6 +163,17 @@ Designer controls edit the character of the selected Architecture. Clean SVF, La
 |---|---|
 | Stage Sat | Changes the nonlinearity inside every active Ladder stage |
 | FB Sat | Saturates the Ladder resonance return inside its delay-free solve |
+| Res Comp | Restores level as Resonance rises |
+
+### Diode Ladder Designer
+
+| Control | Function |
+|---|---|
+| Diode Sat | Adds nonlinear diode compression inside every ladder stage |
+| FB Clip | Clips and colours the resonance feedback path independently from stage saturation |
+| Bias | Changes the positive and negative diode thresholds in opposite directions; 0% is symmetrical |
+| Stg Tilt | Spreads the stage frequencies around Cutoff; opposite settings reverse the internal tilt |
+| Res Loss | Reduces available feedback progressively as Resonance rises |
 | Res Comp | Restores level as Resonance rises |
 
 ### OTA Designer
@@ -226,7 +243,7 @@ Designer controls edit the character of the selected Architecture. Clean SVF, La
 
 A Model is an editable configuration of one Architecture and its supported Designer controls. It is not another filter Type and it does not change Type, Cutoff, Resonance, Slope, Drive, routing, sequencer settings or the other filter.
 
-Factory Models provide starting points for Clean SVF, Ladder, OTA, Comb, Formant, Phaser, Modal Resonator and Sallen-Key. Sallen-Key includes Clean Sallen-Key, Butterworth, Resonant Key, Vintage Key and Hot Sallen-Key starting points. The selector uses two columns so every factory group remains visible without growing beyond the screen. After recalling one, move any included Designer control to customise it; the Model display then changes to `CUSTOM` without undoing the recalled values.
+Factory Models provide starting points for Clean SVF, Ladder, Diode Ladder, OTA, Comb, Formant, Phaser, Modal Resonator and Sallen-Key. Diode Ladder includes Clean Diode, Classic Diode, Acid Diode, Dark Diode and Hot Diode; Sallen-Key includes Clean Sallen-Key, Butterworth, Resonant Key, Vintage Key and Hot Sallen-Key. The selector uses two columns so every factory group remains visible without growing beyond the screen. After recalling one, move any included Designer control to customise it; the Model display then changes to `CUSTOM` without undoing the recalled values.
 
 Use the `...` button beside either Model selector to:
 
@@ -254,6 +271,7 @@ Internal behaves according to the selected Architecture:
 
 - Clean SVF shapes the bounded Designer Feedback return, so it requires the Clean SVF `Feedback` control to be above 0%.
 - Ladder shapes the stored resonance feedback component before the protected delay-free solve, so it requires `Resonance`.
+- Diode Ladder shapes the stored resonance feedback component before its clipped delay-free solve, with a dedicated state bank isolated from the ordinary Ladder.
 - OTA shapes the damped bounded resonance return before it is subtracted from the input, so it requires `Resonance`.
 - Comb shapes each Mode's delayed branch before its loop saturation, limiting and output/write calculation. Its three Modes keep separate internal distortion memory.
 - Formant shapes each of its three vocal bands independently before their level, Tilt and final summing stages. Every band keeps separate internal distortion memory.
@@ -296,7 +314,7 @@ User sequences are stored as `.duskseq` files in the portable Sequences folder.
 - Right-click the current preset name for the quick menu.
 - MIX LOCK keeps the current MIX value when another preset is loaded.
 - The global Power LED bypasses or enables Dusk processing.
-- THEME fades the continuous indigo, violet, pink and orange sunset surround toward neutral charcoal. The Filter and Sequencer remain separate panels while sharing one unbroken vertical colour progression.
+- THEME fades the continuous indigo, violet, pink and orange sunset surround toward neutral charcoal. The Filter and Sequencer remain separate panels while sharing one unbroken vertical colour progression. The fully opaque top bar always uses the sunset's upper indigo; at maximum THEME the background reaches that same colour beneath it, so the bar blends in naturally without changing or becoming transparent.
 - Drag the resize handle to scale the interface from 75% to 200%.
 - The randomise button changes supported filter and Designer controls within bounded ranges while leaving Architecture, routing, filter power, Placement, MIX, global Power and sequencer state unchanged.
 

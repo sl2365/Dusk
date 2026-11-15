@@ -1,5 +1,24 @@
 # Dusk Changelog
 
+## 0.24.0 — Diode Ladder Architecture — 15 November 2026
+
+- Added Diode Ladder as a ninth genuine per-filter DSP Architecture, separate from the existing Ladder rather than presented as another Model.
+- Kept Type, Cutoff, Resonance, continuous 6–48 dB/octave Slope and Drive on FILTER. The eight continuously running ladder stages use a direct Architecture crossfade without clearing their state.
+- Added six context-sensitive Designer controls per filter: Diode Saturation, Feedback Clip, bipolar Bias, bipolar Stage Tilt, Resonance Loss and Resonance Compensation.
+- Implemented asymmetric diode thresholds with unity small-signal slope, a bounded four-iteration delay-free feedback solve, resonance-dependent feedback loss and a gentle 5 Hz DC blocker.
+- Added Diode Ladder's small-signal response to the permanent graph, including Stage Tilt, Resonance Loss, Resonance Compensation and DC protection. Nonlinear Diode Saturation, Feedback Clip, Bias and selectable distortion remain outside the level-independent curve.
+- Added Clean Diode, Classic Diode, Acid Diode, Dark Diode and Hot Diode Factory Models plus Diode Ladder User Model save/load whitelisting.
+- Added an isolated Diode Ladder Internal distortion state bank and appended 12 F1/F2 Designer sequencer targets after every existing target number.
+- Added 50 ms smoothing for all six new controls, bounded randomisation and matching double-click defaults without changing any existing parameter ID or target number.
+- Advanced the pre-release state schema to version 23 for the 12 new automatable parameters.
+
+## 0.23.1 — Top Bar Sunset Integration — 15 November 2026
+
+- Changed the fixed top colour bar from a Filter 1-to-Filter 2 gradient to one solid indigo sampled from the upper edge of the supplied sunset reference.
+- Kept the bar fully opaque and completely independent of the Theme control.
+- Extended the sunset background's upper indigo stop beneath the bar. At maximum Theme both colours are identical, so the bar blends naturally into the panel without transparency, fading or any change to the bar itself.
+- Kept the Sallen-Key DSP, parameter IDs, defaults, Factory Models, sequencer target numbers and state schema unchanged.
+
 ## 0.23.0 — Sallen-Key Architecture and Dusk Sunset Theme — 15 November 2026
 
 - Added Sallen-Key as an eighth genuine per-filter DSP Architecture, using four continuously running active two-pole cells plus a true one-pole 6 dB endpoint.
