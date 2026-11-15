@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Release](https://img.shields.io/github/v/release/sl2365/Dusk?style=for-the-badge-square&logo=github&logoColor=white&color=purple)](https://github.com/sl2365/Dusk/releases/latest/download/Dusk.rar)
+[![Release](https://img.shields.io/github/v/release/sl2365/Dusk?style=for-the-badge-square&logo=github&logoColor=white&color=amber)](https://github.com/sl2365/Dusk/releases/latest/download/Dusk.rar)
 [![Release Date](https://img.shields.io/github/release-date/sl2365/Dusk?style=for-the-badge-square&logo=github&logoColor=white&color=yellow)](https://github.com/sl2365/Dusk/releases)
 
 [![Latest Asset Downloads](https://img.shields.io/github/downloads/sl2365/Dusk/latest/Dusk.rar?style=for-the-badge-square&logo=github&logoColor=white&label=downloads-latest&displayAssetName=false&color=blue)](https://github.com/sl2365/Dusk/releases/latest)
@@ -32,8 +32,8 @@ Dusk creates a portable `Dusk` data folder beside the installed plugin. If the c
 
 1. Select `Filter 1`, `Filter 2`, `1 > 2` or `1 + 2` from Routing.
 2. Use each amber filter LED to switch that filter on or off. Lit means on.
-3. Choose an Architecture for each active filter. Clean SVF, Ladder and OTA use the standard Type control; Comb, Formant and Phaser provide their own main controls.
-4. For standard architectures, set Cutoff, Resonance and the continuous 6–48 dB/octave Slope. Comb uses Frequency, Feedback and Damping; Formant uses Vowel, Shift and Focus; Phaser uses Frequency, Feedback and Depth.
+3. Choose an Architecture for each active filter. Clean SVF, Ladder, OTA and Sallen-Key use the standard Type control; Comb, Formant, Phaser and Modal Resonator provide their own main controls.
+4. For standard architectures, set Cutoff, Resonance and the continuous 6–48 dB/octave Slope. Comb uses Frequency, Feedback and Damping; Formant uses Vowel, Shift and Focus; Phaser uses Frequency, Feedback and Depth; Modal Resonator uses Frequency, Decay and Body.
 5. Add Drive, choose a distortion Type, then choose its Pre, Internal or Post Placement.
 6. Open DESIGNER to change the controls belonging to the selected Architecture or recall a Model.
 7. Use MIX and OUT to set the final wet balance and level.
@@ -49,7 +49,7 @@ Hover any control or its label to see its matching description in the fixed help
 | 1 > 2 | Filter 1 feeds Filter 2 in series |
 | 1 + 2 | Both filters process the input in parallel and are gain-compensated before mixing |
 
-The response display follows the selected architectures and their applicable FILTER and DESIGNER controls. It shows the exact small-signal filter response; nonlinear saturation, high-level limiting and selectable distortion cannot be represented by one fixed level-independent curve. Comb Stereo Spread and Phaser Stereo are excluded because the compact display represents the centre-tuned mono response.
+The response display follows the selected architectures and their applicable FILTER and DESIGNER controls. It shows the exact small-signal filter response; nonlinear saturation, high-level limiting and selectable distortion cannot be represented by one fixed level-independent curve. Comb Stereo Spread and Phaser Stereo are excluded because the compact display represents the centre-tuned mono response. Modal Resonator shows every active mode, its decay envelope and the Body blend. Sallen-Key includes Q Curve, Cell Gain, Stage Coupling, Component Variation and HF Damping; Op Sat is nonlinear and therefore excluded from the small-signal curve.
 
 ## FILTER view
 
@@ -57,11 +57,11 @@ Each side controls one independent filter engine.
 
 | Control | Function |
 |---|---|
-| Architecture | Selects the genuine DSP structure: Clean SVF, Ladder, OTA, Comb, Formant or Phaser |
-| Type | For Clean SVF, Ladder and OTA, selects LPF, BPF, HPF, NOTCH or PEAK |
-| Cutoff | For Clean SVF, Ladder and OTA, sets the principal frequency from 20 Hz to 20 kHz |
-| Resonance | For Clean SVF, Ladder and OTA, emphasises the response around Cutoff |
-| Slope | For Clean SVF, Ladder and OTA, continuously changes the response from 6 to 48 dB/octave |
+| Architecture | Selects the genuine DSP structure: Clean SVF, Ladder, OTA, Comb, Formant, Phaser, Modal Resonator or Sallen-Key |
+| Type | For Clean SVF, Ladder, OTA and Sallen-Key, selects LPF, BPF, HPF, NOTCH or PEAK |
+| Cutoff | For Clean SVF, Ladder, OTA and Sallen-Key, sets the principal frequency from 20 Hz to 20 kHz |
+| Resonance | For Clean SVF, Ladder, OTA and Sallen-Key, emphasises the response around Cutoff |
+| Slope | For Clean SVF, Ladder, OTA and Sallen-Key, continuously changes the response from 6 to 48 dB/octave |
 | Comb Mode | For Comb, selects Feedback, Feedforward or All-pass |
 | Frequency | For Comb, sets the fundamental delay frequency from 20 Hz to 8 kHz |
 | Feedback | For Comb, sets the amount and strength of the delayed branch |
@@ -72,6 +72,9 @@ Each side controls one independent filter engine.
 | Frequency | For Phaser, moves the complete phase-cancellation pattern from 20 Hz to 20 kHz |
 | Feedback | For Phaser, sets positive or negative bounded feedback around the all-pass cascade |
 | Depth | For Phaser, changes the internal dry/all-pass blend from transparent to deep notches |
+| Frequency | For Modal Resonator, sets the fundamental mode from 20 Hz to 4 kHz |
+| Decay | For Modal Resonator, sets the fundamental ringing time from 20 ms to 5 seconds |
+| Body | For Modal Resonator, blends from the direct signal to the resonant body |
 | Drive | Sets the amount sent to the selected distortion model |
 | Dist Type | Selects one of the 17 distortion models |
 | Placement | Places that distortion before, inside or after the filter |
@@ -117,9 +120,23 @@ A cascade of twelve continuously running first-order all-pass stages. The Stages
 
 Phaser has no fixed internal LFO. Move or automate Frequency directly, or assign it to Dusk's sequencer for rhythmic and continuously repeating sweeps. The permanent response display includes Frequency, Feedback, Depth, Stages, Spread, Skew and feedback Damping. Stage Saturation, Stereo and selectable distortion are intentionally excluded from the mono small-signal curve.
 
+### Modal Resonator
+
+An eight-mode parallel resonator bank that turns transients, drums and sustained material into tuned physical-body colour. Frequency sets the fundamental, Decay controls its ringing time, and Body blends the direct signal with the resonant bank. Each mode uses a stable two-pole resonator with bounded energy compensation, keeping long rings audible instead of making high-Decay settings disappear. A smooth high-level guard restrains pathological sustained resonance without changing ordinary small-signal behaviour.
+
+Modes fades the resonances in continuously instead of switching them abruptly. Ratio morphs from a harmonic series toward irregular metallic ratios, while Inharm changes how strongly the upper ratios compress or stretch. Decay Tilt can lengthen or shorten the upper modes; Damping progressively shortens high-mode ringing without shortening the fundamental; Excite tilts the energy from dark lower modes to bright upper modes.
+
+Modal Resonator has no standard LPF/BPF/HPF Type because its bank of pitched modes is the architecture. Internal distortion processes every mode separately with independent state. The permanent response display uses the same frequencies, radii, normalisation and Body blend as the audio path.
+
+### Sallen-Key
+
+A cascade of four continuously running active two-pole cells. It uses the standard Type, Cutoff, Resonance and continuous 6–48 dB/octave Slope controls, while the Designer changes the response of the active cells themselves. At 6 dB the output starts from a true one-pole path, blends into the first two-pole cell by 12 dB, then moves continuously through two, three and four cells at 24, 36 and 48 dB/octave.
+
+Q Curve changes how the Resonance knob reaches the available cell Q. Cell Gain increases the active positive-feedback character and maximum Q. Stage Coupling determines how strongly later cells share that resonance, while Component Variation spreads the cells around Cutoff using a repeatable component-tolerance pattern. Op Sat adds bounded nonlinear colour after each cell without clearing its state. HF Damping progressively restrains and darkens the later cells.
+
 ## DESIGNER view
 
-Designer controls edit the character of the selected Architecture. Clean SVF, Ladder and OTA keep the standard Type, Cutoff, Resonance and Slope controls on FILTER. Comb provides Mode, Frequency, Feedback and Damping; Formant provides Vowel, Shift and Focus; Phaser provides Frequency, Feedback and Depth. Drive remains available for every Architecture.
+Designer controls edit the character of the selected Architecture. Clean SVF, Ladder, OTA and Sallen-Key keep the standard Type, Cutoff, Resonance and Slope controls on FILTER. Comb provides Mode, Frequency, Feedback and Damping; Formant provides Vowel, Shift and Focus; Phaser provides Frequency, Feedback and Depth; Modal Resonator provides Frequency, Decay and Body. Drive remains available for every Architecture.
 
 ### Clean SVF Designer
 
@@ -183,11 +200,33 @@ Designer controls edit the character of the selected Architecture. Clean SVF, La
 | Stage Sat | Strongly saturates every all-pass stage, producing cumulative colour and level interaction as Stages increases; the protected feedback return prevents runaway resonance |
 | Stereo | Moves the left and right stage patterns in opposite directions by up to three quarters of an octave |
 
+### Modal Resonator Designer
+
+| Control | Function |
+|---|---|
+| Modes | Continuously fades from one to eight active resonant modes |
+| Ratio | Morphs the mode spacing from harmonic to irregular metallic ratios |
+| Inharm | Compresses or stretches upper-mode ratios while retaining the fundamental |
+| D Tilt | Tilts the upper modes toward shorter or longer decay times |
+| Damp | Progressively shortens high-mode ringing without shortening the fundamental |
+| Excite | Tilts the modal energy from darker lower modes to brighter upper modes |
+
+### Sallen-Key Designer
+
+| Control | Function |
+|---|---|
+| Q Curve | Reshapes how the Resonance knob builds active-cell Q |
+| Cell Gain | Raises the active-cell positive-feedback character and available Q |
+| Stage Cpl | Distributes resonance from the first cell into the later cells |
+| Comp Var | Spreads the cell frequencies in either direction to model component-ratio variation |
+| Op Sat | Adds bounded op-amp-style saturation after every active cell |
+| HF Damp | Reduces later-cell Q and gently lowers their frequency to soften bright buildup |
+
 ## Filter Models
 
 A Model is an editable configuration of one Architecture and its supported Designer controls. It is not another filter Type and it does not change Type, Cutoff, Resonance, Slope, Drive, routing, sequencer settings or the other filter.
 
-Factory Models provide starting points for Clean SVF, Ladder, OTA, Comb, Formant and Phaser. After recalling one, move any included Designer control to customise it; the Model display then changes to `CUSTOM` without undoing the recalled values.
+Factory Models provide starting points for Clean SVF, Ladder, OTA, Comb, Formant, Phaser, Modal Resonator and Sallen-Key. Sallen-Key includes Clean Sallen-Key, Butterworth, Resonant Key, Vintage Key and Hot Sallen-Key starting points. The selector uses two columns so every factory group remains visible without growing beyond the screen. After recalling one, move any included Designer control to customise it; the Model display then changes to `CUSTOM` without undoing the recalled values.
 
 Use the `...` button beside either Model selector to:
 
@@ -219,6 +258,8 @@ Internal behaves according to the selected Architecture:
 - Comb shapes each Mode's delayed branch before its loop saturation, limiting and output/write calculation. Its three Modes keep separate internal distortion memory.
 - Formant shapes each of its three vocal bands independently before their level, Tilt and final summing stages. Every band keeps separate internal distortion memory.
 - Phaser shapes the selected all-pass output inside its bounded feedback return. The direct phase-cancellation path remains separate, and the Phaser has its own distortion-state memory.
+- Modal Resonator shapes each of its eight resonant modes separately before their weighted sum. Every mode has independent distortion-state memory.
+- Sallen-Key shapes the completed active-cell cascade using its own isolated internal distortion-state bank.
 
 The external Pre/Post path and each Architecture's Internal path use separate state memory. Stateful models such as Comb therefore cannot carry external-placement history into an Architecture's feedback path, or internal history from one Architecture into another.
 
@@ -255,7 +296,7 @@ User sequences are stored as `.duskseq` files in the portable Sequences folder.
 - Right-click the current preset name for the quick menu.
 - MIX LOCK keeps the current MIX value when another preset is loaded.
 - The global Power LED bypasses or enables Dusk processing.
-- THEME changes the interface colour treatment.
+- THEME fades the continuous indigo, violet, pink and orange sunset surround toward neutral charcoal. The Filter and Sequencer remain separate panels while sharing one unbroken vertical colour progression.
 - Drag the resize handle to scale the interface from 75% to 200%.
 - The randomise button changes supported filter and Designer controls within bounded ranges while leaving Architecture, routing, filter power, Placement, MIX, global Power and sequencer state unchanged.
 

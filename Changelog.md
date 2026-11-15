@@ -1,5 +1,35 @@
 # Dusk Changelog
 
+## 0.23.0 — Sallen-Key Architecture and Dusk Sunset Theme — 15 November 2026
+
+- Added Sallen-Key as an eighth genuine per-filter DSP Architecture, using four continuously running active two-pole cells plus a true one-pole 6 dB endpoint.
+- Kept Type, Cutoff, Resonance, Slope and Drive on FILTER and added six context-sensitive Designer controls per filter: Q Curve, Cell Gain, Stage Coupling, bipolar Component Variation, Op-Amp Saturation and HF Damping.
+- Added a continuous 6–48 dB/octave Sallen-Key path: one pole at 6 dB, one active cell at 12 dB and smoothly blended cell counts through 24, 36 and 48 dB.
+- Added Sallen-Key's exact small-signal response to the permanent graph using the same cell Q, coupling, component spread, damping and slope interpolation as the audio path. Nonlinear Op Sat and selectable distortion remain outside the level-independent graph.
+- Added Clean Sallen-Key, Butterworth, Resonant Key, Vintage Key and Hot Sallen-Key Factory Models plus Sallen-Key User Model save/load whitelisting.
+- Added 12 F1/F2 Sallen-Key Designer sequencer targets, appended after all existing target numbers so every previous assignment retains its number.
+- Added 50 ms smoothing for every Sallen-Key coefficient-driving control and isolated its Internal distortion state from every other Architecture and the external Pre/Post path.
+- Forced the Model selector into two columns so the growing Factory and User Model library remains on-screen. Section headings retain the same font size, row height and spacing as ordinary entries.
+- Replaced the single-colour outer surrounds with one continuous six-stop Dusk sunset palette sampled from the supplied reference: indigo and violet above, mauve and pink through the middle, then orange below. FILTER and Sequencer remain separate rounded panels and the Theme knob still fades the complete palette to charcoal.
+- Fixed MSVC C4244 warnings in the Ladder feedback feedthrough calculation with explicit double-to-float conversion after `std::pow`.
+- Fixed MSVC C4458 warnings by renaming the `processFilterArchitecture` Comb mode arguments so they no longer hide the processor's mode-state members.
+- Kept all existing parameter IDs, ranges, defaults, Models and sequencer target numbers unchanged; new parameters and targets are appended. Advanced the pre-release state schema to version 22.
+
+## 0.22.0 — Modal Resonator Architecture and New Logo — 15 November 2026
+
+- Added Modal Resonator as a seventh genuine per-filter DSP Architecture, built from eight independently stateful two-pole resonators with bounded energy-compensated excitation and smooth high-level output protection.
+- Added Frequency, Decay and Body controls on FILTER. Modal Resonator hides the unrelated standard Type, Cutoff, Resonance and Slope controls while retaining Drive and distortion controls.
+- Added six context-sensitive Modal Designer controls per filter: continuously faded Modes, harmonic-to-metallic Ratio, bipolar Inharmonicity, bipolar Decay Tilt, high-mode Damping and bipolar Excitation balance.
+- Added the exact linear Modal response to the permanent display using the same mode frequencies, pole radii, weights, normalisation and Body blend as the audio path.
+- Inserted Internal distortion into every resonant mode with eight separate distortion-state banks, isolated from other Architectures and the external Pre/Post path.
+- Added Bell, Plate, Tube, String and Wooden Body Factory Models plus Modal User Model save/load whitelisting.
+- Added 18 F1/F2 Modal sequencer targets for all three FILTER controls and all six Designer controls, appended after every existing target number.
+- Added 50 ms smoothing for all Modal coefficient-driving controls and multiplicative smoothing for Frequency. Fractional Modes fade the next resonator continuously.
+- Reported a ten-second processing tail to the host so long Modal decays and serial resonator combinations are not treated as tail-less effects during rendering.
+- Replaced the embedded header SVG with the supplied transparent 700×115 `Resources/dusk_logo.png`, retaining the existing logo bounds and safe gap before the FILTER/DESIGNER selectors.
+- Kept the accepted 0.21.5 Phaser DSP unchanged.
+- Advanced the pre-release state schema to version 21 for the 18 new automatable Modal parameters; all existing parameter IDs and sequencer target numbers remain unchanged and the new entries are appended.
+
 ## 0.21.5 — Phaser Feedback Squeal Correction — 14 November 2026
 
 - Identified the sustained squeal as a feedback-loop fault rather than excessive Stage Sat output. The restored per-stage saturation makeup could multiply the small-signal loop gain above unity as Stages increased.
