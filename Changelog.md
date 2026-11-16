@@ -1,5 +1,46 @@
 # Dusk Changelog
 
+## 0.28.1 — View Selector and Designer Layout Correction — 16 November 2026
+
+- Combined the existing FILTER and DESIGNER LED rows into one outlined selector. The two LEDs still show the active view, while clicking anywhere inside the complete outlined area now swaps views.
+- Removed the redundant `stages` and `modes` suffixes from Designer value readouts. STAGES, MODES and BANDS remain identified by their knob labels, while their numeric values now fit without truncation or wider controls.
+- Lowered both Model selectors and their `...` buttons by three pixels so their top edges no longer overlap the Designer panel border.
+- Kept all DSP, parameter IDs, ranges, defaults, Models, sequencer target numbers and state schema unchanged.
+
+## 0.28.0 — Spectral Bank Architecture — 16 November 2026
+
+- Added Spectral Bank as a thirteenth genuine per-filter DSP Architecture: eight parallel topology-preserving band-pass analysis filters with no FFT, transform blocks or added latency.
+- Added Frequency, Span and Depth controls to FILTER. Spectral Bank hides the unrelated standard Type, Cutoff, Resonance and Slope/Gain controls while retaining Drive and distortion controls.
+- Added six context-sensitive Designer controls per filter: continuously faded Bands, Width, Pattern, bipolar Shift, Contrast and bipolar Tilt.
+- Added the exact linear Spectral Bank response to the permanent display using the same band activation, frequencies, damping, weights, normalisation and Depth blend as the audio path.
+- Added Flat Bank, Spectral Peaks, Odd-Even Bank, Shifted Glass and Dark Bank Factory Models plus Spectral Bank User Model save/load whitelisting.
+- Added an isolated Spectral Bank Internal distortion state bank and appended 18 F1/F2 sequencer targets for all three FILTER controls and six Designer controls after every existing target number.
+- Cached band coefficients and weights for both channels and refreshes them at an eight-sample control rate under the existing 50 ms smoothing, substantially reducing trigonometric work while retaining smooth movement and preserving the recent audio-thread CPU improvement.
+- Added 50 ms smoothing, bounded randomisation and matching double-click defaults for all nine new controls. Advanced the pre-release state schema to version 27 without changing any existing parameter ID or target number.
+
+## 0.27.0 — Korg-35/MS-20 Architecture — 16 November 2026
+
+- Added Korg-35/MS-20 as a twelfth genuine per-filter DSP Architecture, using cascaded topology-preserving one-pole pairs inside an iterated nonlinear resonance solve rather than reusing the existing SVF, Ladder or Sallen-Key engines.
+- Kept Type, Cutoff, Resonance, continuous 6–48 dB/octave Slope or EQ Gain and Drive on FILTER. A true one-pole path supplies the 6 dB endpoint; one to four continuously blended two-pole cells provide 12–48 dB/octave operation.
+- Added six context-sensitive Designer controls per filter: Chip Drive, Feedback Clip, bipolar Bias, Feedback Tone, Bass Loss and Resonance Compensation.
+- Implemented independent nonlinear cell drive and feedback clipping, an asymmetric bias path with 5 Hz DC protection, feedback high-pass colouring, resonance-linked bass loss and independent output compensation.
+- Added the matching small-signal response to the permanent graph, including Feedback Tone, Bass Loss and Resonance Compensation. Nonlinear Chip Drive, Feedback Clip, Bias and selectable distortion remain outside the fixed level-independent curve.
+- Added Clean K35, Classic MS-20, Acid K35, Dirty K35 and Dark MS-20 Factory Models plus Korg-35/MS-20 User Model save/load whitelisting.
+- Added an isolated Korg-35/MS-20 Internal distortion state bank and appended 12 F1/F2 Designer sequencer targets after every existing target number.
+- Added 50 ms smoothing, bounded randomisation and matching double-click defaults for all six new controls. Advanced the pre-release state schema to version 26 without changing any existing parameter ID or target number.
+
+## 0.26.0 — Vactrol/LPG Architecture — 15 November 2026
+
+- Added Vactrol/LPG as an eleventh genuine per-filter DSP Architecture with four continuously running two-pole cells, a true one-pole 6 dB endpoint and continuous 6–48 dB/octave operation.
+- Added six context-sensitive Designer controls per filter: Rise, Fall, signal-dependent Memory, LPG Level coupling, Warmth and closed-gate Bleed.
+- Implemented independent log-frequency vactrol state for both filters and channels. Rise maps from approximately 0.5–80 ms; Fall maps from approximately 5–1500 ms and Memory extends closure according to recent signal energy.
+- Added low-pass-gate amplitude coupling derived from the effective dynamic Cutoff. Setting LPG Level to 0% leaves only the dynamic filter response; Bleed determines the residual level at low Cutoff when coupling is active.
+- Added Clean Vactrol, Classic LPG, Plucky LPG, Slow Bloom and Warm Vactrol Factory Models plus Vactrol/LPG User Model save/load whitelisting.
+- Added Vactrol/LPG to the permanent response display. The graph includes the static filter response and LPG Level/Bleed attenuation; time-dependent Rise/Fall/Memory and nonlinear Warmth remain outside the static curve.
+- Added an isolated Vactrol/LPG Internal distortion state bank and appended 12 F1/F2 Designer sequencer targets after every existing target number.
+- Renamed the visible Type entries `LOW SHELF` and `HIGH SHELF` to `LO SHELF` and `HI SHELF`. Their parameter indices, DSP, automation and preset compatibility are unchanged.
+- Added 50 ms smoothing, bounded randomisation and matching double-click defaults for all six new controls. Advanced the pre-release state schema to version 25 without changing any existing parameter ID or target number.
+
 ## 0.25.0 — Steiner-Parker, EQ Types and Audio-Thread Optimisation — 15 November 2026
 
 - Fixed the principal audio-thread CPU fault: each sample previously ran Clean SVF, Ladder, OTA and Comb even when another Architecture was selected, while a previous Architecture could remain active after its transition. Steady-state processing now runs only the selected Architecture; two engines run only during the 50 ms Architecture crossfade.

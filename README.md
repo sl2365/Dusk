@@ -32,10 +32,10 @@ Dusk creates a portable `Dusk` data folder beside the installed plugin. If the c
 
 1. Select `Filter 1`, `Filter 2`, `1 > 2` or `1 + 2` from Routing.
 2. Use each amber filter LED to switch that filter on or off. Lit means on.
-3. Choose an Architecture for each active filter. Clean SVF, Ladder, Diode Ladder, Steiner-Parker, OTA and Sallen-Key use the standard Type control; Comb, Formant, Phaser and Modal Resonator provide their own main controls.
-4. For standard architectures, set Cutoff and Resonance. LPF, BPF, HPF, Notch and Peak use the continuous 6–48 dB/octave Slope; Low Shelf, High Shelf, Bell and Tilt replace Slope with a -18 to +18 dB Gain control. Comb uses Frequency, Feedback and Damping; Formant uses Vowel, Shift and Focus; Phaser uses Frequency, Feedback and Depth; Modal Resonator uses Frequency, Decay and Body.
+3. Choose an Architecture for each active filter. Clean SVF, Ladder, Diode Ladder, Steiner-Parker, Vactrol/LPG, Korg-35/MS-20, OTA and Sallen-Key use the standard Type control; Comb, Formant, Phaser, Modal Resonator and Spectral Bank provide their own main controls.
+4. For standard architectures, set Cutoff and Resonance. LPF, BPF, HPF, Notch and Peak use the continuous 6–48 dB/octave Slope; LO SHELF, HI SHELF, Bell and Tilt replace Slope with a -18 to +18 dB Gain control. Comb uses Frequency, Feedback and Damping; Formant uses Vowel, Shift and Focus; Phaser uses Frequency, Feedback and Depth; Modal Resonator uses Frequency, Decay and Body; Spectral Bank uses Frequency, Span and Depth.
 5. Add Drive, choose a distortion Type, then choose its Pre, Internal or Post Placement.
-6. Open DESIGNER to change the controls belonging to the selected Architecture or recall a Model.
+6. Click anywhere inside the outlined FILTER/DESIGNER selector to swap views, then use DESIGNER to change the controls belonging to the selected Architecture or recall a Model.
 7. Use MIX and OUT to set the final wet balance and level.
 
 Hover any control or its label to see its matching description in the fixed help strip.
@@ -49,7 +49,7 @@ Hover any control or its label to see its matching description in the fixed help
 | 1 > 2 | Filter 1 feeds Filter 2 in series |
 | 1 + 2 | Both filters process the input in parallel and are gain-compensated before mixing |
 
-The response display follows the selected architectures and their applicable FILTER and DESIGNER controls. It shows the exact small-signal filter response; nonlinear saturation, high-level limiting and selectable distortion cannot be represented by one fixed level-independent curve. Comb Stereo Spread and Phaser Stereo are excluded because the compact display represents the centre-tuned mono response. Modal Resonator shows every active mode, its decay envelope and the Body blend. Sallen-Key includes Q Curve, Cell Gain, Stage Coupling, Component Variation and HF Damping; Op Sat is nonlinear and therefore excluded. Diode Ladder includes Stage Tilt, Resonance Loss, Resonance Compensation and its 5 Hz DC protection. Steiner-Parker includes Pole Spread, Resonance Curve, Resonance Compensation and DC protection. Their diode drive, feedback clipping and Bias controls are nonlinear and are excluded from the level-independent curve.
+The response display follows the selected architectures and their applicable FILTER and DESIGNER controls. It shows the exact small-signal filter response; nonlinear saturation, high-level limiting and selectable distortion cannot be represented by one fixed level-independent curve. Comb Stereo Spread and Phaser Stereo are excluded because the compact display represents the centre-tuned mono response. Modal Resonator shows every active mode, its decay envelope and the Body blend. Spectral Bank shows every active analysis band with its Width, Pattern, Shift, Contrast and Tilt weighting. Sallen-Key includes Q Curve, Cell Gain, Stage Coupling, Component Variation and HF Damping; Op Sat is nonlinear and therefore excluded. Diode Ladder includes Stage Tilt, Resonance Loss, Resonance Compensation and its 5 Hz DC protection. Steiner-Parker includes Pole Spread, Resonance Curve, Resonance Compensation and DC protection. Their diode drive, feedback clipping and Bias controls are nonlinear and are excluded from the level-independent curve. Vactrol/LPG includes its static LPG Level and Bleed attenuation; the time-dependent Rise, Fall and Memory controls and nonlinear Warmth are not representable by a static curve. Korg-35/MS-20 includes Feedback Tone, Bass Loss and Resonance Compensation; Chip Drive, Feedback Clip and Bias are nonlinear and are excluded.
 
 ## FILTER view
 
@@ -57,12 +57,12 @@ Each side controls one independent filter engine.
 
 | Control | Function |
 |---|---|
-| Architecture | Selects the genuine DSP structure: Clean SVF, Ladder, Diode Ladder, Steiner-Parker, OTA, Comb, Formant, Phaser, Modal Resonator or Sallen-Key |
-| Type | For standard architectures, selects LPF, BPF, HPF, NOTCH, PEAK, LOW SHELF, HIGH SHELF, BELL or TILT |
+| Architecture | Selects the genuine DSP structure: Clean SVF, Ladder, Diode Ladder, Steiner-Parker, Vactrol/LPG, Korg-35/MS-20, OTA, Comb, Formant, Phaser, Modal Resonator, Sallen-Key or Spectral Bank |
+| Type | For standard architectures, selects LPF, BPF, HPF, NOTCH, PEAK, LO SHELF, HI SHELF, BELL or TILT |
 | Cutoff | For standard architectures, sets the principal or pivot frequency from 20 Hz to 20 kHz |
 | Resonance | For standard architectures, emphasises the response around Cutoff and sets the Bell width/character |
 | Slope | For LPF, BPF, HPF, NOTCH and PEAK, continuously changes the response from 6 to 48 dB/octave |
-| Gain | For LOW SHELF, HIGH SHELF, BELL and TILT, replaces Slope and sets -18 to +18 dB of boost/cut |
+| Gain | For LO SHELF, HI SHELF, BELL and TILT, replaces Slope and sets -18 to +18 dB of boost/cut |
 | Comb Mode | For Comb, selects Feedback, Feedforward or All-pass |
 | Frequency | For Comb, sets the fundamental delay frequency from 20 Hz to 8 kHz |
 | Feedback | For Comb, sets the amount and strength of the delayed branch |
@@ -76,6 +76,9 @@ Each side controls one independent filter engine.
 | Frequency | For Modal Resonator, sets the fundamental mode from 20 Hz to 4 kHz |
 | Decay | For Modal Resonator, sets the fundamental ringing time from 20 ms to 5 seconds |
 | Body | For Modal Resonator, blends from the direct signal to the resonant body |
+| Frequency | For Spectral Bank, sets the logarithmic centre of the complete band pattern from 40 Hz to 8 kHz |
+| Span | For Spectral Bank, spreads the analysis bands across 0.5 to 6 octaves |
+| Depth | For Spectral Bank, blends continuously from the direct signal to the weighted band bank |
 | Drive | Sets the amount sent to the selected distortion model |
 | Dist Type | Selects one of the 17 distortion models |
 | Placement | Places that distortion before, inside or after the filter |
@@ -106,6 +109,18 @@ Diode Sat controls nonlinear compression inside every stage. Feedback Clip shape
 A diode multimode state-variable core with continuously blended 6–48 dB/octave operation. Unlike the cascaded Ladder structures, each two-pole cell produces low-pass, band-pass and high-pass outputs simultaneously before the selected Type is formed, giving it a sharper and more direct multimode character.
 
 Diode Drive colours each cell, Feedback Clip constrains and hardens the local resonance return, and Bias shifts the positive and negative diode thresholds in opposite directions. Pole Spread separates the cell frequencies, Resonance Curve changes where high-Q behaviour arrives across the Resonance knob, and Resonance Compensation restores level as resonance rises. Nonlinear controls retain independent state and a 5 Hz DC blocker protects strongly biased settings.
+
+### Vactrol/LPG
+
+A dynamic optocoupler-inspired filter and low-pass gate. It keeps the standard Type, Cutoff, Resonance and continuous 6–48 dB/octave Slope or EQ Gain workflow, but the effective Cutoff follows control movement with independently adjustable opening and closing times. This produces rounded plucks, slow blooms and organic asymmetric movement that a static filter cannot provide.
+
+LPG Level couples low Cutoff settings to amplitude reduction, while Bleed sets how much signal remains when the gate is closed. Memory extends the closing response according to recent signal energy, and Warmth adds bounded optical-circuit colour. Set LPG Level to 0% for a dynamic filter without low-pass-gate attenuation.
+
+### Korg-35/MS-20
+
+A nonlinear two-pole feedback architecture inspired by the aggressive Korg-35/MS-20 family. Each cell uses two cascaded topology-preserving one-pole stages inside an iterated resonance solve rather than reusing the SVF or Ladder engines. The first cell carries the main resonance character; later cells remain active for continuous 12–48 dB/octave slopes, with a true one-pole path at 6 dB/octave.
+
+Chip Drive colours the signal inside every cell, while Feedback Clip independently hardens the resonance return. Bias moves both nonlinear curves toward either polarity and a 5 Hz DC blocker protects strongly asymmetric settings. Feedback Tone progressively removes low frequency from the resonance path, Bass Loss controls resonance-linked low-end thinning and Resonance Compensation restores output level independently.
 
 ### OTA
 
@@ -147,9 +162,15 @@ A cascade of four continuously running active two-pole cells. It uses the standa
 
 Q Curve changes how the Resonance knob reaches the available cell Q. Cell Gain increases the active positive-feedback character and maximum Q. Stage Coupling determines how strongly later cells share that resonance, while Component Variation spreads the cells around Cutoff using a repeatable component-tolerance pattern. Op Sat adds bounded nonlinear colour after each cell without clearing its state. HF Damping progressively restrains and darkens the later cells.
 
+### Spectral Bank
+
+An eight-band parallel analysis bank built from topology-preserving band-pass filters. It is a zero-latency time-domain architecture rather than an FFT process, so it adds neither transform latency nor fixed processing blocks. Frequency positions the centre of the complete pattern, Span controls its octave range and Depth blends the weighted bank with the direct signal.
+
+Bands fades filters in from the centre outward instead of switching them abruptly. Width controls their Q, Pattern changes the repeated spectral weighting, Shift rotates that weighting across the bank, Contrast moves from a flat bank toward pronounced peaks and troughs, and Tilt rebalances low against high bands. Unlike Formant's three vocal resonances, Spectral Bank produces a configurable multi-band pattern; unlike Modal Resonator, its filters analyse and reshape the current signal rather than generating long pitched ringing.
+
 ## DESIGNER view
 
-Designer controls edit the character of the selected Architecture. Clean SVF, Ladder, Diode Ladder, Steiner-Parker, OTA and Sallen-Key keep the standard Type, Cutoff and Resonance controls on FILTER, plus Slope or Gain according to Type. Comb provides Mode, Frequency, Feedback and Damping; Formant provides Vowel, Shift and Focus; Phaser provides Frequency, Feedback and Depth; Modal Resonator provides Frequency, Decay and Body. Drive remains available for every Architecture.
+Designer controls edit the character of the selected Architecture. Clean SVF, Ladder, Diode Ladder, Steiner-Parker, Vactrol/LPG, Korg-35/MS-20, OTA and Sallen-Key keep the standard Type, Cutoff and Resonance controls on FILTER, plus Slope or Gain according to Type. Comb provides Mode, Frequency, Feedback and Damping; Formant provides Vowel, Shift and Focus; Phaser provides Frequency, Feedback and Depth; Modal Resonator provides Frequency, Decay and Body; Spectral Bank provides Frequency, Span and Depth. Drive remains available for every Architecture.
 
 ### Clean SVF Designer
 
@@ -193,6 +214,28 @@ Designer controls edit the character of the selected Architecture. Clean SVF, La
 | Pole Sprd | Spreads the cascaded cell frequencies around Cutoff |
 | Res Curve | Reshapes how quickly the Resonance knob reaches high-Q behaviour |
 | Res Comp | Restores level progressively as Resonance rises |
+
+### Vactrol/LPG Designer
+
+| Control | Function |
+|---|---|
+| Rise | Sets the virtual vactrol opening time from near-instant to a soft optical swell |
+| Fall | Sets the closing time from tight plucks to long organic tails |
+| Memory | Lengthens closing according to recent signal energy |
+| LPG Level | Couples Cutoff to amplitude so the filter also behaves as a low-pass gate |
+| Warmth | Adds smooth bounded optical-circuit saturation |
+| Bleed | Sets the residual signal level when the low-pass gate is closed |
+
+### Korg-35/MS-20 Designer
+
+| Control | Function |
+|---|---|
+| Chip Drv | Drives every nonlinear two-pole cell from clean to strongly compressed |
+| FB Clip | Clips and hardens the resonance feedback return independently from Chip Drive |
+| Bias | Shifts the nonlinear drive and feedback curves toward either polarity |
+| FB Tone | Removes progressively more low frequency from the feedback return for thinner, more cutting resonance |
+| Bass Loss | Sets the amount of resonance-linked low-frequency thinning |
+| Res Comp | Restores output level progressively as Resonance rises |
 
 ### OTA Designer
 
@@ -257,11 +300,22 @@ Designer controls edit the character of the selected Architecture. Clean SVF, La
 | Op Sat | Adds bounded op-amp-style saturation after every active cell |
 | HF Damp | Reduces later-cell Q and gently lowers their frequency to soften bright buildup |
 
+### Spectral Bank Designer
+
+| Control | Function |
+|---|---|
+| Bands | Continuously fades from two to eight active analysis bands, adding them from the centre outward |
+| Width | Changes every band's Q from broad overlapping colour to narrow spectral peaks |
+| Pattern | Sets how many weighting peaks and troughs repeat across the active bands |
+| Shift | Rotates the spectral pattern across the bank without moving the band frequencies |
+| Contrast | Changes the weighting from an even bank to strongly separated peaks and troughs |
+| Tilt | Rebalances the bank continuously from darker low bands to brighter high bands |
+
 ## Filter Models
 
 A Model is an editable configuration of one Architecture and its supported Designer controls. It is not another filter Type and it does not change Type, Cutoff, Resonance, Slope, Gain, Drive, routing, sequencer settings or the other filter.
 
-Factory Models provide starting points for Clean SVF, Ladder, Diode Ladder, Steiner-Parker, OTA, Comb, Formant, Phaser, Modal Resonator and Sallen-Key. Steiner-Parker includes Clean Steiner, Classic Steiner, Acid Multimode, Wide Steiner and Hot Steiner. The selector uses two columns so every factory group remains visible without growing beyond the screen. After recalling one, move any included Designer control to customise it; the Model display then changes to `CUSTOM` without undoing the recalled values.
+Factory Models provide starting points for Clean SVF, Ladder, Diode Ladder, Steiner-Parker, Vactrol/LPG, Korg-35/MS-20, OTA, Comb, Formant, Phaser, Modal Resonator, Sallen-Key and Spectral Bank. Spectral Bank includes Flat Bank, Spectral Peaks, Odd-Even Bank, Shifted Glass and Dark Bank. The selector uses two columns so every factory group remains visible without growing beyond the screen. After recalling one, move any included Designer control to customise it; the Model display then changes to `CUSTOM` without undoing the recalled values.
 
 Use the `...` button beside either Model selector to:
 
@@ -291,12 +345,15 @@ Internal behaves according to the selected Architecture:
 - Ladder shapes the stored resonance feedback component before the protected delay-free solve, so it requires `Resonance`.
 - Diode Ladder shapes the stored resonance feedback component before its clipped delay-free solve, with a dedicated state bank isolated from the ordinary Ladder.
 - Steiner-Parker shapes its first cell's clipped local resonance return using a dedicated state bank.
+- Vactrol/LPG shapes the completed dynamic filter before LPG level coupling, using its own dedicated state bank.
+- Korg-35/MS-20 shapes the completed nonlinear cell cascade using its own dedicated state bank.
 - OTA shapes the damped bounded resonance return before it is subtracted from the input, so it requires `Resonance`.
 - Comb shapes each Mode's delayed branch before its loop saturation, limiting and output/write calculation. Its three Modes keep separate internal distortion memory.
 - Formant shapes each of its three vocal bands independently before their level, Tilt and final summing stages. Every band keeps separate internal distortion memory.
 - Phaser shapes the selected all-pass output inside its bounded feedback return. The direct phase-cancellation path remains separate, and the Phaser has its own distortion-state memory.
 - Modal Resonator shapes each of its eight resonant modes separately before their weighted sum. Every mode has independent distortion-state memory.
 - Sallen-Key shapes the completed active-cell cascade using its own isolated internal distortion-state bank.
+- Spectral Bank shapes the completed weighted analysis bank using its own isolated internal distortion-state bank.
 
 The external Pre/Post path and each Architecture's Internal path use separate state memory. Stateful models such as Comb therefore cannot carry external-placement history into an Architecture's feedback path, or internal history from one Architecture into another.
 
