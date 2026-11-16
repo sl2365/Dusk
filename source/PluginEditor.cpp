@@ -493,7 +493,7 @@ InterfaceSettings loadInterfaceSettings()
         const auto key = line.substring(0, separator).trim();
         const auto value = line.substring(separator + 1).trim();
         if (key.equalsIgnoreCase("ScalePercent"))
-            settings.scalePercent = juce::jlimit(75, 200, value.getIntValue());
+            settings.scalePercent = juce::jlimit(75, 300, value.getIntValue());
         else if (key.equalsIgnoreCase("ThemePercent"))
             settings.themePercent = juce::jlimit(0.0, 100.0,
                                                   static_cast<double>(value.getFloatValue()));
@@ -1957,6 +1957,7 @@ public:
                                      tempoSyncLedColour.toString());
         enabledButton.getProperties().set("activeColour",
                                           linkLedColour.toString());
+        enabledButton.getProperties().set("fixedLedCentreX", 10.0f);
         bipolarButton.setClickingTogglesState(false);
         bipolarButton.setToggleState(true, juce::dontSendNotification);
         bipolarButton.getProperties().set("fixedLedCentreX", 9.0f);
@@ -2452,7 +2453,7 @@ public:
         colourSlider.setBounds(781, 29, 30, 30);
         saturationSlider.setBounds(819, 29, 30, 30);
         luminanceSlider.setBounds(857, 29, 30, 30);
-        enabledButton.setBounds(20, 88, 34, 24);
+        enabledButton.setBounds(17, 88, 37, 24);
         bipolarButton.setBounds(56, 88, 84, 24);
         attackLabel.setBounds(16, 118, 68, 13);
         releaseLabel.setBounds(82, 118, 68, 13);
@@ -2538,12 +2539,26 @@ private:
                           : gateMode == 1 ? controlAccentColour
                           : gateMode == 2 ? bipolarLedColour
                                           : juce::Colour(0xff596069);
+        const auto tooltip = gateMode == 0
+            ? juce::String(
+                "Gate the audio entering the filters so resonant, Comb and Modal tails can continue ringing.")
+            : gateMode == 1
+                ? juce::String(
+                    "Gate only the processed filter signal while the dry signal remains audible.")
+            : gateMode == 2
+                ? juce::String(
+                    "Gate the complete dry/wet output for the most obvious rhythmic chopping.")
+                : juce::String(
+                    "Disable gating while normal sequencer parameter modulation continues.");
         gateModeButton.setButtonText(text);
+        gateModeButton.setTooltip(tooltip);
         gateModeButton.getProperties().set(
             "activeColour", colour.toString());
         gateModeButton.setToggleState(
             gateMode != 3, juce::dontSendNotification);
         gateModeButton.repaint();
+        if (showHelp != nullptr && gateModeButton.isMouseOverOrDragging())
+            showHelp(contextHelpText("Gate Mode", tooltip));
     }
 
     void syncGateModeFromParameter()
@@ -3838,6 +3853,10 @@ void DuskAudioProcessorEditor::LookAndFeel::drawToggleButton(
         button.getProperties().getWithDefault("standardTextButton", false));
     const bool viewSwitcherBorder = static_cast<bool>(
         button.getProperties().getWithDefault("viewSwitcherBorder", false));
+    const bool invisibleButton = static_cast<bool>(
+        button.getProperties().getWithDefault("invisibleButton", false));
+    if (invisibleButton)
+        return;
     const bool active = button.getToggleState();
     const bool enabled = button.isEnabled();
     auto activeColour = ledOnly ? juce::Colour(0xffff9363) : controlAccentColour;
@@ -4038,9 +4057,14 @@ void DuskAudioProcessorEditor::LookAndFeel::drawToggleButton(
     }
 
     const bool centredLed = ledOnly || statusLedOnly;
-    const float diameter = centredLed
-                         ? juce::jmin(bounds.getWidth(), bounds.getHeight()) - 6.0f
-                         : 10.0f;
+    const float configuredLedDiameter = static_cast<float>(
+        button.getProperties().getWithDefault("ledDiameter", -1.0f));
+    const float diameter = configuredLedDiameter > 0.0f
+                         ? configuredLedDiameter
+                         : centredLed
+                             ? juce::jmin(bounds.getWidth(),
+                                          bounds.getHeight()) - 6.0f
+                             : 10.0f;
     const juce::Font toggleFont(sequencerLabelStyle
         ? juce::FontOptions(10.5f, juce::Font::bold)
         : juce::FontOptions(11.0f));
@@ -4218,8 +4242,18 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addMouseListener(this, true);
     content.setInterceptsMouseClicks(false, true);
 
-    versionLabel.setText("v0.28.1", juce::dontSendNotification);
-    versionLabel.setJustificationType(juce::Justification::centredLeft);
+    logoMenuButton.setName("GUI Zoom");
+    logoMenuButton.getProperties().set(contextHelpTitleProperty, "GUI Zoom");
+    logoMenuButton.getProperties().set("invisibleButton", true);
+    logoMenuButton.setClickingTogglesState(false);
+    logoMenuButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
+    logoMenuButton.setTooltip(
+        "Click the Dusk logo to choose a GUI zoom factor from 75% to 300%");
+    logoMenuButton.onClick = [this] { showLogoZoomMenu(); };
+    content.addAndMakeVisible(logoMenuButton);
+
+    versionLabel.setText("v1.28.4", juce::dontSendNotification);
+    versionLabel.setJustificationType(juce::Justification::centred);
     versionLabel.setColour(juce::Label::textColourId, knobIndicatorColour);
     versionLabel.setFont(juce::Font(juce::FontOptions(8.5f,
                                                      juce::Font::bold)));
@@ -4231,7 +4265,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     {
         button.setClickingTogglesState(false);
         button.setInterceptsMouseClicks(false, false);
-        button.getProperties().set("fixedLedCentreX", 8.0f);
+        button.getProperties().set("fixedLedCentreX", 10.0f);
         button.getProperties().set(
             "activeColour", activeColour.toString());
         button.setColour(juce::ToggleButton::textColourId, knobValueColour);
@@ -5414,6 +5448,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     {
         button.setClickingTogglesState(true);
         button.getProperties().set("statusLedOnly", true);
+        button.getProperties().set("ledDiameter", 10.0f);
         button.getProperties().set(
             "activeColour", linkLedColour.toString());
         button.setName(filterName + " Power");
@@ -5665,7 +5700,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addAndMakeVisible(randomButton);
 
     information.setText(
-        "DUSK 0.28.1 | FILTER and DESIGNER now share one full-area selector; Designer values and Model controls have corrected spacing.",
+        "DUSK 1.28.4 | Sequencer ON glow and context-sensitive Gate Mode help refined.",
         juce::dontSendNotification);
     information.setColour(juce::Label::textColourId,
                           juce::Colours::lightgrey);
@@ -5717,7 +5752,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     updatePresetBrowserVisibility();
     setResizable(true, true);
     setResizeLimits(695, sequencerOpen ? 414 : 207,
-                    1852, sequencerOpen ? 1104 : 552);
+                    2778, sequencerOpen ? 1656 : 828);
     if (auto* editorConstrainer = getConstrainer())
         editorConstrainer->setFixedAspectRatio(
             static_cast<double>(designWidth)
@@ -6865,6 +6900,52 @@ void DuskAudioProcessorEditor::setMainView(MainView view)
     saveInterfaceSettings();
 }
 
+void DuskAudioProcessorEditor::showLogoZoomMenu()
+{
+    const int currentPercent = juce::jlimit(
+        75, 300, juce::roundToInt(
+            100.0f * static_cast<float>(getWidth())
+                / static_cast<float>(designWidth)));
+    constexpr std::array<int, 10> zoomChoices
+        { 75, 100, 125, 150, 175, 200, 225, 250, 275, 300 };
+    juce::PopupMenu menu;
+    menu.addSectionHeader("GUI Zoom");
+    for (const int percent : zoomChoices)
+    {
+        menu.addItem(percent, juce::String(percent) + "%", true,
+                     currentPercent == percent);
+    }
+    juce::Component::SafePointer<DuskAudioProcessorEditor> safeThis(this);
+    menu.showMenuAsync(
+        juce::PopupMenu::Options()
+            .withTargetComponent(&logoMenuButton)
+            .withPreferredPopupDirection(
+                juce::PopupMenu::Options::PopupDirection::downwards),
+        [safeThis](int result)
+        {
+            if (safeThis != nullptr && result >= 75 && result <= 300)
+                safeThis->setZoomPercent(result);
+        });
+}
+
+void DuskAudioProcessorEditor::setZoomPercent(int requestedPercent)
+{
+    const int percent = juce::jlimit(75, 300, requestedPercent);
+    const float scale = static_cast<float>(percent) * 0.01f;
+    setSize(juce::roundToInt(static_cast<float>(designWidth) * scale),
+            juce::roundToInt(static_cast<float>(activeDesignHeight()) * scale));
+    observedEditorWidth = getWidth();
+    stableSettingsTicks = 0;
+    settingsDirty = false;
+    saveInterfaceSettings();
+    resized();
+    information.setText(
+        "GUI ZOOM | " + juce::String(percent) + "%\n"
+            + juce::String(getWidth()) + " x "
+            + juce::String(getHeight()) + " px",
+        juce::dontSendNotification);
+}
+
 void DuskAudioProcessorEditor::setPresetBrowserOpen(bool shouldOpen)
 {
     presetBrowserOpen = shouldOpen;
@@ -7315,7 +7396,7 @@ void DuskAudioProcessorEditor::setSequencerOpen(bool shouldOpen)
         return;
 
     const float scale = juce::jlimit(
-        0.75f, 2.0f,
+        0.75f, 3.0f,
         static_cast<float>(getWidth()) / static_cast<float>(designWidth));
     sequencerOpen = shouldOpen;
     sequencerButton.setToggleState(shouldOpen, juce::dontSendNotification);
@@ -7326,7 +7407,7 @@ void DuskAudioProcessorEditor::setSequencerOpen(bool shouldOpen)
             static_cast<double>(designWidth)
                 / static_cast<double>(activeDesignHeight()));
     setResizeLimits(695, shouldOpen ? 414 : 207,
-                    1852, shouldOpen ? 1104 : 552);
+                    2778, shouldOpen ? 1656 : 828);
     setSize(juce::roundToInt(static_cast<float>(designWidth) * scale),
             juce::roundToInt(static_cast<float>(activeDesignHeight()) * scale));
     saveInterfaceSettings();
@@ -8893,45 +8974,45 @@ void DuskAudioProcessorEditor::resized()
             knobX, labelY + 13, designerKnobWidth, designerKnobHeight);
     };
 
-    placeDial(filter1CutoffDial, 160, 81);
-    placeDial(filter1ResonanceDial, 225, 81);
+    placeDial(filter1CutoffDial, 160, 67);
+    placeDial(filter1ResonanceDial, 225, 67);
     placeDial(filter1DriveDial, 160, 154);
     placeDial(filter1SlopeDial, 225, 154);
     placeDial(filter1GainDial, 225, 154);
-    placeDial(filter2CutoffDial, 677, 81);
-    placeDial(filter2ResonanceDial, 742, 81);
+    placeDial(filter2CutoffDial, 677, 67);
+    placeDial(filter2ResonanceDial, 742, 67);
     placeDial(filter2DriveDial, 677, 154);
     placeDial(filter2SlopeDial, 742, 154);
     placeDial(filter2GainDial, 742, 154);
-    placeDial(filter1CombFrequencyDial, 160, 81);
-    placeDial(filter1CombFeedbackDial, 225, 81);
+    placeDial(filter1CombFrequencyDial, 160, 67);
+    placeDial(filter1CombFeedbackDial, 225, 67);
     placeDial(filter1CombDampingDial, 225, 154);
-    placeDial(filter2CombFrequencyDial, 677, 81);
-    placeDial(filter2CombFeedbackDial, 742, 81);
+    placeDial(filter2CombFrequencyDial, 677, 67);
+    placeDial(filter2CombFeedbackDial, 742, 67);
     placeDial(filter2CombDampingDial, 742, 154);
-    placeDial(filter1FormantVowelDial, 160, 81);
-    placeDial(filter1FormantShiftDial, 225, 81);
+    placeDial(filter1FormantVowelDial, 160, 67);
+    placeDial(filter1FormantShiftDial, 225, 67);
     placeDial(filter1FormantFocusDial, 225, 154);
-    placeDial(filter2FormantVowelDial, 677, 81);
-    placeDial(filter2FormantShiftDial, 742, 81);
+    placeDial(filter2FormantVowelDial, 677, 67);
+    placeDial(filter2FormantShiftDial, 742, 67);
     placeDial(filter2FormantFocusDial, 742, 154);
-    placeDial(filter1PhaserFrequencyDial, 160, 81);
-    placeDial(filter1PhaserFeedbackDial, 225, 81);
+    placeDial(filter1PhaserFrequencyDial, 160, 67);
+    placeDial(filter1PhaserFeedbackDial, 225, 67);
     placeDial(filter1PhaserDepthDial, 225, 154);
-    placeDial(filter2PhaserFrequencyDial, 677, 81);
-    placeDial(filter2PhaserFeedbackDial, 742, 81);
+    placeDial(filter2PhaserFrequencyDial, 677, 67);
+    placeDial(filter2PhaserFeedbackDial, 742, 67);
     placeDial(filter2PhaserDepthDial, 742, 154);
-    placeDial(filter1ModalFrequencyDial, 160, 81);
-    placeDial(filter1ModalDecayDial, 225, 81);
+    placeDial(filter1ModalFrequencyDial, 160, 67);
+    placeDial(filter1ModalDecayDial, 225, 67);
     placeDial(filter1ModalBodyDial, 225, 154);
-    placeDial(filter2ModalFrequencyDial, 677, 81);
-    placeDial(filter2ModalDecayDial, 742, 81);
+    placeDial(filter2ModalFrequencyDial, 677, 67);
+    placeDial(filter2ModalDecayDial, 742, 67);
     placeDial(filter2ModalBodyDial, 742, 154);
-    placeDial(filter1SpectralCentreDial, 160, 81);
-    placeDial(filter1SpectralSpanDial, 225, 81);
+    placeDial(filter1SpectralCentreDial, 160, 67);
+    placeDial(filter1SpectralSpanDial, 225, 67);
     placeDial(filter1SpectralDepthDial, 225, 154);
-    placeDial(filter2SpectralCentreDial, 677, 81);
-    placeDial(filter2SpectralSpanDial, 742, 81);
+    placeDial(filter2SpectralCentreDial, 677, 67);
+    placeDial(filter2SpectralSpanDial, 742, 67);
     placeDial(filter2SpectralDepthDial, 742, 154);
     placeDesignerDial(filter1ResonanceShapeDial, 30, 89);
     placeDesignerDial(filter1ResonanceLimitDial, 105, 89);
@@ -9084,12 +9165,13 @@ void DuskAudioProcessorEditor::resized()
     placeDial(mixDial, 845, 67);
     placeDial(outputDial, 845, 154);
 
-    versionLabel.setBounds(designWidth - 65, 2, 66, 12);
-    filterViewButton.setBounds(320, 9, 112, 14);
-    designerViewButton.setBounds(320, 25, 112, 14);
-    viewSwitcherButton.setBounds(317, 6, 118, 36);
-    routingLabel.setBounds(516, 2, 110, 12);
-    routingBox.setBounds(516, 16, 110, 26);
+    logoMenuButton.setBounds(22, 5, 280, 43);
+    versionLabel.setBounds(designWidth - 57, 2, 50, 12);
+    filterViewButton.setBounds(318, 9, 114, 18);
+    designerViewButton.setBounds(318, 25, 114, 18);
+    viewSwitcherButton.setBounds(317, 8, 118, 36);
+    routingLabel.setBounds(479, 2, 110, 12);
+    routingBox.setBounds(479, 16, 110, 26);
     currentPresetLabel.setBounds(632, 13, 94, 26);
     previousPresetButton.setBounds(726, 13, 21, 26);
     nextPresetButton.setBounds(747, 13, 21, 26);
@@ -9109,28 +9191,28 @@ void DuskAudioProcessorEditor::resized()
 
     filter1TitleLabel.setBounds(26, 66, 190, 13);
     filter2TitleLabel.setBounds(543, 66, 190, 13);
-    filter1PowerButton.setBounds(299, 65, 16, 16);
-    filter2PowerButton.setBounds(816, 65, 16, 16);
+    filter1PowerButton.setBounds(297, 63, 20, 20);
+    filter2PowerButton.setBounds(814, 63, 20, 20);
     filter1ArchitectureLabel.setBounds(47, 81, 90, 12);
     filter1ArchitectureBox.setBounds(47, 93, 90, 20);
-    filter1TypeLabel.setBounds(47, 120, 90, 12);
-    filter1TypeBox.setBounds(47, 132, 90, 20);
-    filter1CombModeLabel.setBounds(47, 120, 90, 12);
-    filter1CombModeBox.setBounds(47, 132, 90, 20);
-    filter1DistortionTypeLabel.setBounds(47, 159, 90, 12);
-    filter1DistortionTypeBox.setBounds(47, 171, 90, 20);
-    filter1DistortionPlacementLabel.setBounds(47, 198, 90, 12);
-    filter1DistortionPlacementBox.setBounds(47, 210, 90, 20);
+    filter1TypeLabel.setBounds(47, 119, 90, 12);
+    filter1TypeBox.setBounds(47, 131, 90, 20);
+    filter1CombModeLabel.setBounds(47, 119, 90, 12);
+    filter1CombModeBox.setBounds(47, 131, 90, 20);
+    filter1DistortionTypeLabel.setBounds(47, 157, 90, 12);
+    filter1DistortionTypeBox.setBounds(47, 169, 90, 20);
+    filter1DistortionPlacementLabel.setBounds(47, 195, 90, 12);
+    filter1DistortionPlacementBox.setBounds(47, 207, 90, 20);
     filter2ArchitectureLabel.setBounds(564, 81, 90, 12);
     filter2ArchitectureBox.setBounds(564, 93, 90, 20);
-    filter2TypeLabel.setBounds(564, 120, 90, 12);
-    filter2TypeBox.setBounds(564, 132, 90, 20);
-    filter2CombModeLabel.setBounds(564, 120, 90, 12);
-    filter2CombModeBox.setBounds(564, 132, 90, 20);
-    filter2DistortionTypeLabel.setBounds(564, 159, 90, 12);
-    filter2DistortionTypeBox.setBounds(564, 171, 90, 20);
-    filter2DistortionPlacementLabel.setBounds(564, 198, 90, 12);
-    filter2DistortionPlacementBox.setBounds(564, 210, 90, 20);
+    filter2TypeLabel.setBounds(564, 119, 90, 12);
+    filter2TypeBox.setBounds(564, 131, 90, 20);
+    filter2CombModeLabel.setBounds(564, 119, 90, 12);
+    filter2CombModeBox.setBounds(564, 131, 90, 20);
+    filter2DistortionTypeLabel.setBounds(564, 157, 90, 12);
+    filter2DistortionTypeBox.setBounds(564, 169, 90, 20);
+    filter2DistortionPlacementLabel.setBounds(564, 195, 90, 12);
+    filter2DistortionPlacementBox.setBounds(564, 207, 90, 20);
     responseDisplay.setBounds(333, 70, 190, 154);
     designer1Placeholder.setBounds(26, 66, 124, 13);
     filter1ModelLabel.setBounds(150, 66, 38, 13);
@@ -9163,7 +9245,7 @@ void DuskAudioProcessorEditor::resized()
         && getWidth() != observedEditorWidth)
     {
         const int scalePercent = juce::jlimit(
-            75, 200, juce::roundToInt(
+            75, 300, juce::roundToInt(
                 100.0f * static_cast<float>(getWidth())
                     / static_cast<float>(designWidth)));
         information.setText(
@@ -9246,7 +9328,7 @@ void DuskAudioProcessorEditor::saveInterfaceSettings() const
     if (! directory.isDirectory() && directory.createDirectory().failed())
         return;
     const int scalePercent = juce::jlimit(
-        75, 200, juce::roundToInt(100.0f * static_cast<float>(getWidth())
+        75, 300, juce::roundToInt(100.0f * static_cast<float>(getWidth())
                                   / static_cast<float>(designWidth)));
     const double themePercent = themeDial != nullptr
         ? juce::jlimit(0.0, 100.0, themeDial->slider.getValue()) : 100.0;

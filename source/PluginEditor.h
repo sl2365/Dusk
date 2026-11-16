@@ -395,6 +395,7 @@ private:
     Dial* themeDial = nullptr;
     Dial* browserMixDial = nullptr;
     std::unique_ptr<juce::Drawable> logoDrawable;
+    juce::ToggleButton logoMenuButton;
     juce::Label versionLabel;
     SteppedComboBox routingBox;
     SteppedComboBox filter1ArchitectureBox;
@@ -485,6 +486,8 @@ private:
     bool restoreDialFromSavedState(Dial&);
     void updateContextSensitiveHelp();
     void setMainView(MainView);
+    void showLogoZoomMenu();
+    void setZoomPercent(int);
     void updateArchitectureContext();
     int architectureChoiceForFilter(int filterIndex) const;
     void refreshFilterModelBoxes();

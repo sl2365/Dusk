@@ -1,5 +1,30 @@
 # Dusk Changelog
 
+## 1.28.4 — Sequencer LED and Gate Mode Help — 16 November 2026
+
+- Added drawing margin around the Sequencer ON LED so its existing 10-pixel amber core and full-strength glow render as a complete circle without changing its text position or function.
+- Made the Sequencer Gate Mode tooltip follow its selected Input, Effect, Output or Off state, with a direct description of where gating is applied; clicking while hovered also refreshes the fixed contextual-help area immediately.
+- Kept all parameter IDs, ranges, defaults, Models, sequencer target numbers and state schema unchanged.
+
+## 1.28.3 — 300% Zoom, Filter Spacing and LED Glow — 16 November 2026
+
+- Increased the maximum GUI zoom from 200% to 300% for both free resizing and the logo menu. Added fixed 225%, 250%, 275% and 300% menu choices while retaining every existing option, with each menu entry showing only its percentage.
+- Extended portable `ScalePercent` loading and saving, sequencer-open size preservation and editor resize constraints to the complete 75–300% range.
+- Left both Architecture labels and dropdowns unchanged, moved Type and Comb Mode upward by one pixel, Dist Type upward by two pixels and Placement upward by three pixels in both filter sections.
+- Created an additional three pixels of clearance beneath each Placement dropdown without changing any control size, horizontal alignment or DSP behaviour.
+- Added drawing margin around the FILTER/DESIGNER and per-filter Power LEDs so their existing 10-pixel cores and full-strength glows render as complete circles instead of being clipped at their component edges.
+- Corrected the build script's prerequisite check to validate the current `dusk_logo.png` resource instead of the retired SVG filename.
+- Kept all parameter IDs, ranges, defaults, Models, sequencer target numbers and state schema unchanged.
+
+## 1.28.2 — Release GUI Alignment and Logo Zoom Menu — 16 November 2026
+
+- Added the release major version while retaining the established development numbering, producing version 1.28.2, and centred its visible label directly above the global power/bypass button.
+- Moved the combined FILTER/DESIGNER selector down by two pixels to centre it vertically within the top section.
+- Centred ROUTING horizontally between the view selector and preset display, leaving matching visual gaps on both sides.
+- Moved the top two FILTER-view knobs for every Architecture upward to align with the MIX knob, while leaving the lower control row unchanged for evaluation.
+- Made the Dusk logo a full-area GUI Zoom control. Its conventional popup menu offers 75% minimum, 100%, 125%, 150%, 175% and 200% maximum, marks the current fixed choice and saves the selected size in portable `Settings.ini`.
+- Kept all DSP, parameter IDs, ranges, defaults, Models, sequencer target numbers and state schema unchanged.
+
 ## 0.28.1 — View Selector and Designer Layout Correction — 16 November 2026
 
 - Combined the existing FILTER and DESIGNER LED rows into one outlined selector. The two LEDs still show the active view, while clicking anywhere inside the complete outlined area now swaps views.

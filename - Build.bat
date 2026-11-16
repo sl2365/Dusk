@@ -25,7 +25,7 @@ set "BUNDLE_BINARY=%BUILD_DIR%\Dusk_artefacts\Release\VST3\Dusk.vst3\Contents\x8
 set "FINAL_PLUGIN=%DIST_DIR%\Dusk.vst3"
 
 echo.
-echo Dusk 64-bit VST3 - v0.28.1 Build
+echo Dusk 64-bit VST3 - v1.28.4 Build
 echo ======================================
 echo.
 
@@ -44,7 +44,7 @@ if not exist "%JUCE_CMAKE%" goto :missing_juce
 for %%F in (CMakeLists.txt PluginProcessor.cpp PluginProcessor.h PluginEditor.cpp PluginEditor.h DuskDistortion.cpp DuskComb.cpp DuskFormant.cpp DuskPhaser.cpp DuskModal.cpp DuskSequencer.h) do (
     if not exist "%SOURCE_DIR%\%%F" goto :missing_source
 )
-if not exist "%PROJECT_ROOT%Resources\logo.svg" goto :missing_logo
+if not exist "%PROJECT_ROOT%Resources\dusk_logo.png" goto :missing_logo
 echo       PASS
 echo.
 echo [2/4] Configuring Visual Studio Community 2026 x64...
@@ -93,7 +93,7 @@ goto :failed
 echo FAIL: Required source file missing from %SOURCE_DIR%
 goto :failed
 :missing_logo
-echo FAIL: Required logo missing: %PROJECT_ROOT%Resources\logo.svg
+echo FAIL: Required logo missing: %PROJECT_ROOT%Resources\dusk_logo.png
 goto :failed
 :configure_failed
 echo FAIL: Configuration failed.

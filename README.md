@@ -391,7 +391,7 @@ User sequences are stored as `.duskseq` files in the portable Sequences folder.
 - MIX LOCK keeps the current MIX value when another preset is loaded.
 - The global Power LED bypasses or enables Dusk processing.
 - THEME fades the continuous indigo, violet, pink and orange sunset surround toward neutral charcoal. The Filter and Sequencer remain separate panels while sharing one unbroken vertical colour progression. The fully opaque top bar always uses the sunset's upper indigo; at maximum THEME the background reaches that same colour beneath it, so the bar blends in naturally without changing or becoming transparent.
-- Drag the resize handle to scale the interface from 75% to 200%.
+- Drag the resize handle to scale the interface from 75% to 300%, or click the Dusk logo and choose a fixed 25% step from 75% through 300% in the GUI Zoom menu.
 - The randomise button changes supported filter and Designer controls within bounded ranges while leaving Architecture, routing, filter power, Placement, MIX, global Power and sequencer state unchanged.
 
 ## Portable files
