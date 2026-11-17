@@ -11,7 +11,9 @@
 
 Dusk is a dual creative-filter VST3 by Dead Channel Audio. Each filter combines standard response controls with a selectable DSP architecture, editable architecture-specific Designer settings, its own distortion stage and sequencer modulation.
 
-![Dusk](Resources/Dusk.jpg)
+![Dusk](Resources/Dusk1.jpg)
+
+![Dusk](Resources/Dusk2.jpg)
 
 ## Requirements
 
