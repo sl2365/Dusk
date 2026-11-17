@@ -1471,6 +1471,17 @@ public:
                               juce::Justification::centred, false);
             const auto slots = assignedSlots();
             const auto depthColour = filterColourForId(1, 0);
+            const auto currentChoice = [this](const juce::String& id)
+            {
+                const auto* value = processor.parameters.getRawParameterValue(id);
+                return value != nullptr ? juce::roundToInt(value->load()) : 0;
+            };
+            const int filter1Architecture = currentChoice(
+                "filter1Architecture");
+            const int filter2Architecture = currentChoice(
+                "filter2Architecture");
+            const int filter1Type = currentChoice("filter1Type");
+            const int filter2Type = currentChoice("filter2Type");
             if (slots.empty())
             {
                 graphics.setColour(knobLabelColour.darker(0.25f));
@@ -1538,8 +1549,10 @@ public:
                                              : knobLabelColour.darker(0.35f));
                 graphics.setFont(juce::FontOptions(10.5f,
                     isEnabled ? juce::Font::bold : juce::Font::plain));
-                graphics.drawFittedText(dusk::sequencer::targetName(
-                        choiceForSlot(slot)), 38, y + 1, getWidth() - 61,
+                graphics.drawFittedText(dusk::sequencer::activeTargetName(
+                        choiceForSlot(slot), filter1Architecture,
+                        filter2Architecture, filter1Type, filter2Type),
+                    38, y + 1, getWidth() - 61,
                     rowHeight - 4, juce::Justification::centredLeft, 1);
                 graphics.setColour(knobLabelColour);
                 const float closeX = static_cast<float>(getWidth() - 12);
@@ -4256,7 +4269,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     logoMenuButton.onClick = [this] { showLogoZoomMenu(); };
     content.addAndMakeVisible(logoMenuButton);
 
-    versionLabel.setText("v1.28.8", juce::dontSendNotification);
+    versionLabel.setText("v1.28.10", juce::dontSendNotification);
     versionLabel.setJustificationType(juce::Justification::centred);
     versionLabel.setColour(juce::Label::textColourId, knobIndicatorColour);
     versionLabel.setFont(juce::Font(juce::FontOptions(8.5f,
@@ -5694,7 +5707,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addAndMakeVisible(randomButton);
 
     information.setText(
-        "DUSK 1.28.8 | Sequencer targets now follow numbered knob positions.",
+        "DUSK 1.28.10 | Bypassed target knobs now display their live values.",
         juce::dontSendNotification);
     information.setColour(juce::Label::textColourId,
                           juce::Colours::lightgrey);

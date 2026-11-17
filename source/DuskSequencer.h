@@ -1,6 +1,8 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "DuskArchitectures.h"
+#include "DuskFilterTypes.h"
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -713,6 +715,369 @@ inline constexpr bool targetChoicesSharePosition(int first,
             && firstGroup == targetPositionGroup(second));
 }
 
+inline constexpr int activeTargetChoiceForPosition(
+    int storedChoice, int filter1Architecture, int filter2Architecture,
+    int filter1Type, int filter2Type) noexcept
+{
+    const int group = targetPositionGroup(storedChoice);
+    if (group == noTargetPosition)
+        return storedChoice;
+
+    const bool filter2 = (group % 2) == 0;
+    const int architectureChoice = dusk::architecture::normaliseChoice(
+        filter2 ? filter2Architecture : filter1Architecture);
+    const int typeChoice = filter2 ? filter2Type : filter1Type;
+    const auto choose = [filter2](int filter1Choice, int filter2Choice)
+    {
+        return filter2 ? filter2Choice : filter1Choice;
+    };
+
+    if (group <= filter2Knob4Position)
+    {
+        const int position = (group + 1) / 2;
+        if (position == 3)
+            return choose(filter1DriveTargetChoice,
+                          filter2DriveTargetChoice);
+
+        using Architecture = dusk::architecture::Id;
+        switch (static_cast<Architecture>(architectureChoice))
+        {
+            case Architecture::comb:
+                if (position == 1)
+                    return choose(filter1CombFrequencyTargetChoice,
+                                  filter2CombFrequencyTargetChoice);
+                if (position == 2)
+                    return choose(filter1CombFeedbackTargetChoice,
+                                  filter2CombFeedbackTargetChoice);
+                return choose(filter1CombDampingTargetChoice,
+                              filter2CombDampingTargetChoice);
+            case Architecture::formant:
+                if (position == 1)
+                    return choose(filter1FormantVowelTargetChoice,
+                                  filter2FormantVowelTargetChoice);
+                if (position == 2)
+                    return choose(filter1FormantShiftTargetChoice,
+                                  filter2FormantShiftTargetChoice);
+                return choose(filter1FormantFocusTargetChoice,
+                              filter2FormantFocusTargetChoice);
+            case Architecture::phaser:
+                if (position == 1)
+                    return choose(filter1PhaserFrequencyTargetChoice,
+                                  filter2PhaserFrequencyTargetChoice);
+                if (position == 2)
+                    return choose(filter1PhaserFeedbackTargetChoice,
+                                  filter2PhaserFeedbackTargetChoice);
+                return choose(filter1PhaserDepthTargetChoice,
+                              filter2PhaserDepthTargetChoice);
+            case Architecture::modal:
+                if (position == 1)
+                    return choose(filter1ModalFrequencyTargetChoice,
+                                  filter2ModalFrequencyTargetChoice);
+                if (position == 2)
+                    return choose(filter1ModalDecayTargetChoice,
+                                  filter2ModalDecayTargetChoice);
+                return choose(filter1ModalBodyTargetChoice,
+                              filter2ModalBodyTargetChoice);
+            case Architecture::spectralBank:
+                if (position == 1)
+                    return choose(filter1SpectralCentreTargetChoice,
+                                  filter2SpectralCentreTargetChoice);
+                if (position == 2)
+                    return choose(filter1SpectralSpanTargetChoice,
+                                  filter2SpectralSpanTargetChoice);
+                return choose(filter1SpectralDepthTargetChoice,
+                              filter2SpectralDepthTargetChoice);
+            default:
+                if (position == 1)
+                    return choose(filter1CutoffTargetChoice,
+                                  filter2CutoffTargetChoice);
+                if (position == 2)
+                    return choose(filter1ResonanceTargetChoice,
+                                  filter2ResonanceTargetChoice);
+                return dusk::filtertype::usesGain(typeChoice)
+                    ? choose(filter1GainTargetChoice,
+                             filter2GainTargetChoice)
+                    : choose(filter1SlopeTargetChoice,
+                             filter2SlopeTargetChoice);
+        }
+    }
+
+    const int position = (group - filter2Knob4Position + 1) / 2;
+    using Architecture = dusk::architecture::Id;
+    switch (static_cast<Architecture>(architectureChoice))
+    {
+        case Architecture::cleanSvf:
+        {
+            const std::array<int, 8> filter1Choices {
+                filter1ResonanceShapeTargetChoice,
+                filter1ResonanceLimitTargetChoice,
+                filter1BassLossTargetChoice,
+                filter1PoleSpreadTargetChoice,
+                filter1CoreSaturationTargetChoice,
+                filter1SaturationAsymmetryTargetChoice,
+                filter1FeedbackTargetChoice,
+                filter1FeedbackLimitTargetChoice
+            };
+            const std::array<int, 8> filter2Choices {
+                filter2ResonanceShapeTargetChoice,
+                filter2ResonanceLimitTargetChoice,
+                filter2BassLossTargetChoice,
+                filter2PoleSpreadTargetChoice,
+                filter2CoreSaturationTargetChoice,
+                filter2SaturationAsymmetryTargetChoice,
+                filter2FeedbackTargetChoice,
+                filter2FeedbackLimitTargetChoice
+            };
+            return (filter2 ? filter2Choices : filter1Choices)[
+                static_cast<size_t>(position - 1)];
+        }
+        case Architecture::ladder:
+            if (position == 1)
+                return choose(filter1LadderStageSaturationTargetChoice,
+                              filter2LadderStageSaturationTargetChoice);
+            if (position == 2)
+                return choose(filter1LadderFeedbackSaturationTargetChoice,
+                              filter2LadderFeedbackSaturationTargetChoice);
+            return position == 3
+                ? choose(filter1LadderResonanceCompensationTargetChoice,
+                         filter2LadderResonanceCompensationTargetChoice)
+                : 0;
+        case Architecture::ota:
+            if (position == 1)
+                return choose(filter1OtaCellDriveTargetChoice,
+                              filter2OtaCellDriveTargetChoice);
+            if (position == 2)
+                return choose(filter1OtaFeedbackDampingTargetChoice,
+                              filter2OtaFeedbackDampingTargetChoice);
+            return position == 3
+                ? choose(filter1OtaResonanceCompensationTargetChoice,
+                         filter2OtaResonanceCompensationTargetChoice)
+                : 0;
+        case Architecture::comb:
+        {
+            const std::array<int, 6> filter1Choices {
+                filter1CombFineTuneTargetChoice,
+                filter1CombPolarityTargetChoice,
+                filter1CombStereoSpreadTargetChoice,
+                filter1CombDispersionTargetChoice,
+                filter1CombLoopSaturationTargetChoice,
+                filter1CombFeedbackLimitTargetChoice
+            };
+            const std::array<int, 6> filter2Choices {
+                filter2CombFineTuneTargetChoice,
+                filter2CombPolarityTargetChoice,
+                filter2CombStereoSpreadTargetChoice,
+                filter2CombDispersionTargetChoice,
+                filter2CombLoopSaturationTargetChoice,
+                filter2CombFeedbackLimitTargetChoice
+            };
+            return position <= 6
+                ? (filter2 ? filter2Choices : filter1Choices)[
+                    static_cast<size_t>(position - 1)] : 0;
+        }
+        case Architecture::formant:
+        {
+            const std::array<int, 6> filter1Choices {
+                filter1FormantOneLevelTargetChoice,
+                filter1FormantTwoLevelTargetChoice,
+                filter1FormantThreeLevelTargetChoice,
+                filter1FormantBandwidthTargetChoice,
+                filter1FormantSpreadTargetChoice,
+                filter1FormantTiltTargetChoice
+            };
+            const std::array<int, 6> filter2Choices {
+                filter2FormantOneLevelTargetChoice,
+                filter2FormantTwoLevelTargetChoice,
+                filter2FormantThreeLevelTargetChoice,
+                filter2FormantBandwidthTargetChoice,
+                filter2FormantSpreadTargetChoice,
+                filter2FormantTiltTargetChoice
+            };
+            return position <= 6
+                ? (filter2 ? filter2Choices : filter1Choices)[
+                    static_cast<size_t>(position - 1)] : 0;
+        }
+        case Architecture::phaser:
+        {
+            const std::array<int, 6> filter1Choices {
+                filter1PhaserStagesTargetChoice,
+                filter1PhaserSpreadTargetChoice,
+                filter1PhaserSkewTargetChoice,
+                filter1PhaserDampingTargetChoice,
+                filter1PhaserStageSaturationTargetChoice,
+                filter1PhaserStereoTargetChoice
+            };
+            const std::array<int, 6> filter2Choices {
+                filter2PhaserStagesTargetChoice,
+                filter2PhaserSpreadTargetChoice,
+                filter2PhaserSkewTargetChoice,
+                filter2PhaserDampingTargetChoice,
+                filter2PhaserStageSaturationTargetChoice,
+                filter2PhaserStereoTargetChoice
+            };
+            return position <= 6
+                ? (filter2 ? filter2Choices : filter1Choices)[
+                    static_cast<size_t>(position - 1)] : 0;
+        }
+        case Architecture::modal:
+        {
+            const std::array<int, 6> filter1Choices {
+                filter1ModalModesTargetChoice,
+                filter1ModalRatioTargetChoice,
+                filter1ModalInharmonicityTargetChoice,
+                filter1ModalDecayTiltTargetChoice,
+                filter1ModalDampingTargetChoice,
+                filter1ModalExcitationTargetChoice
+            };
+            const std::array<int, 6> filter2Choices {
+                filter2ModalModesTargetChoice,
+                filter2ModalRatioTargetChoice,
+                filter2ModalInharmonicityTargetChoice,
+                filter2ModalDecayTiltTargetChoice,
+                filter2ModalDampingTargetChoice,
+                filter2ModalExcitationTargetChoice
+            };
+            return position <= 6
+                ? (filter2 ? filter2Choices : filter1Choices)[
+                    static_cast<size_t>(position - 1)] : 0;
+        }
+        case Architecture::sallenKey:
+        {
+            const std::array<int, 6> filter1Choices {
+                filter1SallenKeyQCurveTargetChoice,
+                filter1SallenKeyCellGainTargetChoice,
+                filter1SallenKeyStageCouplingTargetChoice,
+                filter1SallenKeyComponentVariationTargetChoice,
+                filter1SallenKeyOpAmpSaturationTargetChoice,
+                filter1SallenKeyHighFrequencyDampingTargetChoice
+            };
+            const std::array<int, 6> filter2Choices {
+                filter2SallenKeyQCurveTargetChoice,
+                filter2SallenKeyCellGainTargetChoice,
+                filter2SallenKeyStageCouplingTargetChoice,
+                filter2SallenKeyComponentVariationTargetChoice,
+                filter2SallenKeyOpAmpSaturationTargetChoice,
+                filter2SallenKeyHighFrequencyDampingTargetChoice
+            };
+            return position <= 6
+                ? (filter2 ? filter2Choices : filter1Choices)[
+                    static_cast<size_t>(position - 1)] : 0;
+        }
+        case Architecture::diodeLadder:
+        {
+            const std::array<int, 6> filter1Choices {
+                filter1DiodeLadderSaturationTargetChoice,
+                filter1DiodeLadderFeedbackClipTargetChoice,
+                filter1DiodeLadderBiasTargetChoice,
+                filter1DiodeLadderStageTiltTargetChoice,
+                filter1DiodeLadderResonanceLossTargetChoice,
+                filter1DiodeLadderResonanceCompensationTargetChoice
+            };
+            const std::array<int, 6> filter2Choices {
+                filter2DiodeLadderSaturationTargetChoice,
+                filter2DiodeLadderFeedbackClipTargetChoice,
+                filter2DiodeLadderBiasTargetChoice,
+                filter2DiodeLadderStageTiltTargetChoice,
+                filter2DiodeLadderResonanceLossTargetChoice,
+                filter2DiodeLadderResonanceCompensationTargetChoice
+            };
+            return position <= 6
+                ? (filter2 ? filter2Choices : filter1Choices)[
+                    static_cast<size_t>(position - 1)] : 0;
+        }
+        case Architecture::steinerParker:
+        {
+            const std::array<int, 6> filter1Choices {
+                filter1SteinerDiodeDriveTargetChoice,
+                filter1SteinerFeedbackClipTargetChoice,
+                filter1SteinerBiasTargetChoice,
+                filter1SteinerPoleSpreadTargetChoice,
+                filter1SteinerResonanceCurveTargetChoice,
+                filter1SteinerResonanceCompensationTargetChoice
+            };
+            const std::array<int, 6> filter2Choices {
+                filter2SteinerDiodeDriveTargetChoice,
+                filter2SteinerFeedbackClipTargetChoice,
+                filter2SteinerBiasTargetChoice,
+                filter2SteinerPoleSpreadTargetChoice,
+                filter2SteinerResonanceCurveTargetChoice,
+                filter2SteinerResonanceCompensationTargetChoice
+            };
+            return position <= 6
+                ? (filter2 ? filter2Choices : filter1Choices)[
+                    static_cast<size_t>(position - 1)] : 0;
+        }
+        case Architecture::vactrolLpg:
+        {
+            const std::array<int, 6> filter1Choices {
+                filter1VactrolRiseTargetChoice,
+                filter1VactrolFallTargetChoice,
+                filter1VactrolMemoryTargetChoice,
+                filter1VactrolLevelCouplingTargetChoice,
+                filter1VactrolWarmthTargetChoice,
+                filter1VactrolBleedTargetChoice
+            };
+            const std::array<int, 6> filter2Choices {
+                filter2VactrolRiseTargetChoice,
+                filter2VactrolFallTargetChoice,
+                filter2VactrolMemoryTargetChoice,
+                filter2VactrolLevelCouplingTargetChoice,
+                filter2VactrolWarmthTargetChoice,
+                filter2VactrolBleedTargetChoice
+            };
+            return position <= 6
+                ? (filter2 ? filter2Choices : filter1Choices)[
+                    static_cast<size_t>(position - 1)] : 0;
+        }
+        case Architecture::korg35:
+        {
+            const std::array<int, 6> filter1Choices {
+                filter1Korg35ChipDriveTargetChoice,
+                filter1Korg35FeedbackClipTargetChoice,
+                filter1Korg35BiasTargetChoice,
+                filter1Korg35FeedbackToneTargetChoice,
+                filter1Korg35BassLossTargetChoice,
+                filter1Korg35ResonanceCompensationTargetChoice
+            };
+            const std::array<int, 6> filter2Choices {
+                filter2Korg35ChipDriveTargetChoice,
+                filter2Korg35FeedbackClipTargetChoice,
+                filter2Korg35BiasTargetChoice,
+                filter2Korg35FeedbackToneTargetChoice,
+                filter2Korg35BassLossTargetChoice,
+                filter2Korg35ResonanceCompensationTargetChoice
+            };
+            return position <= 6
+                ? (filter2 ? filter2Choices : filter1Choices)[
+                    static_cast<size_t>(position - 1)] : 0;
+        }
+        case Architecture::spectralBank:
+        {
+            const std::array<int, 6> filter1Choices {
+                filter1SpectralBandsTargetChoice,
+                filter1SpectralWidthTargetChoice,
+                filter1SpectralPatternTargetChoice,
+                filter1SpectralShiftTargetChoice,
+                filter1SpectralContrastTargetChoice,
+                filter1SpectralTiltTargetChoice
+            };
+            const std::array<int, 6> filter2Choices {
+                filter2SpectralBandsTargetChoice,
+                filter2SpectralWidthTargetChoice,
+                filter2SpectralPatternTargetChoice,
+                filter2SpectralShiftTargetChoice,
+                filter2SpectralContrastTargetChoice,
+                filter2SpectralTiltTargetChoice
+            };
+            return position <= 6
+                ? (filter2 ? filter2Choices : filter1Choices)[
+                    static_cast<size_t>(position - 1)] : 0;
+        }
+        default:
+            return 0;
+    }
+}
+
 inline int targetChoiceForParameter(const juce::String& parameterId)
 {
     for (size_t index = 0; index < targets.size(); ++index)
@@ -754,6 +1119,20 @@ inline juce::String targetName(int choice)
         default: break;
     }
     return targets[static_cast<size_t>(choice - 1)].displayName;
+}
+
+inline juce::String activeTargetName(
+    int storedChoice, int filter1Architecture, int filter2Architecture,
+    int filter1Type, int filter2Type)
+{
+    const int activeChoice = activeTargetChoiceForPosition(
+        storedChoice, filter1Architecture, filter2Architecture,
+        filter1Type, filter2Type);
+    if (activeChoice > 0
+        && activeChoice <= static_cast<int>(targets.size()))
+        return targets[static_cast<size_t>(activeChoice - 1)].displayName;
+    const auto genericName = targetName(storedChoice);
+    return genericName.isNotEmpty() ? genericName + " (N/A)" : genericName;
 }
 
 inline juce::String stepParameterId(int step)

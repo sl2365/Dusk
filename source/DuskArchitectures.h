@@ -140,7 +140,7 @@ inline constexpr std::array<Descriptor, 13> descriptors
     }
 }};
 
-inline int normaliseChoice(int choice) noexcept
+inline constexpr int normaliseChoice(int choice) noexcept
 {
     return choice >= 0 && choice < static_cast<int>(descriptors.size())
         ? choice : 0;

@@ -8,7 +8,7 @@ namespace dusk::filtertype
 inline constexpr int count = 9;
 inline constexpr int equaliserFirstChoice = 5;
 
-inline bool usesGain(int choice) noexcept
+inline constexpr bool usesGain(int choice) noexcept
 {
     return choice >= equaliserFirstChoice && choice < count;
 }

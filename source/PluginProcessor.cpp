@@ -1961,6 +1961,7 @@ std::optional<float> DuskAudioProcessor::getSequencerAnimatedNormalised(
     const int choice = dusk::sequencer::targetChoiceForParameter(parameterId);
     if (choice <= 0
         || choice > static_cast<int>(sequencerAnimatedNormalised.size())
+        || load(raw.bypass) >= 0.5f
         || load(raw.sequencerEnabled) < 0.5f
         || ! isSequencerTargetAssigned(choice))
         return std::nullopt;

@@ -1,5 +1,19 @@
 # Dusk Changelog
 
+## 1.28.10 — Bypassed Target Knob Display Fix — 17 November 2026
+
+- Fixed assigned target knobs retaining the Sequencer's animated graphic position while global Dusk processing was switched off, even though their editable value had changed.
+- The animation overlay now disengages while Dusk is bypassed, allowing each knob graphic and value readout to follow manual adjustments together; normal target animation resumes when processing is switched back on.
+- Kept the position-based routing, dynamic target names, DSP, parameter IDs, ranges, defaults, Models and state schema unchanged.
+- Distribution note: update archives no longer include the Resources folder, preventing existing screenshots and artwork from being overwritten during extraction.
+
+## 1.28.9 — Dynamic Sequencer Target Names — 17 November 2026
+
+- Kept the position-based Sequencer routing from 1.28.8 while changing each target row to show the name of the control currently occupying that numbered position.
+- Target names now update automatically when either filter's Architecture or standard filter Type changes, including Cutoff, Comb Frequency, Phaser Frequency, Slope and Filter Gain transitions.
+- Designer targets likewise follow the currently visible architecture-specific control names; positions unavailable in a smaller Designer display their numbered position with N/A instead of implying that an old parameter is still active.
+- Kept the active-stage CPU optimisation, parameter IDs, target assignments, Depth values, Models and state schema unchanged.
+
 ## 1.28.8 — Position-Based Sequencer Targets — 17 November 2026
 
 - Changed filter and Designer Sequencer assignments from architecture-specific parameter targets to stable numbered knob positions for each filter panel.
