@@ -1199,8 +1199,9 @@ DuskAudioProcessor::createParameterLayout()
             juce::NormalisableRange<float>(0.0f, 1.0f, 0.0001f), 1.0f));
 
     juce::StringArray targetNames { "None" };
-    for (const auto& target : dusk::sequencer::targets)
-        targetNames.add(target.displayName);
+    for (size_t target = 0; target < dusk::sequencer::targets.size(); ++target)
+        targetNames.add(dusk::sequencer::targetName(
+            static_cast<int>(target) + 1));
     for (int slot = 0; slot < dusk::sequencer::targetSlotCount; ++slot)
     {
         layout.push_back(std::make_unique<APC>(
@@ -1890,8 +1891,10 @@ bool DuskAudioProcessor::isSequencerTargetAssigned(int targetChoice) const noexc
         return false;
     for (size_t slot = 0; slot < raw.sequencerTargets.size(); ++slot)
         if (load(raw.sequencerTargetEnabled[slot]) >= 0.5f
-            && static_cast<int>(std::lround(load(raw.sequencerTargets[slot])))
-                   == targetChoice)
+            && dusk::sequencer::targetChoicesSharePosition(
+                static_cast<int>(std::lround(
+                    load(raw.sequencerTargets[slot]))),
+                targetChoice))
             return true;
     return false;
 }
@@ -1902,8 +1905,10 @@ float DuskAudioProcessor::sequencerTargetDepth(int targetChoice) const noexcept
         return 1.0f;
     for (size_t slot = 0; slot < raw.sequencerTargets.size(); ++slot)
         if (load(raw.sequencerTargetEnabled[slot]) >= 0.5f
-            && static_cast<int>(std::lround(load(raw.sequencerTargets[slot])))
-                   == targetChoice)
+            && dusk::sequencer::targetChoicesSharePosition(
+                static_cast<int>(std::lround(
+                    load(raw.sequencerTargets[slot]))),
+                targetChoice))
             return juce::jlimit(
                 0.0f, 1.0f, load(raw.sequencerTargetDepth[slot]));
     return 1.0f;
@@ -3219,6 +3224,7 @@ float DuskAudioProcessor::processSvfFilter(
         juce::jmax(1.0, currentSampleRate));
     const float safeCutoff = juce::jlimit(
         20.0f, juce::jmin(20000.0f, sampleRate * 0.45f), cutoffHz);
+    const auto filterTypeGains = dusk::filtertype::gainsForDecibels(gainDb);
     const float maximumCutoff = juce::jmin(
         20000.0f, sampleRate * 0.45f);
     const float safeCoreSaturation = juce::jlimit(
@@ -3271,7 +3277,7 @@ float DuskAudioProcessor::processSvfFilter(
             6.0f, -polarity * asymmetryCharacter);
         return polarityThreshold * std::tanh(value / polarityThreshold);
     };
-    const auto processStage = [sampleRate, gainDb](
+    const auto processStage = [sampleRate, &filterTypeGains](
         float input, float stageCutoff, float stageResonance,
         float& integratorOne, float& integratorTwo)
     {
@@ -3297,7 +3303,7 @@ float DuskAudioProcessor::processSvfFilter(
         const float high = DuskAudioProcessor::sanitiseSample(
             input - damping * band - low, 64.0f);
         return dusk::filtertype::outputs(
-            input, low, band, high, gainDb);
+            input, low, band, high, filterTypeGains);
     };
     const auto selectOutput = [](
                                  const std::array<float,
@@ -3336,11 +3342,12 @@ float DuskAudioProcessor::processSvfFilter(
     };
 
     // A true one-pole path provides the 6 dB endpoint and blends into the
-    // resonant two-pole core by 12 dB. Three continuously running neutral
-    // two-pole stages then descend into range to reach 24, 36 and 48 dB.
-    // Keeping every state live makes fast Slope automation click-free. Core
-    // Sat and Sat Asym deliberately do not rewrite these persistent states;
-    // their memory-preserving shaping is applied to the completed core signal.
+    // resonant two-pole core by 12 dB. Additional two-pole stages descend
+    // into range to reach 24, 36 and 48 dB. Only the audible stages and one
+    // look-ahead stage run, keeping the next state warm for smooth Slope
+    // increases. Core Sat and Sat Asym deliberately do not rewrite these
+    // persistent states; their memory-preserving shaping is applied to the
+    // completed core signal.
     const float type = juce::jlimit(
         0.0f, static_cast<float>(dusk::filtertype::count - 1),
         filterTypePosition);
@@ -3354,7 +3361,8 @@ float DuskAudioProcessor::processSvfFilter(
         svfIntegratorTwo[stateIndex]);
     const float primary = selectOutput(primaryOutputs, type, false);
     const auto lowerSlopeOutputs = dusk::filtertype::outputs(
-        filterInput, onePoleLow, primaryOutputs[1], onePoleHigh, gainDb);
+        filterInput, onePoleLow, primaryOutputs[1], onePoleHigh,
+        filterTypeGains);
     const float lowerSlopeOutput = selectOutput(
         lowerSlopeOutputs, type, false);
     const float slope = juce::jlimit(
@@ -3362,7 +3370,10 @@ float DuskAudioProcessor::processSvfFilter(
     float cascaded = primary;
     const float extraStageAmount = juce::jmax(
         0.0f, (slope - 12.0f) / 12.0f);
-    for (int stage = 0; stage < 3 && ! equaliserType; ++stage)
+    const int activeExtraStages = juce::jmin(
+        3, static_cast<int>(std::ceil(extraStageAmount)) + 1);
+    for (int stage = 0;
+         stage < activeExtraStages && ! equaliserType; ++stage)
     {
         const auto stageIndex = static_cast<size_t>(stage);
         const float amount = juce::jlimit(
@@ -3473,6 +3484,7 @@ float DuskAudioProcessor::processLadderFilter(
         juce::jmax(1.0, currentSampleRate));
     const float safeCutoff = juce::jlimit(
         20.0f, juce::jmin(20000.0f, sampleRate * 0.45f), cutoffHz);
+    const auto filterTypeGains = dusk::filtertype::gainsForDecibels(gainDb);
     const float g = std::tan(
         juce::MathConstants<float>::pi * safeCutoff / sampleRate);
     const float coefficient = g / (1.0f + g);
@@ -3520,7 +3532,7 @@ float DuskAudioProcessor::processLadderFilter(
     const float feedbackGain = 0.98f * maximumFeedback * safeResonance;
     std::array<float, maximumLadderStages + 1> memoryTaps {};
     float memoryInput = 0.0f;
-    for (int stage = 0; stage < maximumLadderStages; ++stage)
+    for (int stage = 0; stage < upperPoles; ++stage)
     {
         const float state = ladderStageState[
             static_cast<size_t>(stage)][stateIndex];
@@ -3584,7 +3596,7 @@ float DuskAudioProcessor::processLadderFilter(
     std::array<float, maximumLadderStages + 1> taps {};
     taps[0] = ladderInput;
     float stageInput = ladderInput;
-    for (int stage = 0; stage < maximumLadderStages; ++stage)
+    for (int stage = 0; stage < upperPoles; ++stage)
     {
         auto& state = ladderStageState[static_cast<size_t>(stage)][stateIndex];
         const float delta = coefficient
@@ -3601,7 +3613,8 @@ float DuskAudioProcessor::processLadderFilter(
             result = result * (n - index + 1) / index;
         return static_cast<float>(result);
     };
-    const auto outputsForPoles = [&taps, &binomial, gainDb](int poles)
+    const auto outputsForPoles = [&taps, &binomial,
+                                  &filterTypeGains](int poles)
     {
         poles = juce::jlimit(1, maximumLadderStages, poles);
         const float low = taps[static_cast<size_t>(poles)];
@@ -3621,7 +3634,7 @@ float DuskAudioProcessor::processLadderFilter(
                 * taps[static_cast<size_t>(lowOrder + index)];
         band *= std::pow(2.0f, 0.5f * (lowOrder + highOrder));
         return dusk::filtertype::outputs(
-            taps[0], low, band, high, gainDb);
+            taps[0], low, band, high, filterTypeGains);
     };
     const auto selectType = [filterTypePosition](
         const std::array<float, dusk::filtertype::count>& outputs)
@@ -3655,6 +3668,7 @@ float DuskAudioProcessor::processOtaFilter(
     const float maximumCutoff = juce::jmin(20000.0f, sampleRate * 0.45f);
     const float safeCutoff = juce::jlimit(
         20.0f, maximumCutoff, cutoffHz);
+    const auto filterTypeGains = dusk::filtertype::gainsForDecibels(gainDb);
     const float g = std::tan(
         juce::MathConstants<float>::pi * safeCutoff / sampleRate);
     const float coefficient = g / (1.0f + g);
@@ -3714,7 +3728,7 @@ float DuskAudioProcessor::processOtaFilter(
     std::array<float, maximumOtaStages + 1> taps {};
     taps[0] = drivenInput;
     float cellInput = drivenInput;
-    for (int cell = 0; cell < maximumOtaStages; ++cell)
+    for (int cell = 0; cell < upperCells; ++cell)
     {
         auto& state = otaStageState[static_cast<size_t>(cell)][stateIndex];
         const float delta = coefficient
@@ -3731,7 +3745,8 @@ float DuskAudioProcessor::processOtaFilter(
             result = result * (n - index + 1) / index;
         return static_cast<float>(result);
     };
-    const auto outputsForCells = [&taps, &binomial, gainDb](int cells)
+    const auto outputsForCells = [&taps, &binomial,
+                                  &filterTypeGains](int cells)
     {
         cells = juce::jlimit(1, maximumOtaStages, cells);
         const float low = taps[static_cast<size_t>(cells)];
@@ -3751,7 +3766,7 @@ float DuskAudioProcessor::processOtaFilter(
                 * taps[static_cast<size_t>(lowOrder + index)];
         band *= std::pow(2.0f, 0.5f * (lowOrder + highOrder));
         return dusk::filtertype::outputs(
-            taps[0], low, band, high, gainDb);
+            taps[0], low, band, high, filterTypeGains);
     };
     const auto selectType = [filterTypePosition](
         const std::array<float, dusk::filtertype::count>& outputs)
@@ -4987,6 +5002,199 @@ void DuskAudioProcessor::processBlock(
     const float gateSmoothing = 1.0f - std::exp(
         -1.0f / static_cast<float>(0.002 * currentSampleRate));
 
+    // Only the selected architecture (and the outgoing architecture during
+    // its short crossfade) can be heard. Advance every other architecture's
+    // parameter ramps once per block instead of once per sample. This keeps
+    // their eventual values and activation behaviour intact while removing
+    // a large amount of redundant work from the audio thread.
+    constexpr auto architectureCount = dusk::architecture::descriptors.size();
+    std::array<bool, filterEngineCount> engineActive {};
+    std::array<std::array<bool, architectureCount>, filterEngineCount>
+        architectureActive {};
+    for (int engine = 0; engine < filterEngineCount; ++engine)
+    {
+        const auto index = static_cast<size_t>(engine);
+        const bool routed = routing >= 2 || routing == engine;
+        const bool enabled = filterEnabledValue[index].isSmoothing()
+            || filterEnabledValue[index].getCurrentValue() > 1.0e-6f
+            || filterEnabledValue[index].getTargetValue() > 1.0e-6f;
+        engineActive[index] = routed && enabled;
+        if (! routed || ! enabled)
+            continue;
+
+        architectureActive[index][static_cast<size_t>(
+            currentArchitectureChoice[index])] = true;
+        if (architectureCrossfadeValue[index].isSmoothing())
+            architectureActive[index][static_cast<size_t>(
+                previousArchitectureChoice[index])] = true;
+    }
+    const auto skipInactiveArchitecture = [
+        &architectureActive, sampleCount](auto& values,
+                                          dusk::architecture::Id id)
+    {
+        const auto architectureIndex = static_cast<size_t>(id);
+        for (int engine = 0; engine < filterEngineCount; ++engine)
+        {
+            const auto index = static_cast<size_t>(engine);
+            if (! architectureActive[index][architectureIndex])
+                values[index].skip(sampleCount);
+        }
+    };
+    const auto nextArchitectureValue = [
+        &architectureActive](auto& values, int engine,
+                             dusk::architecture::Id id)
+    {
+        const auto index = static_cast<size_t>(engine);
+        return architectureActive[index][static_cast<size_t>(id)]
+            ? values[index].getNextValue()
+            : values[index].getCurrentValue();
+    };
+    const auto skipInactiveEngine = [
+        &engineActive, sampleCount](auto& values)
+    {
+        for (int engine = 0; engine < filterEngineCount; ++engine)
+        {
+            const auto index = static_cast<size_t>(engine);
+            if (! engineActive[index])
+                values[index].skip(sampleCount);
+        }
+    };
+    const auto nextEngineValue = [&engineActive](auto& values, int engine)
+    {
+        const auto index = static_cast<size_t>(engine);
+        return engineActive[index] ? values[index].getNextValue()
+                                   : values[index].getCurrentValue();
+    };
+
+    using Architecture = dusk::architecture::Id;
+    skipInactiveEngine(driveValue);
+    skipInactiveEngine(filterTypeValue);
+    skipInactiveEngine(cutoffValue);
+    skipInactiveEngine(resonanceValue);
+    skipInactiveEngine(resonanceShapeValue);
+    skipInactiveEngine(resonanceLimitValue);
+    skipInactiveEngine(filterGainValue);
+    skipInactiveEngine(slopeValue);
+    skipInactiveEngine(filterEnabledValue);
+    skipInactiveEngine(architectureCrossfadeValue);
+    skipInactiveEngine(distortionTypeCrossfade);
+    skipInactiveArchitecture(bassLossValue, Architecture::cleanSvf);
+    skipInactiveArchitecture(coreSaturationValue, Architecture::cleanSvf);
+    skipInactiveArchitecture(saturationAsymmetryValue,
+                             Architecture::cleanSvf);
+    skipInactiveArchitecture(poleSpreadValue, Architecture::cleanSvf);
+    skipInactiveArchitecture(feedbackValue, Architecture::cleanSvf);
+    skipInactiveArchitecture(feedbackLimitValue, Architecture::cleanSvf);
+    skipInactiveArchitecture(ladderStageSaturationValue,
+                             Architecture::ladder);
+    skipInactiveArchitecture(ladderFeedbackSaturationValue,
+                             Architecture::ladder);
+    skipInactiveArchitecture(ladderResonanceCompensationValue,
+                             Architecture::ladder);
+    skipInactiveArchitecture(otaCellDriveValue, Architecture::ota);
+    skipInactiveArchitecture(otaFeedbackDampingValue, Architecture::ota);
+    skipInactiveArchitecture(otaResonanceCompensationValue,
+                             Architecture::ota);
+    skipInactiveArchitecture(combFrequencyValue, Architecture::comb);
+    skipInactiveArchitecture(combFeedbackValue, Architecture::comb);
+    skipInactiveArchitecture(combDampingValue, Architecture::comb);
+    skipInactiveArchitecture(combFineTuneValue, Architecture::comb);
+    skipInactiveArchitecture(combPolarityValue, Architecture::comb);
+    skipInactiveArchitecture(combStereoSpreadValue, Architecture::comb);
+    skipInactiveArchitecture(combDispersionValue, Architecture::comb);
+    skipInactiveArchitecture(combLoopSaturationValue, Architecture::comb);
+    skipInactiveArchitecture(combFeedbackLimitValue, Architecture::comb);
+    skipInactiveArchitecture(combModeCrossfadeValue, Architecture::comb);
+    skipInactiveArchitecture(formantVowelValue, Architecture::formant);
+    skipInactiveArchitecture(formantShiftValue, Architecture::formant);
+    skipInactiveArchitecture(formantFocusValue, Architecture::formant);
+    skipInactiveArchitecture(formantOneLevelValue, Architecture::formant);
+    skipInactiveArchitecture(formantTwoLevelValue, Architecture::formant);
+    skipInactiveArchitecture(formantThreeLevelValue,
+                             Architecture::formant);
+    skipInactiveArchitecture(formantBandwidthValue, Architecture::formant);
+    skipInactiveArchitecture(formantSpreadValue, Architecture::formant);
+    skipInactiveArchitecture(formantTiltValue, Architecture::formant);
+    skipInactiveArchitecture(phaserFrequencyValue, Architecture::phaser);
+    skipInactiveArchitecture(phaserFeedbackValue, Architecture::phaser);
+    skipInactiveArchitecture(phaserDepthValue, Architecture::phaser);
+    skipInactiveArchitecture(phaserStagesValue, Architecture::phaser);
+    skipInactiveArchitecture(phaserSpreadValue, Architecture::phaser);
+    skipInactiveArchitecture(phaserSkewValue, Architecture::phaser);
+    skipInactiveArchitecture(phaserDampingValue, Architecture::phaser);
+    skipInactiveArchitecture(phaserStageSaturationValue,
+                             Architecture::phaser);
+    skipInactiveArchitecture(phaserStereoValue, Architecture::phaser);
+    skipInactiveArchitecture(modalFrequencyValue, Architecture::modal);
+    skipInactiveArchitecture(modalDecayValue, Architecture::modal);
+    skipInactiveArchitecture(modalBodyValue, Architecture::modal);
+    skipInactiveArchitecture(modalModesValue, Architecture::modal);
+    skipInactiveArchitecture(modalRatioValue, Architecture::modal);
+    skipInactiveArchitecture(modalInharmonicityValue, Architecture::modal);
+    skipInactiveArchitecture(modalDecayTiltValue, Architecture::modal);
+    skipInactiveArchitecture(modalDampingValue, Architecture::modal);
+    skipInactiveArchitecture(modalExcitationValue, Architecture::modal);
+    skipInactiveArchitecture(sallenKeyQCurveValue, Architecture::sallenKey);
+    skipInactiveArchitecture(sallenKeyCellGainValue,
+                             Architecture::sallenKey);
+    skipInactiveArchitecture(sallenKeyStageCouplingValue,
+                             Architecture::sallenKey);
+    skipInactiveArchitecture(sallenKeyComponentVariationValue,
+                             Architecture::sallenKey);
+    skipInactiveArchitecture(sallenKeyOpAmpSaturationValue,
+                             Architecture::sallenKey);
+    skipInactiveArchitecture(sallenKeyHighFrequencyDampingValue,
+                             Architecture::sallenKey);
+    skipInactiveArchitecture(diodeLadderSaturationValue,
+                             Architecture::diodeLadder);
+    skipInactiveArchitecture(diodeLadderFeedbackClipValue,
+                             Architecture::diodeLadder);
+    skipInactiveArchitecture(diodeLadderBiasValue,
+                             Architecture::diodeLadder);
+    skipInactiveArchitecture(diodeLadderStageTiltValue,
+                             Architecture::diodeLadder);
+    skipInactiveArchitecture(diodeLadderResonanceLossValue,
+                             Architecture::diodeLadder);
+    skipInactiveArchitecture(diodeLadderResonanceCompensationValue,
+                             Architecture::diodeLadder);
+    skipInactiveArchitecture(steinerDiodeDriveValue,
+                             Architecture::steinerParker);
+    skipInactiveArchitecture(steinerFeedbackClipValue,
+                             Architecture::steinerParker);
+    skipInactiveArchitecture(steinerBiasValue,
+                             Architecture::steinerParker);
+    skipInactiveArchitecture(steinerPoleSpreadValue,
+                             Architecture::steinerParker);
+    skipInactiveArchitecture(steinerResonanceCurveValue,
+                             Architecture::steinerParker);
+    skipInactiveArchitecture(steinerResonanceCompensationValue,
+                             Architecture::steinerParker);
+    skipInactiveArchitecture(vactrolRiseValue, Architecture::vactrolLpg);
+    skipInactiveArchitecture(vactrolFallValue, Architecture::vactrolLpg);
+    skipInactiveArchitecture(vactrolMemoryValue, Architecture::vactrolLpg);
+    skipInactiveArchitecture(vactrolLevelCouplingValue,
+                             Architecture::vactrolLpg);
+    skipInactiveArchitecture(vactrolWarmthValue, Architecture::vactrolLpg);
+    skipInactiveArchitecture(vactrolBleedValue, Architecture::vactrolLpg);
+    skipInactiveArchitecture(korg35ChipDriveValue, Architecture::korg35);
+    skipInactiveArchitecture(korg35FeedbackClipValue, Architecture::korg35);
+    skipInactiveArchitecture(korg35BiasValue, Architecture::korg35);
+    skipInactiveArchitecture(korg35FeedbackToneValue, Architecture::korg35);
+    skipInactiveArchitecture(korg35BassLossValue, Architecture::korg35);
+    skipInactiveArchitecture(korg35ResonanceCompensationValue,
+                             Architecture::korg35);
+    skipInactiveArchitecture(spectralCentreValue, Architecture::spectralBank);
+    skipInactiveArchitecture(spectralSpanValue, Architecture::spectralBank);
+    skipInactiveArchitecture(spectralDepthValue, Architecture::spectralBank);
+    skipInactiveArchitecture(spectralBandsValue, Architecture::spectralBank);
+    skipInactiveArchitecture(spectralWidthValue, Architecture::spectralBank);
+    skipInactiveArchitecture(spectralPatternValue,
+                             Architecture::spectralBank);
+    skipInactiveArchitecture(spectralShiftValue, Architecture::spectralBank);
+    skipInactiveArchitecture(spectralContrastValue,
+                             Architecture::spectralBank);
+    skipInactiveArchitecture(spectralTiltValue, Architecture::spectralBank);
+
     auto* left = buffer.getWritePointer(0);
     auto* right = activeChannels > 1 ? buffer.getWritePointer(1) : nullptr;
     for (int sample = 0; sample < sampleCount; ++sample)
@@ -5014,404 +5222,558 @@ void DuskAudioProcessor::processBlock(
         float effectInputR = gateMode == 0
             ? dryR * sequencerGateGain : dryR;
         const std::array<float, filterEngineCount> drive {
-            driveValue[0].getNextValue(), driveValue[1].getNextValue()
+            nextEngineValue(driveValue, 0), nextEngineValue(driveValue, 1)
         };
         const std::array<float, filterEngineCount> cutoff {
-            cutoffValue[0].getNextValue(), cutoffValue[1].getNextValue()
+            nextEngineValue(cutoffValue, 0), nextEngineValue(cutoffValue, 1)
         };
         const std::array<float, filterEngineCount> filterType {
-            filterTypeValue[0].getNextValue(),
-            filterTypeValue[1].getNextValue()
+            nextEngineValue(filterTypeValue, 0),
+            nextEngineValue(filterTypeValue, 1)
         };
         const std::array<float, filterEngineCount> resonanceAmount {
-            resonanceValue[0].getNextValue(), resonanceValue[1].getNextValue()
+            nextEngineValue(resonanceValue, 0),
+            nextEngineValue(resonanceValue, 1)
         };
         const std::array<float, filterEngineCount> resonanceShape {
-            resonanceShapeValue[0].getNextValue(),
-            resonanceShapeValue[1].getNextValue()
+            nextEngineValue(resonanceShapeValue, 0),
+            nextEngineValue(resonanceShapeValue, 1)
         };
         const std::array<float, filterEngineCount> resonance {
             shapedResonance(resonanceAmount[0], resonanceShape[0])
-                * resonanceLimitValue[0].getNextValue(),
+                * nextEngineValue(resonanceLimitValue, 0),
             shapedResonance(resonanceAmount[1], resonanceShape[1])
-                * resonanceLimitValue[1].getNextValue()
+                * nextEngineValue(resonanceLimitValue, 1)
         };
         const std::array<float, filterEngineCount> bassLoss {
-            bassLossValue[0].getNextValue(), bassLossValue[1].getNextValue()
+            nextArchitectureValue(bassLossValue, 0, Architecture::cleanSvf),
+            nextArchitectureValue(bassLossValue, 1, Architecture::cleanSvf)
         };
         const std::array<float, filterEngineCount> coreSaturation {
-            coreSaturationValue[0].getNextValue(),
-            coreSaturationValue[1].getNextValue()
+            nextArchitectureValue(
+                coreSaturationValue, 0, Architecture::cleanSvf),
+            nextArchitectureValue(
+                coreSaturationValue, 1, Architecture::cleanSvf)
         };
         const std::array<float, filterEngineCount> saturationAsymmetry {
-            saturationAsymmetryValue[0].getNextValue(),
-            saturationAsymmetryValue[1].getNextValue()
+            nextArchitectureValue(
+                saturationAsymmetryValue, 0, Architecture::cleanSvf),
+            nextArchitectureValue(
+                saturationAsymmetryValue, 1, Architecture::cleanSvf)
         };
         const std::array<float, filterEngineCount> poleSpread {
-            poleSpreadValue[0].getNextValue(),
-            poleSpreadValue[1].getNextValue()
+            nextArchitectureValue(poleSpreadValue, 0,
+                                  Architecture::cleanSvf),
+            nextArchitectureValue(poleSpreadValue, 1,
+                                  Architecture::cleanSvf)
         };
         const std::array<float, filterEngineCount> feedback {
-            feedbackValue[0].getNextValue(),
-            feedbackValue[1].getNextValue()
+            nextArchitectureValue(feedbackValue, 0, Architecture::cleanSvf),
+            nextArchitectureValue(feedbackValue, 1, Architecture::cleanSvf)
         };
         const std::array<float, filterEngineCount> feedbackLimit {
-            feedbackLimitValue[0].getNextValue(),
-            feedbackLimitValue[1].getNextValue()
+            nextArchitectureValue(
+                feedbackLimitValue, 0, Architecture::cleanSvf),
+            nextArchitectureValue(
+                feedbackLimitValue, 1, Architecture::cleanSvf)
         };
         const std::array<float, filterEngineCount> ladderStageSaturation {
-            ladderStageSaturationValue[0].getNextValue(),
-            ladderStageSaturationValue[1].getNextValue()
+            nextArchitectureValue(
+                ladderStageSaturationValue, 0, Architecture::ladder),
+            nextArchitectureValue(
+                ladderStageSaturationValue, 1, Architecture::ladder)
         };
         const std::array<float, filterEngineCount> ladderFeedbackSaturation {
-            ladderFeedbackSaturationValue[0].getNextValue(),
-            ladderFeedbackSaturationValue[1].getNextValue()
+            nextArchitectureValue(
+                ladderFeedbackSaturationValue, 0, Architecture::ladder),
+            nextArchitectureValue(
+                ladderFeedbackSaturationValue, 1, Architecture::ladder)
         };
         const std::array<float, filterEngineCount>
             ladderResonanceCompensation {
-                ladderResonanceCompensationValue[0].getNextValue(),
-                ladderResonanceCompensationValue[1].getNextValue()
+                nextArchitectureValue(ladderResonanceCompensationValue, 0,
+                                      Architecture::ladder),
+                nextArchitectureValue(ladderResonanceCompensationValue, 1,
+                                      Architecture::ladder)
             };
         const std::array<float, filterEngineCount> otaCellDrive {
-            otaCellDriveValue[0].getNextValue(),
-            otaCellDriveValue[1].getNextValue()
+            nextArchitectureValue(otaCellDriveValue, 0, Architecture::ota),
+            nextArchitectureValue(otaCellDriveValue, 1, Architecture::ota)
         };
         const std::array<float, filterEngineCount> otaFeedbackDamping {
-            otaFeedbackDampingValue[0].getNextValue(),
-            otaFeedbackDampingValue[1].getNextValue()
+            nextArchitectureValue(
+                otaFeedbackDampingValue, 0, Architecture::ota),
+            nextArchitectureValue(
+                otaFeedbackDampingValue, 1, Architecture::ota)
         };
         const std::array<float, filterEngineCount>
             otaResonanceCompensation {
-                otaResonanceCompensationValue[0].getNextValue(),
-                otaResonanceCompensationValue[1].getNextValue()
+                nextArchitectureValue(otaResonanceCompensationValue, 0,
+                                      Architecture::ota),
+                nextArchitectureValue(otaResonanceCompensationValue, 1,
+                                      Architecture::ota)
             };
         const std::array<float, filterEngineCount> combFrequency {
-            combFrequencyValue[0].getNextValue(),
-            combFrequencyValue[1].getNextValue()
+            nextArchitectureValue(combFrequencyValue, 0, Architecture::comb),
+            nextArchitectureValue(combFrequencyValue, 1, Architecture::comb)
         };
         const std::array<float, filterEngineCount> combFeedback {
-            combFeedbackValue[0].getNextValue(),
-            combFeedbackValue[1].getNextValue()
+            nextArchitectureValue(combFeedbackValue, 0, Architecture::comb),
+            nextArchitectureValue(combFeedbackValue, 1, Architecture::comb)
         };
         const std::array<float, filterEngineCount> combDamping {
-            combDampingValue[0].getNextValue(),
-            combDampingValue[1].getNextValue()
+            nextArchitectureValue(combDampingValue, 0, Architecture::comb),
+            nextArchitectureValue(combDampingValue, 1, Architecture::comb)
         };
         const std::array<float, filterEngineCount> combFineTune {
-            combFineTuneValue[0].getNextValue(),
-            combFineTuneValue[1].getNextValue()
+            nextArchitectureValue(combFineTuneValue, 0, Architecture::comb),
+            nextArchitectureValue(combFineTuneValue, 1, Architecture::comb)
         };
         const std::array<float, filterEngineCount> combPolarity {
-            combPolarityValue[0].getNextValue(),
-            combPolarityValue[1].getNextValue()
+            nextArchitectureValue(combPolarityValue, 0, Architecture::comb),
+            nextArchitectureValue(combPolarityValue, 1, Architecture::comb)
         };
         const std::array<float, filterEngineCount> combStereoSpread {
-            combStereoSpreadValue[0].getNextValue(),
-            combStereoSpreadValue[1].getNextValue()
+            nextArchitectureValue(
+                combStereoSpreadValue, 0, Architecture::comb),
+            nextArchitectureValue(
+                combStereoSpreadValue, 1, Architecture::comb)
         };
         const std::array<float, filterEngineCount> combDispersion {
-            combDispersionValue[0].getNextValue(),
-            combDispersionValue[1].getNextValue()
+            nextArchitectureValue(combDispersionValue, 0,
+                                  Architecture::comb),
+            nextArchitectureValue(combDispersionValue, 1,
+                                  Architecture::comb)
         };
         const std::array<float, filterEngineCount> combLoopSaturation {
-            combLoopSaturationValue[0].getNextValue(),
-            combLoopSaturationValue[1].getNextValue()
+            nextArchitectureValue(
+                combLoopSaturationValue, 0, Architecture::comb),
+            nextArchitectureValue(
+                combLoopSaturationValue, 1, Architecture::comb)
         };
         const std::array<float, filterEngineCount> combFeedbackLimit {
-            combFeedbackLimitValue[0].getNextValue(),
-            combFeedbackLimitValue[1].getNextValue()
+            nextArchitectureValue(
+                combFeedbackLimitValue, 0, Architecture::comb),
+            nextArchitectureValue(
+                combFeedbackLimitValue, 1, Architecture::comb)
         };
         const std::array<float, filterEngineCount> formantVowel {
-            formantVowelValue[0].getNextValue(),
-            formantVowelValue[1].getNextValue()
+            nextArchitectureValue(
+                formantVowelValue, 0, Architecture::formant),
+            nextArchitectureValue(
+                formantVowelValue, 1, Architecture::formant)
         };
         const std::array<float, filterEngineCount> formantShift {
-            formantShiftValue[0].getNextValue(),
-            formantShiftValue[1].getNextValue()
+            nextArchitectureValue(
+                formantShiftValue, 0, Architecture::formant),
+            nextArchitectureValue(
+                formantShiftValue, 1, Architecture::formant)
         };
         const std::array<float, filterEngineCount> formantFocus {
-            formantFocusValue[0].getNextValue(),
-            formantFocusValue[1].getNextValue()
+            nextArchitectureValue(
+                formantFocusValue, 0, Architecture::formant),
+            nextArchitectureValue(
+                formantFocusValue, 1, Architecture::formant)
         };
         const std::array<float, filterEngineCount> formantOneLevel {
-            formantOneLevelValue[0].getNextValue(),
-            formantOneLevelValue[1].getNextValue()
+            nextArchitectureValue(
+                formantOneLevelValue, 0, Architecture::formant),
+            nextArchitectureValue(
+                formantOneLevelValue, 1, Architecture::formant)
         };
         const std::array<float, filterEngineCount> formantTwoLevel {
-            formantTwoLevelValue[0].getNextValue(),
-            formantTwoLevelValue[1].getNextValue()
+            nextArchitectureValue(
+                formantTwoLevelValue, 0, Architecture::formant),
+            nextArchitectureValue(
+                formantTwoLevelValue, 1, Architecture::formant)
         };
         const std::array<float, filterEngineCount> formantThreeLevel {
-            formantThreeLevelValue[0].getNextValue(),
-            formantThreeLevelValue[1].getNextValue()
+            nextArchitectureValue(
+                formantThreeLevelValue, 0, Architecture::formant),
+            nextArchitectureValue(
+                formantThreeLevelValue, 1, Architecture::formant)
         };
         const std::array<float, filterEngineCount> formantBandwidth {
-            formantBandwidthValue[0].getNextValue(),
-            formantBandwidthValue[1].getNextValue()
+            nextArchitectureValue(
+                formantBandwidthValue, 0, Architecture::formant),
+            nextArchitectureValue(
+                formantBandwidthValue, 1, Architecture::formant)
         };
         const std::array<float, filterEngineCount> formantSpread {
-            formantSpreadValue[0].getNextValue(),
-            formantSpreadValue[1].getNextValue()
+            nextArchitectureValue(
+                formantSpreadValue, 0, Architecture::formant),
+            nextArchitectureValue(
+                formantSpreadValue, 1, Architecture::formant)
         };
         const std::array<float, filterEngineCount> formantTilt {
-            formantTiltValue[0].getNextValue(),
-            formantTiltValue[1].getNextValue()
+            nextArchitectureValue(
+                formantTiltValue, 0, Architecture::formant),
+            nextArchitectureValue(
+                formantTiltValue, 1, Architecture::formant)
         };
         const std::array<float, filterEngineCount> phaserFrequency {
-            phaserFrequencyValue[0].getNextValue(),
-            phaserFrequencyValue[1].getNextValue()
+            nextArchitectureValue(
+                phaserFrequencyValue, 0, Architecture::phaser),
+            nextArchitectureValue(
+                phaserFrequencyValue, 1, Architecture::phaser)
         };
         const std::array<float, filterEngineCount> phaserFeedback {
-            phaserFeedbackValue[0].getNextValue(),
-            phaserFeedbackValue[1].getNextValue()
+            nextArchitectureValue(
+                phaserFeedbackValue, 0, Architecture::phaser),
+            nextArchitectureValue(
+                phaserFeedbackValue, 1, Architecture::phaser)
         };
         const std::array<float, filterEngineCount> phaserDepth {
-            phaserDepthValue[0].getNextValue(),
-            phaserDepthValue[1].getNextValue()
+            nextArchitectureValue(
+                phaserDepthValue, 0, Architecture::phaser),
+            nextArchitectureValue(
+                phaserDepthValue, 1, Architecture::phaser)
         };
         const std::array<float, filterEngineCount> phaserStages {
-            phaserStagesValue[0].getNextValue(),
-            phaserStagesValue[1].getNextValue()
+            nextArchitectureValue(
+                phaserStagesValue, 0, Architecture::phaser),
+            nextArchitectureValue(
+                phaserStagesValue, 1, Architecture::phaser)
         };
         const std::array<float, filterEngineCount> phaserSpread {
-            phaserSpreadValue[0].getNextValue(),
-            phaserSpreadValue[1].getNextValue()
+            nextArchitectureValue(
+                phaserSpreadValue, 0, Architecture::phaser),
+            nextArchitectureValue(
+                phaserSpreadValue, 1, Architecture::phaser)
         };
         const std::array<float, filterEngineCount> phaserSkew {
-            phaserSkewValue[0].getNextValue(),
-            phaserSkewValue[1].getNextValue()
+            nextArchitectureValue(
+                phaserSkewValue, 0, Architecture::phaser),
+            nextArchitectureValue(
+                phaserSkewValue, 1, Architecture::phaser)
         };
         const std::array<float, filterEngineCount> phaserDamping {
-            phaserDampingValue[0].getNextValue(),
-            phaserDampingValue[1].getNextValue()
+            nextArchitectureValue(
+                phaserDampingValue, 0, Architecture::phaser),
+            nextArchitectureValue(
+                phaserDampingValue, 1, Architecture::phaser)
         };
         const std::array<float, filterEngineCount> phaserStageSaturation {
-            phaserStageSaturationValue[0].getNextValue(),
-            phaserStageSaturationValue[1].getNextValue()
+            nextArchitectureValue(
+                phaserStageSaturationValue, 0, Architecture::phaser),
+            nextArchitectureValue(
+                phaserStageSaturationValue, 1, Architecture::phaser)
         };
         const std::array<float, filterEngineCount> phaserStereo {
-            phaserStereoValue[0].getNextValue(),
-            phaserStereoValue[1].getNextValue()
+            nextArchitectureValue(
+                phaserStereoValue, 0, Architecture::phaser),
+            nextArchitectureValue(
+                phaserStereoValue, 1, Architecture::phaser)
         };
         const std::array<float, filterEngineCount> modalFrequency {
-            modalFrequencyValue[0].getNextValue(),
-            modalFrequencyValue[1].getNextValue()
+            nextArchitectureValue(
+                modalFrequencyValue, 0, Architecture::modal),
+            nextArchitectureValue(
+                modalFrequencyValue, 1, Architecture::modal)
         };
         const std::array<float, filterEngineCount> modalDecay {
-            modalDecayValue[0].getNextValue(),
-            modalDecayValue[1].getNextValue()
+            nextArchitectureValue(modalDecayValue, 0, Architecture::modal),
+            nextArchitectureValue(modalDecayValue, 1, Architecture::modal)
         };
         const std::array<float, filterEngineCount> modalBody {
-            modalBodyValue[0].getNextValue(),
-            modalBodyValue[1].getNextValue()
+            nextArchitectureValue(modalBodyValue, 0, Architecture::modal),
+            nextArchitectureValue(modalBodyValue, 1, Architecture::modal)
         };
         const std::array<float, filterEngineCount> modalModes {
-            modalModesValue[0].getNextValue(),
-            modalModesValue[1].getNextValue()
+            nextArchitectureValue(modalModesValue, 0, Architecture::modal),
+            nextArchitectureValue(modalModesValue, 1, Architecture::modal)
         };
         const std::array<float, filterEngineCount> modalRatio {
-            modalRatioValue[0].getNextValue(),
-            modalRatioValue[1].getNextValue()
+            nextArchitectureValue(modalRatioValue, 0, Architecture::modal),
+            nextArchitectureValue(modalRatioValue, 1, Architecture::modal)
         };
         const std::array<float, filterEngineCount> modalInharmonicity {
-            modalInharmonicityValue[0].getNextValue(),
-            modalInharmonicityValue[1].getNextValue()
+            nextArchitectureValue(
+                modalInharmonicityValue, 0, Architecture::modal),
+            nextArchitectureValue(
+                modalInharmonicityValue, 1, Architecture::modal)
         };
         const std::array<float, filterEngineCount> modalDecayTilt {
-            modalDecayTiltValue[0].getNextValue(),
-            modalDecayTiltValue[1].getNextValue()
+            nextArchitectureValue(
+                modalDecayTiltValue, 0, Architecture::modal),
+            nextArchitectureValue(
+                modalDecayTiltValue, 1, Architecture::modal)
         };
         const std::array<float, filterEngineCount> modalDamping {
-            modalDampingValue[0].getNextValue(),
-            modalDampingValue[1].getNextValue()
+            nextArchitectureValue(
+                modalDampingValue, 0, Architecture::modal),
+            nextArchitectureValue(
+                modalDampingValue, 1, Architecture::modal)
         };
         const std::array<float, filterEngineCount> modalExcitation {
-            modalExcitationValue[0].getNextValue(),
-            modalExcitationValue[1].getNextValue()
+            nextArchitectureValue(
+                modalExcitationValue, 0, Architecture::modal),
+            nextArchitectureValue(
+                modalExcitationValue, 1, Architecture::modal)
         };
         const std::array<float, filterEngineCount> sallenKeyQCurve {
-            sallenKeyQCurveValue[0].getNextValue(),
-            sallenKeyQCurveValue[1].getNextValue()
+            nextArchitectureValue(
+                sallenKeyQCurveValue, 0, Architecture::sallenKey),
+            nextArchitectureValue(
+                sallenKeyQCurveValue, 1, Architecture::sallenKey)
         };
         const std::array<float, filterEngineCount> sallenKeyCellGain {
-            sallenKeyCellGainValue[0].getNextValue(),
-            sallenKeyCellGainValue[1].getNextValue()
+            nextArchitectureValue(
+                sallenKeyCellGainValue, 0, Architecture::sallenKey),
+            nextArchitectureValue(
+                sallenKeyCellGainValue, 1, Architecture::sallenKey)
         };
         const std::array<float, filterEngineCount> sallenKeyStageCoupling {
-            sallenKeyStageCouplingValue[0].getNextValue(),
-            sallenKeyStageCouplingValue[1].getNextValue()
+            nextArchitectureValue(
+                sallenKeyStageCouplingValue, 0, Architecture::sallenKey),
+            nextArchitectureValue(
+                sallenKeyStageCouplingValue, 1, Architecture::sallenKey)
         };
         const std::array<float, filterEngineCount>
             sallenKeyComponentVariation {
-                sallenKeyComponentVariationValue[0].getNextValue(),
-                sallenKeyComponentVariationValue[1].getNextValue()
+                nextArchitectureValue(sallenKeyComponentVariationValue, 0,
+                                      Architecture::sallenKey),
+                nextArchitectureValue(sallenKeyComponentVariationValue, 1,
+                                      Architecture::sallenKey)
             };
         const std::array<float, filterEngineCount> sallenKeyOpAmpSaturation {
-            sallenKeyOpAmpSaturationValue[0].getNextValue(),
-            sallenKeyOpAmpSaturationValue[1].getNextValue()
+            nextArchitectureValue(
+                sallenKeyOpAmpSaturationValue, 0, Architecture::sallenKey),
+            nextArchitectureValue(
+                sallenKeyOpAmpSaturationValue, 1, Architecture::sallenKey)
         };
         const std::array<float, filterEngineCount>
             sallenKeyHighFrequencyDamping {
-                sallenKeyHighFrequencyDampingValue[0].getNextValue(),
-                sallenKeyHighFrequencyDampingValue[1].getNextValue()
+                nextArchitectureValue(sallenKeyHighFrequencyDampingValue, 0,
+                                      Architecture::sallenKey),
+                nextArchitectureValue(sallenKeyHighFrequencyDampingValue, 1,
+                                      Architecture::sallenKey)
             };
         const std::array<float, filterEngineCount> diodeLadderSaturation {
-            diodeLadderSaturationValue[0].getNextValue(),
-            diodeLadderSaturationValue[1].getNextValue()
+            nextArchitectureValue(
+                diodeLadderSaturationValue, 0, Architecture::diodeLadder),
+            nextArchitectureValue(
+                diodeLadderSaturationValue, 1, Architecture::diodeLadder)
         };
         const std::array<float, filterEngineCount> diodeLadderFeedbackClip {
-            diodeLadderFeedbackClipValue[0].getNextValue(),
-            diodeLadderFeedbackClipValue[1].getNextValue()
+            nextArchitectureValue(
+                diodeLadderFeedbackClipValue, 0, Architecture::diodeLadder),
+            nextArchitectureValue(
+                diodeLadderFeedbackClipValue, 1, Architecture::diodeLadder)
         };
         const std::array<float, filterEngineCount> diodeLadderBias {
-            diodeLadderBiasValue[0].getNextValue(),
-            diodeLadderBiasValue[1].getNextValue()
+            nextArchitectureValue(
+                diodeLadderBiasValue, 0, Architecture::diodeLadder),
+            nextArchitectureValue(
+                diodeLadderBiasValue, 1, Architecture::diodeLadder)
         };
         const std::array<float, filterEngineCount> diodeLadderStageTilt {
-            diodeLadderStageTiltValue[0].getNextValue(),
-            diodeLadderStageTiltValue[1].getNextValue()
+            nextArchitectureValue(
+                diodeLadderStageTiltValue, 0, Architecture::diodeLadder),
+            nextArchitectureValue(
+                diodeLadderStageTiltValue, 1, Architecture::diodeLadder)
         };
         const std::array<float, filterEngineCount> diodeLadderResonanceLoss {
-            diodeLadderResonanceLossValue[0].getNextValue(),
-            diodeLadderResonanceLossValue[1].getNextValue()
+            nextArchitectureValue(diodeLadderResonanceLossValue, 0,
+                                  Architecture::diodeLadder),
+            nextArchitectureValue(diodeLadderResonanceLossValue, 1,
+                                  Architecture::diodeLadder)
         };
         const std::array<float, filterEngineCount>
             diodeLadderResonanceCompensation {
-                diodeLadderResonanceCompensationValue[0].getNextValue(),
-                diodeLadderResonanceCompensationValue[1].getNextValue()
+                nextArchitectureValue(
+                    diodeLadderResonanceCompensationValue, 0,
+                    Architecture::diodeLadder),
+                nextArchitectureValue(
+                    diodeLadderResonanceCompensationValue, 1,
+                    Architecture::diodeLadder)
             };
         const std::array<float, filterEngineCount> filterGain {
-            filterGainValue[0].getNextValue(),
-            filterGainValue[1].getNextValue()
+            nextEngineValue(filterGainValue, 0),
+            nextEngineValue(filterGainValue, 1)
         };
         const std::array<float, filterEngineCount> steinerDiodeDrive {
-            steinerDiodeDriveValue[0].getNextValue(),
-            steinerDiodeDriveValue[1].getNextValue()
+            nextArchitectureValue(steinerDiodeDriveValue, 0,
+                                  Architecture::steinerParker),
+            nextArchitectureValue(steinerDiodeDriveValue, 1,
+                                  Architecture::steinerParker)
         };
         const std::array<float, filterEngineCount> steinerFeedbackClip {
-            steinerFeedbackClipValue[0].getNextValue(),
-            steinerFeedbackClipValue[1].getNextValue()
+            nextArchitectureValue(steinerFeedbackClipValue, 0,
+                                  Architecture::steinerParker),
+            nextArchitectureValue(steinerFeedbackClipValue, 1,
+                                  Architecture::steinerParker)
         };
         const std::array<float, filterEngineCount> steinerBias {
-            steinerBiasValue[0].getNextValue(),
-            steinerBiasValue[1].getNextValue()
+            nextArchitectureValue(
+                steinerBiasValue, 0, Architecture::steinerParker),
+            nextArchitectureValue(
+                steinerBiasValue, 1, Architecture::steinerParker)
         };
         const std::array<float, filterEngineCount> steinerPoleSpread {
-            steinerPoleSpreadValue[0].getNextValue(),
-            steinerPoleSpreadValue[1].getNextValue()
+            nextArchitectureValue(steinerPoleSpreadValue, 0,
+                                  Architecture::steinerParker),
+            nextArchitectureValue(steinerPoleSpreadValue, 1,
+                                  Architecture::steinerParker)
         };
         const std::array<float, filterEngineCount> steinerResonanceCurve {
-            steinerResonanceCurveValue[0].getNextValue(),
-            steinerResonanceCurveValue[1].getNextValue()
+            nextArchitectureValue(steinerResonanceCurveValue, 0,
+                                  Architecture::steinerParker),
+            nextArchitectureValue(steinerResonanceCurveValue, 1,
+                                  Architecture::steinerParker)
         };
         const std::array<float, filterEngineCount>
             steinerResonanceCompensation {
-                steinerResonanceCompensationValue[0].getNextValue(),
-                steinerResonanceCompensationValue[1].getNextValue()
+                nextArchitectureValue(steinerResonanceCompensationValue, 0,
+                                      Architecture::steinerParker),
+                nextArchitectureValue(steinerResonanceCompensationValue, 1,
+                                      Architecture::steinerParker)
             };
         const std::array<float, filterEngineCount> vactrolRise {
-            vactrolRiseValue[0].getNextValue(),
-            vactrolRiseValue[1].getNextValue()
+            nextArchitectureValue(
+                vactrolRiseValue, 0, Architecture::vactrolLpg),
+            nextArchitectureValue(
+                vactrolRiseValue, 1, Architecture::vactrolLpg)
         };
         const std::array<float, filterEngineCount> vactrolFall {
-            vactrolFallValue[0].getNextValue(),
-            vactrolFallValue[1].getNextValue()
+            nextArchitectureValue(
+                vactrolFallValue, 0, Architecture::vactrolLpg),
+            nextArchitectureValue(
+                vactrolFallValue, 1, Architecture::vactrolLpg)
         };
         const std::array<float, filterEngineCount> vactrolMemory {
-            vactrolMemoryValue[0].getNextValue(),
-            vactrolMemoryValue[1].getNextValue()
+            nextArchitectureValue(
+                vactrolMemoryValue, 0, Architecture::vactrolLpg),
+            nextArchitectureValue(
+                vactrolMemoryValue, 1, Architecture::vactrolLpg)
         };
         const std::array<float, filterEngineCount> vactrolLevelCoupling {
-            vactrolLevelCouplingValue[0].getNextValue(),
-            vactrolLevelCouplingValue[1].getNextValue()
+            nextArchitectureValue(
+                vactrolLevelCouplingValue, 0, Architecture::vactrolLpg),
+            nextArchitectureValue(
+                vactrolLevelCouplingValue, 1, Architecture::vactrolLpg)
         };
         const std::array<float, filterEngineCount> vactrolWarmth {
-            vactrolWarmthValue[0].getNextValue(),
-            vactrolWarmthValue[1].getNextValue()
+            nextArchitectureValue(
+                vactrolWarmthValue, 0, Architecture::vactrolLpg),
+            nextArchitectureValue(
+                vactrolWarmthValue, 1, Architecture::vactrolLpg)
         };
         const std::array<float, filterEngineCount> vactrolBleed {
-            vactrolBleedValue[0].getNextValue(),
-            vactrolBleedValue[1].getNextValue()
+            nextArchitectureValue(
+                vactrolBleedValue, 0, Architecture::vactrolLpg),
+            nextArchitectureValue(
+                vactrolBleedValue, 1, Architecture::vactrolLpg)
         };
         const std::array<float, filterEngineCount> korg35ChipDrive {
-            korg35ChipDriveValue[0].getNextValue(),
-            korg35ChipDriveValue[1].getNextValue()
+            nextArchitectureValue(
+                korg35ChipDriveValue, 0, Architecture::korg35),
+            nextArchitectureValue(
+                korg35ChipDriveValue, 1, Architecture::korg35)
         };
         const std::array<float, filterEngineCount> korg35FeedbackClip {
-            korg35FeedbackClipValue[0].getNextValue(),
-            korg35FeedbackClipValue[1].getNextValue()
+            nextArchitectureValue(
+                korg35FeedbackClipValue, 0, Architecture::korg35),
+            nextArchitectureValue(
+                korg35FeedbackClipValue, 1, Architecture::korg35)
         };
         const std::array<float, filterEngineCount> korg35Bias {
-            korg35BiasValue[0].getNextValue(),
-            korg35BiasValue[1].getNextValue()
+            nextArchitectureValue(korg35BiasValue, 0, Architecture::korg35),
+            nextArchitectureValue(korg35BiasValue, 1, Architecture::korg35)
         };
         const std::array<float, filterEngineCount> korg35FeedbackTone {
-            korg35FeedbackToneValue[0].getNextValue(),
-            korg35FeedbackToneValue[1].getNextValue()
+            nextArchitectureValue(
+                korg35FeedbackToneValue, 0, Architecture::korg35),
+            nextArchitectureValue(
+                korg35FeedbackToneValue, 1, Architecture::korg35)
         };
         const std::array<float, filterEngineCount> korg35BassLoss {
-            korg35BassLossValue[0].getNextValue(),
-            korg35BassLossValue[1].getNextValue()
+            nextArchitectureValue(
+                korg35BassLossValue, 0, Architecture::korg35),
+            nextArchitectureValue(
+                korg35BassLossValue, 1, Architecture::korg35)
         };
         const std::array<float, filterEngineCount>
             korg35ResonanceCompensation {
-                korg35ResonanceCompensationValue[0].getNextValue(),
-                korg35ResonanceCompensationValue[1].getNextValue()
+                nextArchitectureValue(korg35ResonanceCompensationValue, 0,
+                                      Architecture::korg35),
+                nextArchitectureValue(korg35ResonanceCompensationValue, 1,
+                                      Architecture::korg35)
             };
         const std::array<float, filterEngineCount> spectralCentre {
-            spectralCentreValue[0].getNextValue(),
-            spectralCentreValue[1].getNextValue()
+            nextArchitectureValue(
+                spectralCentreValue, 0, Architecture::spectralBank),
+            nextArchitectureValue(
+                spectralCentreValue, 1, Architecture::spectralBank)
         };
         const std::array<float, filterEngineCount> spectralSpan {
-            spectralSpanValue[0].getNextValue(),
-            spectralSpanValue[1].getNextValue()
+            nextArchitectureValue(
+                spectralSpanValue, 0, Architecture::spectralBank),
+            nextArchitectureValue(
+                spectralSpanValue, 1, Architecture::spectralBank)
         };
         const std::array<float, filterEngineCount> spectralDepth {
-            spectralDepthValue[0].getNextValue(),
-            spectralDepthValue[1].getNextValue()
+            nextArchitectureValue(
+                spectralDepthValue, 0, Architecture::spectralBank),
+            nextArchitectureValue(
+                spectralDepthValue, 1, Architecture::spectralBank)
         };
         const std::array<float, filterEngineCount> spectralBands {
-            spectralBandsValue[0].getNextValue(),
-            spectralBandsValue[1].getNextValue()
+            nextArchitectureValue(
+                spectralBandsValue, 0, Architecture::spectralBank),
+            nextArchitectureValue(
+                spectralBandsValue, 1, Architecture::spectralBank)
         };
         const std::array<float, filterEngineCount> spectralWidth {
-            spectralWidthValue[0].getNextValue(),
-            spectralWidthValue[1].getNextValue()
+            nextArchitectureValue(
+                spectralWidthValue, 0, Architecture::spectralBank),
+            nextArchitectureValue(
+                spectralWidthValue, 1, Architecture::spectralBank)
         };
         const std::array<float, filterEngineCount> spectralPattern {
-            spectralPatternValue[0].getNextValue(),
-            spectralPatternValue[1].getNextValue()
+            nextArchitectureValue(
+                spectralPatternValue, 0, Architecture::spectralBank),
+            nextArchitectureValue(
+                spectralPatternValue, 1, Architecture::spectralBank)
         };
         const std::array<float, filterEngineCount> spectralShift {
-            spectralShiftValue[0].getNextValue(),
-            spectralShiftValue[1].getNextValue()
+            nextArchitectureValue(
+                spectralShiftValue, 0, Architecture::spectralBank),
+            nextArchitectureValue(
+                spectralShiftValue, 1, Architecture::spectralBank)
         };
         const std::array<float, filterEngineCount> spectralContrast {
-            spectralContrastValue[0].getNextValue(),
-            spectralContrastValue[1].getNextValue()
+            nextArchitectureValue(
+                spectralContrastValue, 0, Architecture::spectralBank),
+            nextArchitectureValue(
+                spectralContrastValue, 1, Architecture::spectralBank)
         };
         const std::array<float, filterEngineCount> spectralTilt {
-            spectralTiltValue[0].getNextValue(),
-            spectralTiltValue[1].getNextValue()
+            nextArchitectureValue(
+                spectralTiltValue, 0, Architecture::spectralBank),
+            nextArchitectureValue(
+                spectralTiltValue, 1, Architecture::spectralBank)
         };
         const std::array<float, filterEngineCount> combModeCrossfade {
-            combModeCrossfadeValue[0].getNextValue(),
-            combModeCrossfadeValue[1].getNextValue()
+            nextArchitectureValue(
+                combModeCrossfadeValue, 0, Architecture::comb),
+            nextArchitectureValue(
+                combModeCrossfadeValue, 1, Architecture::comb)
         };
         const std::array<float, filterEngineCount> architectureCrossfade {
-            architectureCrossfadeValue[0].getNextValue(),
-            architectureCrossfadeValue[1].getNextValue()
+            nextEngineValue(architectureCrossfadeValue, 0),
+            nextEngineValue(architectureCrossfadeValue, 1)
         };
         const std::array<float, filterEngineCount> slope {
-            slopeValue[0].getNextValue(), slopeValue[1].getNextValue()
+            nextEngineValue(slopeValue, 0), nextEngineValue(slopeValue, 1)
         };
         const std::array<float, filterEngineCount> filterEnabled {
-            filterEnabledValue[0].getNextValue(),
-            filterEnabledValue[1].getNextValue()
+            nextEngineValue(filterEnabledValue, 0),
+            nextEngineValue(filterEnabledValue, 1)
         };
         const std::array<float, filterEngineCount> typeBlend {
-            distortionTypeCrossfade[0].getNextValue(),
-            distortionTypeCrossfade[1].getNextValue()
+            nextEngineValue(distortionTypeCrossfade, 0),
+            nextEngineValue(distortionTypeCrossfade, 1)
         };
         const auto processEngine = [this, &drive, &filterType, &cutoff,
                                     &resonance, &bassLoss, &coreSaturation,

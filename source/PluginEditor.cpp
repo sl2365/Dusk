@@ -1432,7 +1432,8 @@ public:
                  ++slot)
             {
                 const int existing = choiceForSlot(slot);
-                if (existing == requested)
+                if (dusk::sequencer::targetChoicesSharePosition(
+                        existing, requested))
                 {
                     setParameterActualValue(enabled[static_cast<size_t>(slot)], 1.0f);
                     repaint();
@@ -2324,8 +2325,9 @@ public:
             auto* parameter = processor.parameters.getParameter(
                 dusk::sequencer::targetParameterId(slot));
             if (parameter != nullptr
-                && juce::roundToInt(parameter->convertFrom0to1(
-                       parameter->getValue())) == requested)
+                && dusk::sequencer::targetChoicesSharePosition(
+                    juce::roundToInt(parameter->convertFrom0to1(
+                        parameter->getValue())), requested))
                 return true;
         }
         return false;
@@ -4104,7 +4106,9 @@ void DuskAudioProcessorEditor::LookAndFeel::drawToggleButton(
             g.setColour(enabled
                 ? (active ? juce::Colour(0xff17201b) : knobValueColour)
                 : knobValueColour.darker(0.45f));
-            g.setFont(juce::Font(juce::FontOptions(8.0f, juce::Font::bold)));
+            g.setFont(juce::Font(juce::FontOptions(
+                juce::jlimit(8.0f, 10.5f, diameter * 0.62f),
+                juce::Font::bold)));
             g.drawText(button.getButtonText(), ledBounds.toNearestInt(),
                        juce::Justification::centred, false);
         }
@@ -4252,7 +4256,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     logoMenuButton.onClick = [this] { showLogoZoomMenu(); };
     content.addAndMakeVisible(logoMenuButton);
 
-    versionLabel.setText("v1.28.4", juce::dontSendNotification);
+    versionLabel.setText("v1.28.8", juce::dontSendNotification);
     versionLabel.setJustificationType(juce::Justification::centred);
     versionLabel.setColour(juce::Label::textColourId, knobIndicatorColour);
     versionLabel.setFont(juce::Font(juce::FontOptions(8.5f,
@@ -5233,19 +5237,6 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     browserMixDial->slider.setVisible(false);
     browserMixDial->label.setVisible(false);
 
-    const auto configurePanelTitle = [this](
-        juce::Label& label, const juce::String& text)
-    {
-        label.setText(text, juce::dontSendNotification);
-        label.setJustificationType(juce::Justification::centredLeft);
-        label.setColour(juce::Label::textColourId, knobValueColour);
-        label.setFont(juce::Font(juce::FontOptions(
-            10.5f, juce::Font::bold)));
-        content.addAndMakeVisible(label);
-    };
-    configurePanelTitle(filter1TitleLabel, "FILTER 1");
-    configurePanelTitle(filter2TitleLabel, "FILTER 2");
-
     const auto configureDesignerTitle = [this](
         juce::Label& label, const juce::String& text)
     {
@@ -5255,10 +5246,11 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
         label.setFont(juce::Font(juce::FontOptions(
             10.5f, juce::Font::bold)));
         label.setMinimumHorizontalScale(1.0f);
+        label.setInterceptsMouseClicks(false, false);
         content.addChildComponent(label);
     };
-    configureDesignerTitle(designer1Placeholder, "FILTER 1 MODE DESIGNER");
-    configureDesignerTitle(designer2Placeholder, "FILTER 2 MODE DESIGNER");
+    configureDesignerTitle(designer1Placeholder, "MODE DESIGNER");
+    configureDesignerTitle(designer2Placeholder, "MODE DESIGNER");
 
     responseDisplay.colourForFilter = [this](int filterIndex)
     {
@@ -5444,21 +5436,23 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     refreshFilterModelBoxes();
 
     const auto configureFilterPower = [this](
-        juce::ToggleButton& button, const juce::String& filterName)
+        juce::ToggleButton& button, const juce::String& filterName,
+        const juce::String& number)
     {
         button.setClickingTogglesState(true);
         button.getProperties().set("statusLedOnly", true);
-        button.getProperties().set("ledDiameter", 10.0f);
+        button.getProperties().set("ledDiameter", 16.0f);
         button.getProperties().set(
             "activeColour", linkLedColour.toString());
+        button.setButtonText(number);
         button.setName(filterName + " Power");
         button.setTooltip(
             "Switch " + filterName
             + " processing on or off. Lit amber means the filter is on.");
         content.addAndMakeVisible(button);
     };
-    configureFilterPower(filter1PowerButton, "Filter 1");
-    configureFilterPower(filter2PowerButton, "Filter 2");
+    configureFilterPower(filter1PowerButton, "Filter 1", "1");
+    configureFilterPower(filter2PowerButton, "Filter 2", "2");
     filter1PowerAttachment = std::make_unique<
         juce::AudioProcessorValueTreeState::ButtonAttachment>(
             processor.parameters, "filter1Enabled", filter1PowerButton);
@@ -5700,7 +5694,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addAndMakeVisible(randomButton);
 
     information.setText(
-        "DUSK 1.28.4 | Sequencer ON glow and context-sensitive Gate Mode help refined.",
+        "DUSK 1.28.8 | Sequencer targets now follow numbered knob positions.",
         juce::dontSendNotification);
     information.setColour(juce::Label::textColourId,
                           juce::Colours::lightgrey);
@@ -5987,8 +5981,7 @@ void DuskAudioProcessorEditor::updateArchitectureContext()
         const auto& descriptor = dusk::architecture::descriptorForChoice(
             choices[static_cast<size_t>(index)]);
         designerTitles[static_cast<size_t>(index)]->setText(
-            juce::String("FILTER ") + juce::String(index + 1) + " "
-                + juce::String(descriptor.displayName).toUpperCase(),
+            juce::String(descriptor.displayName).toUpperCase(),
             juce::dontSendNotification);
     }
     displayedArchitectureChoices = choices;
@@ -7362,11 +7355,9 @@ void DuskAudioProcessorEditor::updatePresetBrowserVisibility()
     filter1CombModeLabel.setVisible(showFilterControls && filter1UsesComb);
     filter2CombModeBox.setVisible(showFilterControls && filter2UsesComb);
     filter2CombModeLabel.setVisible(showFilterControls && filter2UsesComb);
-    filter1TitleLabel.setVisible(showFilterControls);
-    filter2TitleLabel.setVisible(showFilterControls);
     responseDisplay.setVisible(! presetBrowserOpen);
-    filter1PowerButton.setVisible(showFilterControls);
-    filter2PowerButton.setVisible(showFilterControls);
+    filter1PowerButton.setVisible(! presetBrowserOpen);
+    filter2PowerButton.setVisible(! presetBrowserOpen);
     designer1Placeholder.setVisible(showDesignerControls);
     designer2Placeholder.setVisible(showDesignerControls);
     for (auto* component : std::array<juce::Component*, 6>
@@ -9189,10 +9180,8 @@ void DuskAudioProcessorEditor::resized()
     mixLockButton.setBounds(891, 66, 14, 14);
     bypassButton.setBounds(designWidth - 47, 16, 30, 30);
 
-    filter1TitleLabel.setBounds(26, 66, 190, 13);
-    filter2TitleLabel.setBounds(543, 66, 190, 13);
-    filter1PowerButton.setBounds(297, 63, 20, 20);
-    filter2PowerButton.setBounds(814, 63, 20, 20);
+    filter1PowerButton.setBounds(19, 63, 24, 24);
+    filter2PowerButton.setBounds(536, 63, 24, 24);
     filter1ArchitectureLabel.setBounds(47, 81, 90, 12);
     filter1ArchitectureBox.setBounds(47, 93, 90, 20);
     filter1TypeLabel.setBounds(47, 119, 90, 12);
@@ -9214,11 +9203,11 @@ void DuskAudioProcessorEditor::resized()
     filter2DistortionPlacementLabel.setBounds(564, 195, 90, 12);
     filter2DistortionPlacementBox.setBounds(564, 207, 90, 20);
     responseDisplay.setBounds(333, 70, 190, 154);
-    designer1Placeholder.setBounds(26, 66, 124, 13);
+    designer1Placeholder.setBounds(47, 66, 103, 13);
     filter1ModelLabel.setBounds(150, 66, 38, 13);
     filter1ModelBox.setBounds(188, 64, 96, 20);
     filter1ModelMenuButton.setBounds(290, 64, 22, 20);
-    designer2Placeholder.setBounds(543, 66, 124, 13);
+    designer2Placeholder.setBounds(564, 66, 103, 13);
     filter2ModelLabel.setBounds(667, 66, 38, 13);
     filter2ModelBox.setBounds(705, 64, 96, 20);
     filter2ModelMenuButton.setBounds(806, 64, 22, 20);

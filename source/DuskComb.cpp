@@ -227,9 +227,18 @@ float DuskAudioProcessor::processCombFilter(
     const float feedbackThreshold = 0.10f * std::pow(
         80.0f, juce::jlimit(0.0f, 1.0f, feedbackLimit));
     std::array<float, combModeCount> modeOutputs {};
+    const int safePreviousMode = juce::jlimit(
+        feedbackCombMode, allPassCombMode, previousMode);
+    const int safeCurrentMode = juce::jlimit(
+        feedbackCombMode, allPassCombMode, currentMode);
+    const float blend = juce::jlimit(0.0f, 1.0f, modeCrossfade);
 
     for (int mode = 0; mode < combModeCount; ++mode)
     {
+        if (mode != safeCurrentMode
+            && (blend >= 1.0f || mode != safePreviousMode))
+            continue;
+
         auto& buffer = combDelayBuffer[static_cast<size_t>(mode)][stateIndex];
         if (buffer.size() < 8u)
         {
@@ -317,11 +326,6 @@ float DuskAudioProcessor::processCombFilter(
         modeOutputs[static_cast<size_t>(mode)] = output;
     }
 
-    const int safePreviousMode = juce::jlimit(
-        feedbackCombMode, allPassCombMode, previousMode);
-    const int safeCurrentMode = juce::jlimit(
-        feedbackCombMode, allPassCombMode, currentMode);
-    const float blend = juce::jlimit(0.0f, 1.0f, modeCrossfade);
     const float previousOutput = modeOutputs[
         static_cast<size_t>(safePreviousMode)];
     const float currentOutput = modeOutputs[

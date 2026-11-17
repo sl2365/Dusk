@@ -182,30 +182,72 @@ float DuskAudioProcessor::processPhaserFilter(
         safeEngine * channelCount + safeChannel);
     const float sampleRate = static_cast<float>(
         juce::jmax(1.0, currentSampleRate));
-    const float feedback = phaserFeedbackGain(feedbackPercent);
+    const std::array<float, 9> coefficientParameters {
+        sampleRate, centreFrequencyHz, feedbackPercent, stages,
+        spreadPercent, skewPercent, dampingPercent,
+        stageSaturationPercent, stereoPercent
+    };
+    if (! phaserCoefficientsValid[stateIndex]
+        || coefficientParameters
+            != phaserCoefficientParameters[stateIndex])
+    {
+        for (int stage = 0; stage < phaserStageCount; ++stage)
+        {
+            const float stageFrequency = phaserStageFrequency(
+                sampleRate, centreFrequencyHz, spreadPercent, skewPercent,
+                stereoPercent, safeChannel, stage);
+            const float g = std::tan(
+                juce::MathConstants<float>::pi
+                * stageFrequency / sampleRate);
+            phaserCoefficient[stateIndex][static_cast<size_t>(stage)]
+                = (1.0f - g) / (1.0f + g);
+        }
+        const float feedback = phaserFeedbackGain(feedbackPercent);
+        const float saturation = juce::jlimit(
+            0.0f, 1.0f, stageSaturationPercent * 0.01f);
+        const float saturationDrive = 1.0f
+            + 7.0f * std::pow(saturation, 1.5f);
+        const float saturationScale = 1.0f
+            / juce::jmax(0.001f, std::tanh(saturationDrive));
+        phaserCachedFeedback[stateIndex] = feedback;
+        phaserCachedSaturation[stateIndex] = saturation;
+        phaserCachedSaturationDrive[stateIndex] = saturationDrive;
+        phaserCachedSaturationScale[stateIndex] = saturationScale;
+        phaserCachedLoopNormalisation[stateIndex]
+            = phaserFeedbackLoopNormalisation(
+                feedback, stages, saturation,
+                saturationDrive, saturationScale);
+        phaserCachedDampingPole[stateIndex]
+            = phaserDampingPole(sampleRate, dampingPercent);
+        phaserCoefficientParameters[stateIndex] = coefficientParameters;
+        phaserCoefficientsValid[stateIndex] = true;
+    }
+    const float feedback = phaserCachedFeedback[stateIndex];
     float allPassInput = sanitiseSample(
         sample + feedback * phaserFeedbackReturn[stateIndex], 32.0f);
     std::array<float, phaserTapCount> taps {};
-    const float saturation = juce::jlimit(
-        0.0f, 1.0f, stageSaturationPercent * 0.01f);
-    const float saturationDrive = 1.0f
-        + 7.0f * std::pow(saturation, 1.5f);
-    const float saturationScale = 1.0f
-        / juce::jmax(0.001f, std::tanh(saturationDrive));
-    const float feedbackLoopNormalisation =
-        phaserFeedbackLoopNormalisation(
-            feedback, stages, saturation,
-            saturationDrive, saturationScale);
+    const float saturation = phaserCachedSaturation[stateIndex];
+    const float saturationDrive
+        = phaserCachedSaturationDrive[stateIndex];
+    const float saturationScale
+        = phaserCachedSaturationScale[stateIndex];
+    const float feedbackLoopNormalisation
+        = phaserCachedLoopNormalisation[stateIndex];
+    const float stagePosition = juce::jlimit(
+        0.0f, static_cast<float>(phaserTapCount - 1),
+        (stages - 2.0f) * 0.5f);
+    const int activeTap = juce::jlimit(
+        0, phaserTapCount - 1,
+        static_cast<int>(std::ceil(stagePosition)));
+    const int activeStageCount = juce::jmin(
+        phaserStageCount, (activeTap + 2) * 2);
 
-    for (int stage = 0; stage < phaserStageCount; ++stage)
+    // Process the selected tap plus one complete all-pass pair ahead of it.
+    // The look-ahead pair is inaudible but already warm when Stages rises.
+    for (int stage = 0; stage < activeStageCount; ++stage)
     {
-        const float stageFrequency = phaserStageFrequency(
-            sampleRate, centreFrequencyHz, spreadPercent, skewPercent,
-            stereoPercent, safeChannel, stage);
-        const float g = std::tan(
-            juce::MathConstants<float>::pi
-            * stageFrequency / sampleRate);
-        const float coefficient = (1.0f - g) / (1.0f + g);
+        const float coefficient = phaserCoefficient[stateIndex]
+            [static_cast<size_t>(stage)];
         auto& state = phaserAllPassState[static_cast<size_t>(stage)]
             [stateIndex];
         float output = coefficient * allPassInput + state;
@@ -221,9 +263,6 @@ float DuskAudioProcessor::processPhaserFilter(
             taps[static_cast<size_t>(stage / 2)] = allPassInput;
     }
 
-    const float stagePosition = juce::jlimit(
-        0.0f, static_cast<float>(phaserTapCount - 1),
-        (stages - 2.0f) * 0.5f);
     const int lower = juce::jlimit(
         0, phaserTapCount - 1,
         static_cast<int>(std::floor(stagePosition)));
@@ -240,7 +279,7 @@ float DuskAudioProcessor::processPhaserFilter(
             currentDistortion, previousDistortion, distortionCrossfade,
             phaserInternalDistortionStateBank);
     feedbackSample *= feedbackLoopNormalisation;
-    const float pole = phaserDampingPole(sampleRate, dampingPercent);
+    const float pole = phaserCachedDampingPole[stateIndex];
     const float dampedFeedback = sanitiseSample(
         (1.0f - pole) * feedbackSample
             + pole * phaserFeedbackReturn[stateIndex], 32.0f);

@@ -185,22 +185,49 @@ float DuskAudioProcessor::processFormantFilter(
         safeEngine * channelCount + safeChannel);
     const float sampleRate = static_cast<float>(
         juce::jmax(1.0, currentSampleRate));
-    const auto settings = formantSettings(
+    const auto engineIndex = static_cast<size_t>(safeEngine);
+    const std::array<float, 10> coefficientParameters {
         sampleRate, vowelPercent, shiftSemitones, focusPercent,
         formantOneLevelPercent, formantTwoLevelPercent,
         formantThreeLevelPercent, bandwidthPercent, spreadPercent,
-        tiltPercent);
+        tiltPercent
+    };
+    if (! formantCoefficientsValid[engineIndex]
+        || coefficientParameters
+            != formantCoefficientParameters[engineIndex])
+    {
+        const auto settings = formantSettings(
+            sampleRate, vowelPercent, shiftSemitones, focusPercent,
+            formantOneLevelPercent, formantTwoLevelPercent,
+            formantThreeLevelPercent, bandwidthPercent, spreadPercent,
+            tiltPercent);
+        for (int band = 0; band < formantBandCount; ++band)
+        {
+            const auto index = static_cast<size_t>(band);
+            const float g = std::tan(
+                juce::MathConstants<float>::pi
+                * settings.frequency[index] / sampleRate);
+            const float k = 1.0f / settings.q[index];
+            const float a1 = 1.0f / (1.0f + g * (g + k));
+            const float a2 = g * a1;
+            formantCoefficientA1[engineIndex][index] = a1;
+            formantCoefficientA2[engineIndex][index] = a2;
+            formantCoefficientA3[engineIndex][index] = g * a2;
+            formantCoefficientK[engineIndex][index] = k;
+            formantCoefficientGain[engineIndex][index]
+                = settings.gain[index];
+        }
+        formantCoefficientParameters[engineIndex] = coefficientParameters;
+        formantCoefficientsValid[engineIndex] = true;
+    }
     float output = 0.0f;
     for (int band = 0; band < formantBandCount; ++band)
     {
         const auto index = static_cast<size_t>(band);
-        const float g = std::tan(
-            juce::MathConstants<float>::pi
-            * settings.frequency[index] / sampleRate);
-        const float k = 1.0f / settings.q[index];
-        const float a1 = 1.0f / (1.0f + g * (g + k));
-        const float a2 = g * a1;
-        const float a3 = g * a2;
+        const float k = formantCoefficientK[engineIndex][index];
+        const float a1 = formantCoefficientA1[engineIndex][index];
+        const float a2 = formantCoefficientA2[engineIndex][index];
+        const float a3 = formantCoefficientA3[engineIndex][index];
         auto& integratorOne = formantIntegratorOne[index][stateIndex];
         auto& integratorTwo = formantIntegratorTwo[index][stateIndex];
         const float v3 = sample - integratorTwo;
@@ -215,7 +242,7 @@ float DuskAudioProcessor::processFormantFilter(
                 currentDistortion, previousDistortion,
                 distortionCrossfade,
                 firstFormantDistortionStateBank + band), 16.0f);
-        output += settings.gain[index] * bandOutput;
+        output += formantCoefficientGain[engineIndex][index] * bandOutput;
     }
     return sanitiseSample(formantOutputGain * output, 64.0f);
 }

@@ -453,6 +453,266 @@ inline constexpr int filter2SpectralContrastTargetChoice = 196;
 inline constexpr int filter1SpectralTiltTargetChoice = 197;
 inline constexpr int filter2SpectralTiltTargetChoice = 198;
 
+enum TargetPositionGroup : int
+{
+    noTargetPosition = 0,
+    filter1Knob1Position,
+    filter2Knob1Position,
+    filter1Knob2Position,
+    filter2Knob2Position,
+    filter1Knob3Position,
+    filter2Knob3Position,
+    filter1Knob4Position,
+    filter2Knob4Position,
+    filter1DesignerKnob1Position,
+    filter2DesignerKnob1Position,
+    filter1DesignerKnob2Position,
+    filter2DesignerKnob2Position,
+    filter1DesignerKnob3Position,
+    filter2DesignerKnob3Position,
+    filter1DesignerKnob4Position,
+    filter2DesignerKnob4Position,
+    filter1DesignerKnob5Position,
+    filter2DesignerKnob5Position,
+    filter1DesignerKnob6Position,
+    filter2DesignerKnob6Position,
+    filter1DesignerKnob7Position,
+    filter2DesignerKnob7Position,
+    filter1DesignerKnob8Position,
+    filter2DesignerKnob8Position
+};
+
+inline constexpr int targetPositionGroup(int choice) noexcept
+{
+    switch (choice)
+    {
+        case filter1CutoffTargetChoice:
+        case filter1CombFrequencyTargetChoice:
+        case filter1FormantVowelTargetChoice:
+        case filter1PhaserFrequencyTargetChoice:
+        case filter1ModalFrequencyTargetChoice:
+        case filter1SpectralCentreTargetChoice:
+            return filter1Knob1Position;
+        case filter2CutoffTargetChoice:
+        case filter2CombFrequencyTargetChoice:
+        case filter2FormantVowelTargetChoice:
+        case filter2PhaserFrequencyTargetChoice:
+        case filter2ModalFrequencyTargetChoice:
+        case filter2SpectralCentreTargetChoice:
+            return filter2Knob1Position;
+        case filter1ResonanceTargetChoice:
+        case filter1CombFeedbackTargetChoice:
+        case filter1FormantShiftTargetChoice:
+        case filter1PhaserFeedbackTargetChoice:
+        case filter1ModalDecayTargetChoice:
+        case filter1SpectralSpanTargetChoice:
+            return filter1Knob2Position;
+        case filter2ResonanceTargetChoice:
+        case filter2CombFeedbackTargetChoice:
+        case filter2FormantShiftTargetChoice:
+        case filter2PhaserFeedbackTargetChoice:
+        case filter2ModalDecayTargetChoice:
+        case filter2SpectralSpanTargetChoice:
+            return filter2Knob2Position;
+        case filter1DriveTargetChoice:
+            return filter1Knob3Position;
+        case filter2DriveTargetChoice:
+            return filter2Knob3Position;
+        case filter1SlopeTargetChoice:
+        case filter1GainTargetChoice:
+        case filter1CombDampingTargetChoice:
+        case filter1FormantFocusTargetChoice:
+        case filter1PhaserDepthTargetChoice:
+        case filter1ModalBodyTargetChoice:
+        case filter1SpectralDepthTargetChoice:
+            return filter1Knob4Position;
+        case filter2SlopeTargetChoice:
+        case filter2GainTargetChoice:
+        case filter2CombDampingTargetChoice:
+        case filter2FormantFocusTargetChoice:
+        case filter2PhaserDepthTargetChoice:
+        case filter2ModalBodyTargetChoice:
+        case filter2SpectralDepthTargetChoice:
+            return filter2Knob4Position;
+
+        case filter1ResonanceShapeTargetChoice:
+        case filter1LadderStageSaturationTargetChoice:
+        case filter1OtaCellDriveTargetChoice:
+        case filter1CombFineTuneTargetChoice:
+        case filter1FormantOneLevelTargetChoice:
+        case filter1PhaserStagesTargetChoice:
+        case filter1ModalModesTargetChoice:
+        case filter1SallenKeyQCurveTargetChoice:
+        case filter1DiodeLadderSaturationTargetChoice:
+        case filter1SteinerDiodeDriveTargetChoice:
+        case filter1VactrolRiseTargetChoice:
+        case filter1Korg35ChipDriveTargetChoice:
+        case filter1SpectralBandsTargetChoice:
+            return filter1DesignerKnob1Position;
+        case filter2ResonanceShapeTargetChoice:
+        case filter2LadderStageSaturationTargetChoice:
+        case filter2OtaCellDriveTargetChoice:
+        case filter2CombFineTuneTargetChoice:
+        case filter2FormantOneLevelTargetChoice:
+        case filter2PhaserStagesTargetChoice:
+        case filter2ModalModesTargetChoice:
+        case filter2SallenKeyQCurveTargetChoice:
+        case filter2DiodeLadderSaturationTargetChoice:
+        case filter2SteinerDiodeDriveTargetChoice:
+        case filter2VactrolRiseTargetChoice:
+        case filter2Korg35ChipDriveTargetChoice:
+        case filter2SpectralBandsTargetChoice:
+            return filter2DesignerKnob1Position;
+        case filter1ResonanceLimitTargetChoice:
+        case filter1LadderFeedbackSaturationTargetChoice:
+        case filter1OtaFeedbackDampingTargetChoice:
+        case filter1CombPolarityTargetChoice:
+        case filter1FormantTwoLevelTargetChoice:
+        case filter1PhaserSpreadTargetChoice:
+        case filter1ModalRatioTargetChoice:
+        case filter1SallenKeyCellGainTargetChoice:
+        case filter1DiodeLadderFeedbackClipTargetChoice:
+        case filter1SteinerFeedbackClipTargetChoice:
+        case filter1VactrolFallTargetChoice:
+        case filter1Korg35FeedbackClipTargetChoice:
+        case filter1SpectralWidthTargetChoice:
+            return filter1DesignerKnob2Position;
+        case filter2ResonanceLimitTargetChoice:
+        case filter2LadderFeedbackSaturationTargetChoice:
+        case filter2OtaFeedbackDampingTargetChoice:
+        case filter2CombPolarityTargetChoice:
+        case filter2FormantTwoLevelTargetChoice:
+        case filter2PhaserSpreadTargetChoice:
+        case filter2ModalRatioTargetChoice:
+        case filter2SallenKeyCellGainTargetChoice:
+        case filter2DiodeLadderFeedbackClipTargetChoice:
+        case filter2SteinerFeedbackClipTargetChoice:
+        case filter2VactrolFallTargetChoice:
+        case filter2Korg35FeedbackClipTargetChoice:
+        case filter2SpectralWidthTargetChoice:
+            return filter2DesignerKnob2Position;
+        case filter1BassLossTargetChoice:
+        case filter1LadderResonanceCompensationTargetChoice:
+        case filter1OtaResonanceCompensationTargetChoice:
+        case filter1CombStereoSpreadTargetChoice:
+        case filter1FormantThreeLevelTargetChoice:
+        case filter1PhaserSkewTargetChoice:
+        case filter1ModalInharmonicityTargetChoice:
+        case filter1SallenKeyStageCouplingTargetChoice:
+        case filter1DiodeLadderBiasTargetChoice:
+        case filter1SteinerBiasTargetChoice:
+        case filter1VactrolMemoryTargetChoice:
+        case filter1Korg35BiasTargetChoice:
+        case filter1SpectralPatternTargetChoice:
+            return filter1DesignerKnob3Position;
+        case filter2BassLossTargetChoice:
+        case filter2LadderResonanceCompensationTargetChoice:
+        case filter2OtaResonanceCompensationTargetChoice:
+        case filter2CombStereoSpreadTargetChoice:
+        case filter2FormantThreeLevelTargetChoice:
+        case filter2PhaserSkewTargetChoice:
+        case filter2ModalInharmonicityTargetChoice:
+        case filter2SallenKeyStageCouplingTargetChoice:
+        case filter2DiodeLadderBiasTargetChoice:
+        case filter2SteinerBiasTargetChoice:
+        case filter2VactrolMemoryTargetChoice:
+        case filter2Korg35BiasTargetChoice:
+        case filter2SpectralPatternTargetChoice:
+            return filter2DesignerKnob3Position;
+        case filter1PoleSpreadTargetChoice:
+        case filter1CombDispersionTargetChoice:
+        case filter1FormantBandwidthTargetChoice:
+        case filter1PhaserDampingTargetChoice:
+        case filter1ModalDecayTiltTargetChoice:
+        case filter1SallenKeyComponentVariationTargetChoice:
+        case filter1DiodeLadderStageTiltTargetChoice:
+        case filter1SteinerPoleSpreadTargetChoice:
+        case filter1VactrolLevelCouplingTargetChoice:
+        case filter1Korg35FeedbackToneTargetChoice:
+        case filter1SpectralShiftTargetChoice:
+            return filter1DesignerKnob4Position;
+        case filter2PoleSpreadTargetChoice:
+        case filter2CombDispersionTargetChoice:
+        case filter2FormantBandwidthTargetChoice:
+        case filter2PhaserDampingTargetChoice:
+        case filter2ModalDecayTiltTargetChoice:
+        case filter2SallenKeyComponentVariationTargetChoice:
+        case filter2DiodeLadderStageTiltTargetChoice:
+        case filter2SteinerPoleSpreadTargetChoice:
+        case filter2VactrolLevelCouplingTargetChoice:
+        case filter2Korg35FeedbackToneTargetChoice:
+        case filter2SpectralShiftTargetChoice:
+            return filter2DesignerKnob4Position;
+        case filter1CoreSaturationTargetChoice:
+        case filter1CombLoopSaturationTargetChoice:
+        case filter1FormantSpreadTargetChoice:
+        case filter1PhaserStageSaturationTargetChoice:
+        case filter1ModalDampingTargetChoice:
+        case filter1SallenKeyOpAmpSaturationTargetChoice:
+        case filter1DiodeLadderResonanceLossTargetChoice:
+        case filter1SteinerResonanceCurveTargetChoice:
+        case filter1VactrolWarmthTargetChoice:
+        case filter1Korg35BassLossTargetChoice:
+        case filter1SpectralContrastTargetChoice:
+            return filter1DesignerKnob5Position;
+        case filter2CoreSaturationTargetChoice:
+        case filter2CombLoopSaturationTargetChoice:
+        case filter2FormantSpreadTargetChoice:
+        case filter2PhaserStageSaturationTargetChoice:
+        case filter2ModalDampingTargetChoice:
+        case filter2SallenKeyOpAmpSaturationTargetChoice:
+        case filter2DiodeLadderResonanceLossTargetChoice:
+        case filter2SteinerResonanceCurveTargetChoice:
+        case filter2VactrolWarmthTargetChoice:
+        case filter2Korg35BassLossTargetChoice:
+        case filter2SpectralContrastTargetChoice:
+            return filter2DesignerKnob5Position;
+        case filter1SaturationAsymmetryTargetChoice:
+        case filter1CombFeedbackLimitTargetChoice:
+        case filter1FormantTiltTargetChoice:
+        case filter1PhaserStereoTargetChoice:
+        case filter1ModalExcitationTargetChoice:
+        case filter1SallenKeyHighFrequencyDampingTargetChoice:
+        case filter1DiodeLadderResonanceCompensationTargetChoice:
+        case filter1SteinerResonanceCompensationTargetChoice:
+        case filter1VactrolBleedTargetChoice:
+        case filter1Korg35ResonanceCompensationTargetChoice:
+        case filter1SpectralTiltTargetChoice:
+            return filter1DesignerKnob6Position;
+        case filter2SaturationAsymmetryTargetChoice:
+        case filter2CombFeedbackLimitTargetChoice:
+        case filter2FormantTiltTargetChoice:
+        case filter2PhaserStereoTargetChoice:
+        case filter2ModalExcitationTargetChoice:
+        case filter2SallenKeyHighFrequencyDampingTargetChoice:
+        case filter2DiodeLadderResonanceCompensationTargetChoice:
+        case filter2SteinerResonanceCompensationTargetChoice:
+        case filter2VactrolBleedTargetChoice:
+        case filter2Korg35ResonanceCompensationTargetChoice:
+        case filter2SpectralTiltTargetChoice:
+            return filter2DesignerKnob6Position;
+        case filter1FeedbackTargetChoice:
+            return filter1DesignerKnob7Position;
+        case filter2FeedbackTargetChoice:
+            return filter2DesignerKnob7Position;
+        case filter1FeedbackLimitTargetChoice:
+            return filter1DesignerKnob8Position;
+        case filter2FeedbackLimitTargetChoice:
+            return filter2DesignerKnob8Position;
+        default:
+            return noTargetPosition;
+    }
+}
+
+inline constexpr bool targetChoicesSharePosition(int first,
+                                                  int second) noexcept
+{
+    const int firstGroup = targetPositionGroup(first);
+    return first == second
+        || (firstGroup != noTargetPosition
+            && firstGroup == targetPositionGroup(second));
+}
+
 inline int targetChoiceForParameter(const juce::String& parameterId)
 {
     for (size_t index = 0; index < targets.size(); ++index)
@@ -465,6 +725,34 @@ inline juce::String targetName(int choice)
 {
     if (choice <= 0 || choice > static_cast<int>(targets.size()))
         return {};
+    switch (targetPositionGroup(choice))
+    {
+        case filter1Knob1Position: return "F1 Filter Knob 1";
+        case filter2Knob1Position: return "F2 Filter Knob 1";
+        case filter1Knob2Position: return "F1 Filter Knob 2";
+        case filter2Knob2Position: return "F2 Filter Knob 2";
+        case filter1Knob3Position: return "F1 Filter Knob 3";
+        case filter2Knob3Position: return "F2 Filter Knob 3";
+        case filter1Knob4Position: return "F1 Filter Knob 4";
+        case filter2Knob4Position: return "F2 Filter Knob 4";
+        case filter1DesignerKnob1Position: return "F1 Designer Knob 1";
+        case filter2DesignerKnob1Position: return "F2 Designer Knob 1";
+        case filter1DesignerKnob2Position: return "F1 Designer Knob 2";
+        case filter2DesignerKnob2Position: return "F2 Designer Knob 2";
+        case filter1DesignerKnob3Position: return "F1 Designer Knob 3";
+        case filter2DesignerKnob3Position: return "F2 Designer Knob 3";
+        case filter1DesignerKnob4Position: return "F1 Designer Knob 4";
+        case filter2DesignerKnob4Position: return "F2 Designer Knob 4";
+        case filter1DesignerKnob5Position: return "F1 Designer Knob 5";
+        case filter2DesignerKnob5Position: return "F2 Designer Knob 5";
+        case filter1DesignerKnob6Position: return "F1 Designer Knob 6";
+        case filter2DesignerKnob6Position: return "F2 Designer Knob 6";
+        case filter1DesignerKnob7Position: return "F1 Designer Knob 7";
+        case filter2DesignerKnob7Position: return "F2 Designer Knob 7";
+        case filter1DesignerKnob8Position: return "F1 Designer Knob 8";
+        case filter2DesignerKnob8Position: return "F2 Designer Knob 8";
+        default: break;
+    }
     return targets[static_cast<size_t>(choice - 1)].displayName;
 }
 

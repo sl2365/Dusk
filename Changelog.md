@@ -1,5 +1,38 @@
 # Dusk Changelog
 
+## 1.28.8 — Position-Based Sequencer Targets — 17 November 2026
+
+- Changed filter and Designer Sequencer assignments from architecture-specific parameter targets to stable numbered knob positions for each filter panel.
+- Filter Knobs 1–4 now remain modulated when an Architecture change places a different parameter in the same Filter-tab position.
+- Designer Knobs 1–8 now follow their reading-order positions across Architectures. A position remains temporarily inactive only when the selected Architecture has fewer Designer knobs than that number.
+- Updated target names, duplicate-assignment checks, animated knob highlighting and per-target Depth lookup to use the same position-based identity.
+- Moved both numbered amber filter power LEDs four pixels left so their glow has equal clearance from the panel's top and left edges.
+- Kept the 1.28.6 active-stage CPU optimisation, parameter ranges, defaults, Models and state schema unchanged.
+
+## 1.28.7 — Numbered Filter Power LEDs and Target Drag Fix — 17 November 2026
+
+- Fixed the top-left control in each filter panel being unable to start a Sequencer target drag because the former wide FILTER 1/2 title labels intercepted that area.
+- Removed the FILTER 1/2 text labels, moved the amber filter power LEDs to the left edge of their panels, enlarged them and placed 1 or 2 inside each LED.
+- Kept both numbered power LEDs available on the Filter and Designer tabs so either filter can be switched on or off from either view.
+- Kept the 1.28.6 active-stage CPU optimisation, DSP behaviour, parameter IDs, ranges, defaults, Models, sequencer target numbers and state schema unchanged.
+
+## 1.28.6 — Active-Stage CPU Trial — 17 November 2026
+
+- Changed Clean SVF, Ladder, OTA, Diode Ladder, Sallen-Key, Steiner-Parker, Vactrol/LPG and Korg-35/MS-20 to process only the stages or cells required by the current Slope, plus one inaudible look-ahead stage that remains warm for smooth upward movement.
+- Changed Phaser to process the selected all-pass tap plus one complete look-ahead pair instead of always running all twelve stages. Maximum Stages still runs the complete twelve-stage cascade.
+- Changed Modal Resonator to process the audible resonators plus one inaudible look-ahead mode instead of always running all eight modes. Maximum Modes still runs all eight resonators.
+- Changed Comb to run only its selected Mode in steady state and both the previous and current Modes during the existing crossfade, instead of permanently processing all three structures.
+- Left Spectral Bank's existing zero-weight band skips and eight-sample coefficient cache unchanged.
+- Kept the steady-state equations, parameter IDs, ranges, defaults, Models, sequencer target numbers and state schema unchanged. This build is intentionally isolated as a reversible CPU trial so transition behaviour can be compared directly with 1.28.5.
+
+## 1.28.5 — Whole-Plugin CPU Optimisation — 17 November 2026
+
+- Stopped advancing every inactive Architecture's Designer smoothing ramps on every audio sample. Inactive controls now advance once per block while the selected Architecture, and the outgoing Architecture during its short crossfade, retain their existing sample-by-sample smoothing.
+- Applied the same dormant-work skip to filter engines excluded by the current Routing and to engines that are fully switched off, without changing their values when they are next activated.
+- Cached the expensive Formant, Phaser and Modal Resonator coefficient calculations. Stable controls now reuse their exact coefficients instead of repeating trigonometric, exponential and power calculations for every sample; changing or automated controls still refresh the coefficients whenever their smoothed values change.
+- Calculated the standard filter/EQ output gains once per processing call instead of once per internal stage or cell, with a zero-gain fast path that avoids three power functions at the default setting.
+- Kept the active DSP equations, nonlinear behaviour, parameter IDs, ranges, defaults, Models, sequencer target numbers and state schema unchanged.
+
 ## 1.28.4 — Sequencer LED and Gate Mode Help — 16 November 2026
 
 - Added drawing margin around the Sequencer ON LED so its existing 10-pixel amber core and full-strength glow render as a complete circle without changing its text position or function.

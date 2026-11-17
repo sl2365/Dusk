@@ -843,15 +843,51 @@ private:
         formantIntegratorOne {};
     std::array<std::array<float, filterStateCount>, formantBandCount>
         formantIntegratorTwo {};
+    std::array<std::array<float, 10>, filterEngineCount>
+        formantCoefficientParameters {};
+    std::array<std::array<float, formantBandCount>, filterEngineCount>
+        formantCoefficientA1 {};
+    std::array<std::array<float, formantBandCount>, filterEngineCount>
+        formantCoefficientA2 {};
+    std::array<std::array<float, formantBandCount>, filterEngineCount>
+        formantCoefficientA3 {};
+    std::array<std::array<float, formantBandCount>, filterEngineCount>
+        formantCoefficientK {};
+    std::array<std::array<float, formantBandCount>, filterEngineCount>
+        formantCoefficientGain {};
+    std::array<bool, filterEngineCount> formantCoefficientsValid {};
     std::array<std::array<float, filterStateCount>, maximumPhaserStages>
         phaserAllPassState {};
     std::array<float, filterStateCount> phaserFeedbackReturn {};
+    std::array<std::array<float, 9>, filterStateCount>
+        phaserCoefficientParameters {};
+    std::array<std::array<float, maximumPhaserStages>, filterStateCount>
+        phaserCoefficient {};
+    std::array<float, filterStateCount> phaserCachedFeedback {};
+    std::array<float, filterStateCount> phaserCachedSaturation {};
+    std::array<float, filterStateCount> phaserCachedSaturationDrive {};
+    std::array<float, filterStateCount> phaserCachedSaturationScale {};
+    std::array<float, filterStateCount> phaserCachedLoopNormalisation {};
+    std::array<float, filterStateCount> phaserCachedDampingPole {};
+    std::array<bool, filterStateCount> phaserCoefficientsValid {};
     std::array<std::array<float, filterStateCount>, modalModeCount>
         modalOutputOne {};
     std::array<std::array<float, filterStateCount>, modalModeCount>
         modalOutputTwo {};
     std::array<float, filterStateCount> modalInputOne {};
     std::array<float, filterStateCount> modalInputTwo {};
+    std::array<std::array<double, 10>, filterEngineCount>
+        modalCoefficientParameters {};
+    std::array<std::array<double, modalModeCount>, filterEngineCount>
+        modalCoefficientOne {};
+    std::array<std::array<double, modalModeCount>, filterEngineCount>
+        modalCoefficientTwo {};
+    std::array<std::array<double, modalModeCount>, filterEngineCount>
+        modalNumeratorGain {};
+    std::array<std::array<double, modalModeCount>, filterEngineCount>
+        modalWeight {};
+    std::array<double, filterEngineCount> modalBodyCache {};
+    std::array<bool, filterEngineCount> modalCoefficientsValid {};
     std::array<std::array<float, filterStateCount>, maximumSallenKeyCells>
         sallenKeyIntegratorOne {};
     std::array<std::array<float, filterStateCount>, maximumSallenKeyCells>

@@ -423,8 +423,6 @@ private:
     juce::Label filter2DistortionPlacementLabel;
     juce::Label filter1ModelLabel;
     juce::Label filter2ModelLabel;
-    juce::Label filter1TitleLabel;
-    juce::Label filter2TitleLabel;
     juce::Label designer1Placeholder;
     juce::Label designer2Placeholder;
     ResponseDisplay responseDisplay;

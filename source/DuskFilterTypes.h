@@ -13,26 +13,53 @@ inline bool usesGain(int choice) noexcept
     return choice >= equaliserFirstChoice && choice < count;
 }
 
+struct Gains
+{
+    float gainMinusOne = 0.0f;
+    float lowTiltMinusOne = 0.0f;
+    float highTiltMinusOne = 0.0f;
+};
+
+inline Gains gainsForDecibels(float gainDb) noexcept
+{
+    // Gain is zero for the non-EQ filter types and for the default EQ
+    // setting.  Avoid three comparatively expensive power functions in
+    // that overwhelmingly common case.
+    if (gainDb == 0.0f)
+        return {};
+
+    return {
+        std::pow(10.0f, gainDb / 20.0f) - 1.0f,
+        std::pow(10.0f, -gainDb / 40.0f) - 1.0f,
+        std::pow(10.0f, gainDb / 40.0f) - 1.0f
+    };
+}
+
 template <typename Value>
 std::array<Value, count> outputs(
     const Value& input, const Value& low, const Value& band,
-    const Value& high, float gainDb)
+    const Value& high, const Gains& gains)
 {
-    const float gain = std::pow(10.0f, gainDb / 20.0f);
-    const float lowTilt = std::pow(10.0f, -gainDb / 40.0f);
-    const float highTilt = std::pow(10.0f, gainDb / 40.0f);
     return {
         low,
         band,
         high,
         low + high,
         low - high,
-        input + Value(gain - 1.0f) * low,
-        input + Value(gain - 1.0f) * high,
-        input + Value(gain - 1.0f) * band,
-        input + Value(lowTilt - 1.0f) * low
-              + Value(highTilt - 1.0f) * high
+        input + Value(gains.gainMinusOne) * low,
+        input + Value(gains.gainMinusOne) * high,
+        input + Value(gains.gainMinusOne) * band,
+        input + Value(gains.lowTiltMinusOne) * low
+              + Value(gains.highTiltMinusOne) * high
     };
+}
+
+template <typename Value>
+std::array<Value, count> outputs(
+    const Value& input, const Value& low, const Value& band,
+    const Value& high, float gainDb)
+{
+    return outputs(input, low, band, high, gainsForDecibels(gainDb));
 }
 
 template <typename Value>

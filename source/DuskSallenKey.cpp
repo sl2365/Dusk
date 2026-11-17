@@ -184,6 +184,7 @@ float DuskAudioProcessor::processSallenKeyFilter(
     const float maximumCutoff = juce::jmin(20000.0f, sampleRate * 0.45f);
     const float safeCutoff = juce::jlimit(
         20.0f, maximumCutoff, cutoffHz);
+    const auto filterTypeGains = dusk::filtertype::gainsForDecibels(gainDb);
     const float shapedResonance = shapeSallenKeyResonance(
         juce::jlimit(0.0f, 1.0f, resonance),
         juce::jlimit(-1.0f, 1.0f, qCurvePercent * 0.01f));
@@ -202,6 +203,11 @@ float DuskAudioProcessor::processSallenKeyFilter(
         filterTypePosition);
     const bool equaliserType = dusk::filtertype::usesGain(
         static_cast<int>(std::round(type)));
+    const float slope = juce::jlimit(6.0f, 48.0f, slopeDbPerOctave);
+    const int activeCells = equaliserType || slope < 12.0f
+        ? juce::jmin(2, maximumSallenKeyCells)
+        : juce::jmin(maximumSallenKeyCells,
+            static_cast<int>(std::floor(slope / 12.0f)) + 1);
 
     const auto processOnePole = [sampleRate](
         float input, float cellCutoff, float& state)
@@ -242,7 +248,7 @@ float DuskAudioProcessor::processSallenKeyFilter(
     taps[0] = sample;
     std::array<float, dusk::filtertype::count> firstCellOutputs {};
     float cellInput = sample;
-    for (int cell = 0; cell < maximumSallenKeyCells; ++cell)
+    for (int cell = 0; cell < activeCells; ++cell)
     {
         const auto cellIndex = static_cast<size_t>(cell);
         const float stagePosition = static_cast<float>(cell)
@@ -279,14 +285,13 @@ float DuskAudioProcessor::processSallenKeyFilter(
         const float high = sanitiseSample(
             cellInput - damping * band - low, 64.0f);
         const auto outputs = dusk::filtertype::outputs(
-            cellInput, low, band, high, gainDb);
+            cellInput, low, band, high, filterTypeGains);
         if (cell == 0)
             firstCellOutputs = outputs;
         cellInput = sanitiseSample(saturate(selectOutput(outputs)), 64.0f);
         taps[cellIndex + 1] = cellInput;
     }
 
-    const float slope = juce::jlimit(6.0f, 48.0f, slopeDbPerOctave);
     float filtered = 0.0f;
     if (equaliserType)
     {
@@ -298,7 +303,8 @@ float DuskAudioProcessor::processSallenKeyFilter(
             sample, safeCutoff, sallenKeyOnePoleState[stateIndex]);
         const float onePoleHigh = sample - onePoleLow;
         const auto lowerOutputs = dusk::filtertype::outputs(
-            sample, onePoleLow, firstCellOutputs[1], onePoleHigh, gainDb);
+            sample, onePoleLow, firstCellOutputs[1], onePoleHigh,
+            filterTypeGains);
         const float lower = selectOutput(lowerOutputs);
         filtered = lower + (taps[1] - lower) * ((slope - 6.0f) / 6.0f);
     }

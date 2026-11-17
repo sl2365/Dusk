@@ -195,6 +195,7 @@ float DuskAudioProcessor::processSteinerParkerFilter(
     const float maximumCutoff = juce::jmin(20000.0f, sampleRate * 0.45f);
     const float safeCutoff = juce::jlimit(
         20.0f, maximumCutoff, cutoffHz);
+    const auto filterTypeGains = dusk::filtertype::gainsForDecibels(gainDb);
     const float shapedResonance = shapeSteinerResonance(
         juce::jlimit(0.0f, 1.0f, resonance),
         juce::jlimit(-1.0f, 1.0f, resonanceCurvePercent * 0.01f));
@@ -214,6 +215,11 @@ float DuskAudioProcessor::processSteinerParkerFilter(
         filterTypePosition);
     const bool equaliserType = dusk::filtertype::usesGain(
         static_cast<int>(std::round(type)));
+    const float slope = juce::jlimit(6.0f, 48.0f, slopeDbPerOctave);
+    const int activeCells = equaliserType || slope < 12.0f
+        ? juce::jmin(2, maximumSteinerCells)
+        : juce::jmin(maximumSteinerCells,
+            static_cast<int>(std::floor(slope / 12.0f)) + 1);
 
     const float driveShape = std::pow(drive, 1.25f);
     const float driveAmount = 1.0f + 31.0f * driveShape;
@@ -264,7 +270,7 @@ float DuskAudioProcessor::processSteinerParkerFilter(
     taps[0] = drivenInput;
     std::array<float, dusk::filtertype::count> firstCellOutputs {};
     float cellInput = drivenInput;
-    for (int cell = 0; cell < maximumSteinerCells; ++cell)
+    for (int cell = 0; cell < activeCells; ++cell)
     {
         const auto cellIndex = static_cast<size_t>(cell);
         const float position = static_cast<float>(cell)
@@ -307,7 +313,7 @@ float DuskAudioProcessor::processSteinerParkerFilter(
         const float high = sanitiseSample(
             cellDriveInput - damping * band - low, 64.0f);
         const auto outputs = dusk::filtertype::outputs(
-            cellDriveInput, low, band, high, gainDb);
+            cellDriveInput, low, band, high, filterTypeGains);
         if (cell == 0)
             firstCellOutputs = outputs;
         steinerFeedbackReturn[cellIndex][stateIndex] = low;
@@ -323,7 +329,6 @@ float DuskAudioProcessor::processSteinerParkerFilter(
     }
     else
     {
-        const float slope = juce::jlimit(6.0f, 48.0f, slopeDbPerOctave);
         if (slope < 12.0f)
         {
             const float onePoleLow = processOnePole(
@@ -331,7 +336,7 @@ float DuskAudioProcessor::processSteinerParkerFilter(
             const float onePoleHigh = drivenInput - onePoleLow;
             const auto lowerOutputs = dusk::filtertype::outputs(
                 drivenInput, onePoleLow, firstCellOutputs[1],
-                onePoleHigh, gainDb);
+                onePoleHigh, filterTypeGains);
             const float lower = dusk::filtertype::select(
                 lowerOutputs, type);
             selected = lower + (taps[1] - lower)

@@ -159,34 +159,76 @@ float DuskAudioProcessor::processModalFilter(
     const int safeChannel = juce::jlimit(0, channelCount - 1, channel);
     const auto stateIndex = static_cast<size_t>(
         safeEngine * channelCount + safeChannel);
-    const auto settings = makeModalSettings(
-        currentSampleRate, baseFrequencyHz, decayMilliseconds, bodyPercent,
-        modes, ratioPercent, inharmonicityPercent, decayTiltPercent,
-        dampingPercent, excitationPercent);
+    const auto engineIndex = static_cast<size_t>(safeEngine);
+    const std::array<double, 10> coefficientParameters {
+        currentSampleRate, static_cast<double>(baseFrequencyHz),
+        static_cast<double>(decayMilliseconds),
+        static_cast<double>(bodyPercent), static_cast<double>(modes),
+        static_cast<double>(ratioPercent),
+        static_cast<double>(inharmonicityPercent),
+        static_cast<double>(decayTiltPercent),
+        static_cast<double>(dampingPercent),
+        static_cast<double>(excitationPercent)
+    };
+    if (! modalCoefficientsValid[engineIndex]
+        || coefficientParameters
+            != modalCoefficientParameters[engineIndex])
+    {
+        const auto settings = makeModalSettings(
+            currentSampleRate, baseFrequencyHz, decayMilliseconds,
+            bodyPercent, modes, ratioPercent, inharmonicityPercent,
+            decayTiltPercent, dampingPercent, excitationPercent);
+        for (int mode = 0; mode < modalModeCount; ++mode)
+        {
+            const auto index = static_cast<size_t>(mode);
+            modalCoefficientOne[engineIndex][index]
+                = settings.modes[index].coefficientOne;
+            modalCoefficientTwo[engineIndex][index]
+                = settings.modes[index].coefficientTwo;
+            modalNumeratorGain[engineIndex][index]
+                = settings.modes[index].numeratorGain;
+            modalWeight[engineIndex][index]
+                = settings.modes[index].weight;
+        }
+        modalBodyCache[engineIndex] = settings.body;
+        modalCoefficientParameters[engineIndex] = coefficientParameters;
+        modalCoefficientsValid[engineIndex] = true;
+    }
     const float delayedInput = modalInputTwo[stateIndex];
     float modalOutput = 0.0f;
+    const int activeModeCount = juce::jlimit(
+        1, modalModeCount,
+        static_cast<int>(std::ceil(juce::jlimit(
+            1.0f, static_cast<float>(modalModeCount), modes))) + 1);
 
-    for (int mode = 0; mode < modalModeCount; ++mode)
+    // Keep the next currently inaudible mode warm so increasing Modes can
+    // bring it in smoothly without paying for all eight resonators.
+    for (int mode = 0; mode < activeModeCount; ++mode)
     {
         const auto index = static_cast<size_t>(mode);
-        const auto& coefficients = settings.modes[index];
+        const double coefficientOne
+            = modalCoefficientOne[engineIndex][index];
+        const double coefficientTwo
+            = modalCoefficientTwo[engineIndex][index];
+        const double numeratorGain
+            = modalNumeratorGain[engineIndex][index];
+        const double weight = modalWeight[engineIndex][index];
         float output = static_cast<float>(
-            coefficients.numeratorGain
-                * static_cast<double>(sample - delayedInput)
-            + coefficients.coefficientOne
+            numeratorGain * static_cast<double>(sample - delayedInput)
+            + coefficientOne
                 * static_cast<double>(modalOutputOne[index][stateIndex])
-            + coefficients.coefficientTwo
+            + coefficientTwo
                 * static_cast<double>(modalOutputTwo[index][stateIndex]));
         output = sanitiseSample(output, 64.0f);
         modalOutputTwo[index][stateIndex] =
             modalOutputOne[index][stateIndex];
         modalOutputOne[index][stateIndex] = output;
-        if (internalDistortion && std::abs(coefficients.weight) > 1.0e-9)
+        if (internalDistortion && std::abs(weight) > 1.0e-9)
             output = processSelectedDistortion(
                 output, distortionAmount, safeEngine, safeChannel,
                 currentDistortion, previousDistortion,
                 distortionCrossfade, firstModalDistortionStateBank + mode);
-        modalOutput += static_cast<float>(coefficients.weight) * output;
+        modalOutput += static_cast<float>(weight) * output;
     }
 
     modalInputTwo[stateIndex] = modalInputOne[stateIndex];
@@ -194,7 +236,7 @@ float DuskAudioProcessor::processModalFilter(
     constexpr float protectionLevel = 4.0f;
     const float protectedModal = protectionLevel * std::tanh(
         modalOutput / protectionLevel);
-    const float body = static_cast<float>(settings.body);
+    const float body = static_cast<float>(modalBodyCache[engineIndex]);
     return sanitiseSample(
         sample + (protectedModal - sample) * body, 64.0f);
 }

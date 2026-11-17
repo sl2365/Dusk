@@ -162,6 +162,7 @@ float DuskAudioProcessor::processKorg35Filter(
                                            sampleRate * 0.45f);
     const float safeCutoff = juce::jlimit(
         20.0f, maximumCutoff, cutoffHz);
+    const auto filterTypeGains = dusk::filtertype::gainsForDecibels(gainDb);
     const float safeResonance = juce::jlimit(0.0f, 1.0f, resonance);
     const float feedbackGain = resonanceFeedbackGain(safeResonance);
     const float drive = juce::jlimit(
@@ -181,6 +182,11 @@ float DuskAudioProcessor::processKorg35Filter(
         filterTypePosition);
     const bool equaliserType = dusk::filtertype::usesGain(
         static_cast<int>(std::round(type)));
+    const float slope = juce::jlimit(6.0f, 48.0f, slopeDbPerOctave);
+    const int activeCells = equaliserType || slope < 12.0f
+        ? juce::jmin(2, maximumKorg35Cells)
+        : juce::jmin(maximumKorg35Cells,
+            static_cast<int>(std::floor(slope / 12.0f)) + 1);
 
     const float g = std::tan(
         juce::MathConstants<float>::pi * safeCutoff / sampleRate);
@@ -233,7 +239,7 @@ float DuskAudioProcessor::processKorg35Filter(
     taps[0] = sample;
     std::array<float, dusk::filtertype::count> firstCellOutputs {};
     float cellInput = sample;
-    for (int cell = 0; cell < maximumKorg35Cells; ++cell)
+    for (int cell = 0; cell < activeCells; ++cell)
     {
         const auto cellIndex = static_cast<size_t>(cell);
         auto& stageOneState = korg35StageOneState[cellIndex][stateIndex];
@@ -274,7 +280,7 @@ float DuskAudioProcessor::processKorg35Filter(
         const float high = sanitiseSample(
             coreInput - 2.0f * stageOne + low, 64.0f);
         const auto outputs = dusk::filtertype::outputs(
-            coreInput, low, band, high, gainDb);
+            coreInput, low, band, high, filterTypeGains);
         if (cell == 0)
             firstCellOutputs = outputs;
         cellInput = sanitiseSample(
@@ -282,7 +288,6 @@ float DuskAudioProcessor::processKorg35Filter(
         taps[cellIndex + 1] = cellInput;
     }
 
-    const float slope = juce::jlimit(6.0f, 48.0f, slopeDbPerOctave);
     float filtered = 0.0f;
     if (equaliserType)
     {
@@ -294,7 +299,7 @@ float DuskAudioProcessor::processKorg35Filter(
             sample, safeCutoff, korg35OnePoleState[stateIndex]);
         const auto lowerOutputs = dusk::filtertype::outputs(
             sample, onePoleLow, firstCellOutputs[1],
-            sample - onePoleLow, gainDb);
+            sample - onePoleLow, filterTypeGains);
         const float lower = dusk::filtertype::select(lowerOutputs, type);
         filtered = lower + (taps[1] - lower)
             * ((slope - 6.0f) / 6.0f);

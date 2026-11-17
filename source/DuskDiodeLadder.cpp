@@ -165,6 +165,7 @@ float DuskAudioProcessor::processDiodeLadderFilter(
     const float maximumCutoff = juce::jmin(20000.0f, sampleRate * 0.45f);
     const float safeCutoff = juce::jlimit(
         20.0f, maximumCutoff, cutoffHz);
+    const auto filterTypeGains = dusk::filtertype::gainsForDecibels(gainDb);
     const float safeResonance = juce::jlimit(0.0f, 1.0f, resonance);
     const float saturation = juce::jlimit(
         0.0f, 1.0f, diodeSaturationPercent * 0.01f);
@@ -198,20 +199,6 @@ float DuskAudioProcessor::processDiodeLadderFilter(
         return value + (curved - value) * saturationShape;
     };
 
-    std::array<float, maximumDiodeLadderStages> coefficients {};
-    for (int stage = 0; stage < maximumDiodeLadderStages; ++stage)
-    {
-        const float position = static_cast<float>(stage)
-            / static_cast<float>(maximumDiodeLadderStages - 1) - 0.5f;
-        const float stageCutoff = juce::jlimit(
-            20.0f, maximumCutoff,
-            safeCutoff * std::pow(2.0f, 1.5f * stageTilt * position));
-        const float g = std::tan(
-            juce::MathConstants<float>::pi
-                * stageCutoff / sampleRate);
-        coefficients[static_cast<size_t>(stage)] = g / (1.0f + g);
-    }
-
     const int filterTypeChoice = juce::jlimit(
         0, dusk::filtertype::count - 1,
         static_cast<int>(std::round(filterTypePosition)));
@@ -226,6 +213,19 @@ float DuskAudioProcessor::processDiodeLadderFilter(
     const int upperPoles = juce::jmin(
         maximumDiodeLadderStages, lowerPoles + 1);
     const float poleFraction = polePosition - static_cast<float>(lowerPoles);
+    std::array<float, maximumDiodeLadderStages> coefficients {};
+    for (int stage = 0; stage < upperPoles; ++stage)
+    {
+        const float position = static_cast<float>(stage)
+            / static_cast<float>(maximumDiodeLadderStages - 1) - 0.5f;
+        const float stageCutoff = juce::jlimit(
+            20.0f, maximumCutoff,
+            safeCutoff * std::pow(2.0f, 1.5f * stageTilt * position));
+        const float g = std::tan(
+            juce::MathConstants<float>::pi
+                * stageCutoff / sampleRate);
+        coefficients[static_cast<size_t>(stage)] = g / (1.0f + g);
+    }
     const float maximumFeedback = criticalLadderFeedback<float>(lowerPoles)
         + (criticalLadderFeedback<float>(upperPoles)
             - criticalLadderFeedback<float>(lowerPoles)) * poleFraction;
@@ -236,7 +236,7 @@ float DuskAudioProcessor::processDiodeLadderFilter(
 
     std::array<float, maximumDiodeLadderStages + 1> memoryTaps {};
     float memoryInput = 0.0f;
-    for (int stage = 0; stage < maximumDiodeLadderStages; ++stage)
+    for (int stage = 0; stage < upperPoles; ++stage)
     {
         const auto stageIndex = static_cast<size_t>(stage);
         const float coefficient = coefficients[stageIndex];
@@ -303,7 +303,7 @@ float DuskAudioProcessor::processDiodeLadderFilter(
     std::array<float, maximumDiodeLadderStages + 1> taps {};
     taps[0] = ladderInput;
     float stageInput = ladderInput;
-    for (int stage = 0; stage < maximumDiodeLadderStages; ++stage)
+    for (int stage = 0; stage < upperPoles; ++stage)
     {
         const auto stageIndex = static_cast<size_t>(stage);
         auto& state = diodeLadderStageState[stageIndex][stateIndex];
@@ -322,7 +322,8 @@ float DuskAudioProcessor::processDiodeLadderFilter(
             result = result * (n - index + 1) / index;
         return static_cast<float>(result);
     };
-    const auto outputsForPoles = [&taps, &binomial, gainDb](int poles)
+    const auto outputsForPoles = [&taps, &binomial,
+                                  &filterTypeGains](int poles)
     {
         poles = juce::jlimit(1, maximumDiodeLadderStages, poles);
         const float low = taps[static_cast<size_t>(poles)];
@@ -342,7 +343,7 @@ float DuskAudioProcessor::processDiodeLadderFilter(
                 * taps[static_cast<size_t>(lowOrder + index)];
         band *= std::pow(2.0f, 0.5f * (lowOrder + highOrder));
         return dusk::filtertype::outputs(
-            taps[0], low, band, high, gainDb);
+            taps[0], low, band, high, filterTypeGains);
     };
     const auto selectType = [filterTypePosition](
         const std::array<float, dusk::filtertype::count>& outputs)

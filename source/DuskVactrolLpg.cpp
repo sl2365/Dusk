@@ -158,6 +158,7 @@ float DuskAudioProcessor::processVactrolLpgFilter(
                                            sampleRate * 0.45f);
     const float targetCutoff = juce::jlimit(
         20.0f, maximumCutoff, cutoffHz);
+    const auto filterTypeGains = dusk::filtertype::gainsForDecibels(gainDb);
     const float rise = juce::jlimit(0.0f, 1.0f, risePercent * 0.01f);
     const float fall = juce::jlimit(0.0f, 1.0f, fallPercent * 0.01f);
     const float memory = juce::jlimit(0.0f, 1.0f,
@@ -201,6 +202,11 @@ float DuskAudioProcessor::processVactrolLpgFilter(
         filterTypePosition);
     const bool equaliserType = dusk::filtertype::usesGain(
         static_cast<int>(std::round(type)));
+    const float slope = juce::jlimit(6.0f, 48.0f, slopeDbPerOctave);
+    const int activeCells = equaliserType || slope < 12.0f
+        ? juce::jmin(2, maximumVactrolCells)
+        : juce::jmin(maximumVactrolCells,
+            static_cast<int>(std::floor(slope / 12.0f)) + 1);
     const auto processOnePole = [sampleRate](
         float input, float cellCutoff, float& state)
     {
@@ -225,7 +231,7 @@ float DuskAudioProcessor::processVactrolLpgFilter(
     taps[0] = sample;
     std::array<float, dusk::filtertype::count> firstOutputs {};
     float cellInput = sample;
-    for (int cell = 0; cell < maximumVactrolCells; ++cell)
+    for (int cell = 0; cell < activeCells; ++cell)
     {
         const auto cellIndex = static_cast<size_t>(cell);
         auto& integratorOne = vactrolIntegratorOne[cellIndex][stateIndex];
@@ -240,14 +246,13 @@ float DuskAudioProcessor::processVactrolLpgFilter(
         const float high = sanitiseSample(
             cellInput - damping * band - low, 64.0f);
         const auto outputs = dusk::filtertype::outputs(
-            cellInput, low, band, high, gainDb);
+            cellInput, low, band, high, filterTypeGains);
         if (cell == 0)
             firstOutputs = outputs;
         cellInput = dusk::filtertype::select(outputs, type);
         taps[cellIndex + 1] = cellInput;
     }
 
-    const float slope = juce::jlimit(6.0f, 48.0f, slopeDbPerOctave);
     float filtered = 0.0f;
     if (equaliserType)
     {
@@ -258,7 +263,7 @@ float DuskAudioProcessor::processVactrolLpgFilter(
         const float low = processOnePole(
             sample, effectiveCutoff, vactrolOnePoleState[stateIndex]);
         const auto lowerOutputs = dusk::filtertype::outputs(
-            sample, low, firstOutputs[1], sample - low, gainDb);
+            sample, low, firstOutputs[1], sample - low, filterTypeGains);
         const float lower = dusk::filtertype::select(lowerOutputs, type);
         filtered = lower + (taps[1] - lower)
             * ((slope - 6.0f) / 6.0f);
