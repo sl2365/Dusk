@@ -27,7 +27,7 @@ Dusk is a dual creative-filter VST3 by Dead Channel Audio. Each filter combines 
 2. Copy it into a folder scanned by the host for VST3 plugins.
 3. Rescan plugins in the host and load Dusk as an audio effect.
 
-Dusk creates a portable `Dusk` data folder beside the installed plugin. If the chosen VST3 folder is protected by Windows, give the current account write access or use another scanned folder that is writable.
+Dusk creates a portable `Dusk_Data` folder beside the installed plugin. Existing `Dusk` folders are renamed automatically. If the chosen VST3 folder is protected by Windows, give the current account write access or use another scanned folder that is writable.
 
 ## Quick start
 

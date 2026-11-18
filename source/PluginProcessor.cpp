@@ -325,6 +325,15 @@ DuskAudioProcessor::DuskAudioProcessor()
 
 juce::File DuskAudioProcessor::getDataDirectory()
 {
+    const auto migrateDataDirectory = [](const juce::File& parent)
+    {
+        const auto oldDirectory = parent.getChildFile("Dusk");
+        const auto newDirectory = parent.getChildFile("Dusk_Data");
+        if (oldDirectory.isDirectory())
+            oldDirectory.moveFileTo(newDirectory);
+        return newDirectory;
+    };
+
 #if JUCE_WINDOWS
     std::array<wchar_t, 32768> modulePath {};
     const auto moduleHandle = static_cast<HMODULE>(
@@ -341,18 +350,18 @@ juce::File DuskAudioProcessor::getDataDirectory()
             for (int depth = 0; depth < 6; ++depth)
             {
                 if (folder.hasFileExtension(".vst3"))
-                    return folder.getParentDirectory().getChildFile("Dusk");
+                    return migrateDataDirectory(folder.getParentDirectory());
                 const auto parent = folder.getParentDirectory();
                 if (parent == folder)
                     break;
                 folder = parent;
             }
-            return moduleFile.getParentDirectory().getChildFile("Dusk");
+            return migrateDataDirectory(moduleFile.getParentDirectory());
         }
     }
 #endif
-    return juce::File::getSpecialLocation(juce::File::currentApplicationFile)
-        .getParentDirectory().getChildFile("Dusk");
+    return migrateDataDirectory(juce::File::getSpecialLocation(
+        juce::File::currentApplicationFile).getParentDirectory());
 }
 
 juce::File DuskAudioProcessor::getSettingsDirectory()

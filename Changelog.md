@@ -1,5 +1,13 @@
 # Dusk Changelog
 
+## 1.28.14 — Dusk_Data Folder Migration — 18 November 2026
+
+- Renamed Dusk's portable data folder from `Dusk` to `Dusk_Data`.
+- Existing `Dusk` folders beside the plugin are automatically renamed to `Dusk_Data` on startup, preserving Settings, Presets, Sequences and Models.
+- All subsequent portable data access uses `Dusk_Data`.
+- Kept the DSP, parameters, presets, Models, Sequencer behaviour and state schema unchanged.
+- Update archives continue to exclude the Resources folder.
+
 ## 1.28.13 — Distinct Sequencer Gate Paths — 18 November 2026
 
 - Fixed the Sequencer Gate mode routing so the four choices no longer collapse into similar full-signal gating behaviour.
