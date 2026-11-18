@@ -5218,10 +5218,8 @@ void DuskAudioProcessor::processBlock(
         sequencerGateGain = juce::jlimit(
             0.0f, 1.0f, sequencerGateGain);
 
-        float effectInputL = gateMode == 0
-            ? dryL * sequencerGateGain : dryL;
-        float effectInputR = gateMode == 0
-            ? dryR * sequencerGateGain : dryR;
+        const float effectInputL = dryL;
+        const float effectInputR = dryR;
         const std::array<float, filterEngineCount> drive {
             nextEngineValue(driveValue, 0), nextEngineValue(driveValue, 1)
         };
@@ -5939,8 +5937,11 @@ void DuskAudioProcessor::processBlock(
         }
         const float mix = mixValue.getNextValue();
         const float gain = outputGainValue.getNextValue();
-        float processedL = gain * (dryL * (1.0f - mix) + wetL * mix);
-        float processedR = gain * (dryR * (1.0f - mix) + wetR * mix);
+        const float dryGate = gateMode == 0 ? sequencerGateGain : 1.0f;
+        float processedL = gain * (dryL * dryGate * (1.0f - mix)
+                                 + wetL * mix);
+        float processedR = gain * (dryR * dryGate * (1.0f - mix)
+                                 + wetR * mix);
         if (gateMode == 2)
         {
             processedL *= sequencerGateGain;

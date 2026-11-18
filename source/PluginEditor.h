@@ -504,6 +504,7 @@ private:
     juce::Colour panelColour(int filterIndex) const;
     void setPresetBrowserOpen(bool);
     void updatePresetBrowserVisibility();
+    void updateFilterControlEnablement();
     void rebuildPresetFolderTree();
     void selectPresetFolder(const juce::File&);
     void selectFavouritePresets();
@@ -550,6 +551,7 @@ private:
     bool presetBrowserOpen = false;
     MainView mainView = MainView::filter;
     std::array<int, 2> displayedArchitectureChoices { -1, -1 };
+    std::array<int, 2> displayedFilterEnabled { -1, -1 };
     juce::Array<juce::File> userFilterModelFiles;
     std::array<juce::File, 2> selectedUserFilterModelFiles;
     std::array<juce::String, 2> selectedFactoryFilterModels;

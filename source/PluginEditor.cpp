@@ -2556,7 +2556,7 @@ private:
                                           : juce::Colour(0xff596069);
         const auto tooltip = gateMode == 0
             ? juce::String(
-                "Gate the audio entering the filters so resonant, Comb and Modal tails can continue ringing.")
+                "Gate only the dry input signal while the processed filter signal remains audible.")
             : gateMode == 1
                 ? juce::String(
                     "Gate only the processed filter signal while the dry signal remains audible.")
@@ -3379,8 +3379,8 @@ void DuskAudioProcessorEditor::ResponseDisplay::paint(juce::Graphics& g)
             / static_cast<double>(pointCount);
         const double frequency = minimumFrequency * std::pow(
             maximumFrequency / minimumFrequency, fraction);
-        const auto filter1Response = enabled[0]
-            ? DuskAudioProcessor::getArchitectureResponse(
+        const auto filter1PreviewResponse =
+            DuskAudioProcessor::getArchitectureResponse(
                 architecture[0], frequency, sampleRate, cutoff[0],
                 resonance[0], slope[0],
                 resonanceShape[0], bassLoss[0], resonanceLimit[0],
@@ -3417,10 +3417,9 @@ void DuskAudioProcessorEditor::ResponseDisplay::paint(juce::Graphics& g)
                 spectralSpan[0], spectralDepth[0], spectralBands[0],
                 spectralWidth[0], spectralPattern[0], spectralShift[0],
                 spectralContrast[0], spectralTilt[0], filterGain[0],
-                filterType[0])
-            : std::complex<double>(1.0, 0.0);
-        const auto filter2Response = enabled[1]
-            ? DuskAudioProcessor::getArchitectureResponse(
+                filterType[0]);
+        const auto filter2PreviewResponse =
+            DuskAudioProcessor::getArchitectureResponse(
                 architecture[1], frequency, sampleRate, cutoff[1],
                 resonance[1], slope[1],
                 resonanceShape[1], bassLoss[1], resonanceLimit[1],
@@ -3457,8 +3456,11 @@ void DuskAudioProcessorEditor::ResponseDisplay::paint(juce::Graphics& g)
                 spectralSpan[1], spectralDepth[1], spectralBands[1],
                 spectralWidth[1], spectralPattern[1], spectralShift[1],
                 spectralContrast[1], spectralTilt[1], filterGain[1],
-                filterType[1])
-            : std::complex<double>(1.0, 0.0);
+                filterType[1]);
+        const auto filter1Response = enabled[0]
+            ? filter1PreviewResponse : std::complex<double>(1.0, 0.0);
+        const auto filter2Response = enabled[1]
+            ? filter2PreviewResponse : std::complex<double>(1.0, 0.0);
         std::complex<double> combinedResponse;
         if (routing == 0)
             combinedResponse = filter1Response;
@@ -3477,8 +3479,8 @@ void DuskAudioProcessorEditor::ResponseDisplay::paint(juce::Graphics& g)
         };
         const float x = graph.getX() + graph.getWidth()
             * static_cast<float>(fraction);
-        const float filter1Y = yForDb(decibels(filter1Response));
-        const float filter2Y = yForDb(decibels(filter2Response));
+        const float filter1Y = yForDb(decibels(filter1PreviewResponse));
+        const float filter2Y = yForDb(decibels(filter2PreviewResponse));
         const float combinedY = yForDb(decibels(combinedResponse));
         if (point == 0)
         {
@@ -3516,10 +3518,10 @@ void DuskAudioProcessorEditor::ResponseDisplay::paint(juce::Graphics& g)
     g.restoreState();
 
     const float legendY = bounds.getBottom() - 8.0f;
-    g.setColour(filter1Colour);
+    g.setColour(filter1Colour.withAlpha(enabled[0] ? 1.0f : 0.38f));
     g.drawLine(bounds.getCentreX() - 70.0f, legendY,
                bounds.getCentreX() - 60.0f, legendY, 2.0f);
-    g.setColour(filter2Colour);
+    g.setColour(filter2Colour.withAlpha(enabled[1] ? 1.0f : 0.38f));
     g.drawLine(bounds.getCentreX() - 20.0f, legendY,
                bounds.getCentreX() - 10.0f, legendY, 2.0f);
     g.setColour(combinedColour);
@@ -4269,7 +4271,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     logoMenuButton.onClick = [this] { showLogoZoomMenu(); };
     content.addAndMakeVisible(logoMenuButton);
 
-    versionLabel.setText("v1.28.10", juce::dontSendNotification);
+    versionLabel.setText("v1.28.13", juce::dontSendNotification);
     versionLabel.setJustificationType(juce::Justification::centred);
     versionLabel.setColour(juce::Label::textColourId, knobIndicatorColour);
     versionLabel.setFont(juce::Font(juce::FontOptions(8.5f,
@@ -5707,7 +5709,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addAndMakeVisible(randomButton);
 
     information.setText(
-        "DUSK 1.28.10 | Bypassed target knobs now display their live values.",
+        "DUSK 1.28.13 | Gate modes now address distinct dry and wet paths.",
         juce::dontSendNotification);
     information.setColour(juce::Label::textColourId,
                           juce::Colours::lightgrey);
@@ -5757,6 +5759,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     updateSequencerTargetHighlights();
     updatePresetNavigationDisplay();
     updatePresetBrowserVisibility();
+    updateFilterControlEnablement();
     setResizable(true, true);
     setResizeLimits(695, sequencerOpen ? 414 : 207,
                     2778, sequencerOpen ? 1656 : 828);
@@ -7392,6 +7395,75 @@ void DuskAudioProcessorEditor::updatePresetBrowserVisibility()
     presetOpenFolderButton.setVisible(presetBrowserOpen);
     resized();
     repaint();
+}
+
+void DuskAudioProcessorEditor::updateFilterControlEnablement()
+{
+    const auto isEnabled = [this](const char* parameterId)
+    {
+        const auto* value = processor.parameters.getRawParameterValue(
+            parameterId);
+        return value == nullptr || value->load() >= 0.5f;
+    };
+    const std::array<bool, 2> enabled {
+        isEnabled("filter1Enabled"), isEnabled("filter2Enabled")
+    };
+    const std::array<int, 2> enabledState {
+        enabled[0] ? 1 : 0, enabled[1] ? 1 : 0
+    };
+    if (enabledState == displayedFilterEnabled)
+        return;
+    displayedFilterEnabled = enabledState;
+
+    for (const auto& dial : dials)
+    {
+        int filterIndex = -1;
+        if (dial->parameterId.startsWith("filter1"))
+            filterIndex = 0;
+        else if (dial->parameterId.startsWith("filter2"))
+            filterIndex = 1;
+        if (filterIndex < 0)
+            continue;
+
+        const bool filterIsActive = enabled[static_cast<size_t>(filterIndex)];
+        dial->slider.setEnabled(true);
+        dial->label.setEnabled(true);
+        dial->slider.setAlpha(filterIsActive ? 1.0f : 0.48f);
+        dial->label.setAlpha(filterIsActive ? 1.0f : 0.48f);
+    }
+
+    const std::array<juce::Component*, 14> filter1Controls {
+        &filter1ArchitectureBox, &filter1ArchitectureLabel,
+        &filter1TypeBox, &filter1TypeLabel,
+        &filter1CombModeBox, &filter1CombModeLabel,
+        &filter1DistortionTypeBox, &filter1DistortionTypeLabel,
+        &filter1DistortionPlacementBox,
+        &filter1DistortionPlacementLabel,
+        &filter1ModelBox, &filter1ModelLabel,
+        &filter1ModelMenuButton, &designer1Placeholder
+    };
+    const std::array<juce::Component*, 14> filter2Controls {
+        &filter2ArchitectureBox, &filter2ArchitectureLabel,
+        &filter2TypeBox, &filter2TypeLabel,
+        &filter2CombModeBox, &filter2CombModeLabel,
+        &filter2DistortionTypeBox, &filter2DistortionTypeLabel,
+        &filter2DistortionPlacementBox,
+        &filter2DistortionPlacementLabel,
+        &filter2ModelBox, &filter2ModelLabel,
+        &filter2ModelMenuButton, &designer2Placeholder
+    };
+    for (auto* component : filter1Controls)
+    {
+        component->setEnabled(true);
+        component->setAlpha(enabled[0] ? 1.0f : 0.48f);
+    }
+    for (auto* component : filter2Controls)
+    {
+        component->setEnabled(true);
+        component->setAlpha(enabled[1] ? 1.0f : 0.48f);
+    }
+
+    content.repaint();
 }
 
 void DuskAudioProcessorEditor::setSequencerOpen(bool shouldOpen)
@@ -9271,6 +9343,7 @@ void DuskAudioProcessorEditor::timerCallback()
     previousPresetKeyDown = leftKeyDown;
     nextPresetKeyDown = rightKeyDown;
 
+    updateFilterControlEnablement();
     updateSequencerTargetHighlights();
     if (sequencerOpen && sequencerPanel != nullptr)
         sequencerPanel->timerTick();

@@ -1,5 +1,32 @@
 # Dusk Changelog
 
+## 1.28.13 — Distinct Sequencer Gate Paths — 18 November 2026
+
+- Fixed the Sequencer Gate mode routing so the four choices no longer collapse into similar full-signal gating behaviour.
+- INPUT now gates only the dry input contribution while leaving the processed filter signal audible.
+- EFFECT gates only the processed filter signal while leaving the dry input audible.
+- OUTPUT gates the complete dry/wet result, while OFF applies no gate gain to either path.
+- Updated the Gate Mode contextual help to describe the corrected INPUT behaviour.
+- Updated the README header to use the current orange Release badge, dual creative-filter description and separate `Resources/Dusk1.jpg` and `Resources/Dusk2.jpg` screenshots.
+- Kept the filter DSP, Sequencer parameter modulation, gate-step timing, smoothing, parameter IDs, ranges, defaults and state schema unchanged.
+- Update archives continue to exclude the Resources folder.
+
+## 1.28.12 — Editable Inactive Filters and Response Preview — 17 November 2026
+
+- Revised the inactive-filter presentation so Filter and Designer controls are visually greyed but remain fully interactive, adjustable, automatable and available for live-performance preparation.
+- Kept Sequencer animation visible on inactive filter targets so their modulation can be prepared before bringing the filter into the audio path.
+- Kept each inactive filter's individual response curve visible at reduced intensity while the white OUT curve continues to represent the filters that are actually active in the selected Routing.
+- Kept the numbered power LEDs, audio bypass behaviour, DSP, position-based targets, dynamic target names, parameter IDs, ranges, defaults, Models and state schema unchanged.
+- Update archives continue to exclude the Resources folder.
+
+## 1.28.11 — Disabled Filter Control Visuals — 17 November 2026
+
+- Disabled and greyed out every Filter-tab and Designer-tab control belonging to Filter 1 or Filter 2 when that filter's numbered amber power LED is off.
+- Kept each numbered power LED active so its filter can always be switched back on, without affecting the other filter or shared Mix, Output, Routing and Sequencer controls.
+- Cleared the Sequencer animation overlay from disabled filter knobs so greyed controls remain visually still and display their underlying saved values.
+- Kept the filter DSP, position-based targets, dynamic target names, parameter IDs, ranges, defaults, Models and state schema unchanged.
+- Update archives continue to exclude the Resources folder.
+
 ## 1.28.10 — Bypassed Target Knob Display Fix — 17 November 2026
 
 - Fixed assigned target knobs retaining the Sequencer's animated graphic position while global Dusk processing was switched off, even though their editable value had changed.
