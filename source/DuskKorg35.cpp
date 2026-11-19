@@ -141,199 +141,334 @@ std::complex<double> DuskAudioProcessor::getKorg35Response(
     return selected * bassLossResponse * compensationGain;
 }
 
+void DuskAudioProcessor::updateKorg35Coefficients(size_t engine) noexcept
+{
+    const float filterTypePosition = filterTypeValue[engine].getCurrentValue();
+    const float cutoffHz = cutoffValue[engine].getCurrentValue();
+    const float resonance = resonanceValue[engine].getCurrentValue();
+    const float slopeDbPerOctave = slopeValue[engine].getCurrentValue();
+    const float chipDrivePercent =
+        korg35ChipDriveValue[engine].getCurrentValue();
+    const float feedbackClipPercent =
+        korg35FeedbackClipValue[engine].getCurrentValue();
+    const float biasPercent = korg35BiasValue[engine].getCurrentValue();
+    const float feedbackTonePercent =
+        korg35FeedbackToneValue[engine].getCurrentValue();
+    const float bassLossPercent = korg35BassLossValue[engine].getCurrentValue();
+    const float resonanceCompensationPercent =
+        korg35ResonanceCompensationValue[engine].getCurrentValue();
+    const float gainDb = filterGainValue[engine].getCurrentValue();
+    const float sampleRate = static_cast<float>(
+        juce::jmax(1.0, currentSampleRate));
+    const std::array<float, 12> coefficientParameters {
+        sampleRate, filterTypePosition, cutoffHz, resonance,
+        slopeDbPerOctave, chipDrivePercent, feedbackClipPercent,
+        biasPercent, feedbackTonePercent, bassLossPercent,
+        resonanceCompensationPercent, gainDb
+    };
+    auto& cache = korg35CoefficientCache[engine];
+    if (! cache.valid || coefficientParameters != cache.parameters)
+    {
+        const bool initialise = ! cache.valid;
+        const auto& previous = cache.parameters;
+        const bool sampleRateChanged = initialise
+            || coefficientParameters[0] != previous[0];
+        const bool typeChanged = initialise
+            || coefficientParameters[1] != previous[1];
+        const bool cutoffChanged = sampleRateChanged
+            || coefficientParameters[2] != previous[2];
+        const bool resonanceChanged = initialise
+            || coefficientParameters[3] != previous[3];
+        const bool slopeChanged = initialise
+            || coefficientParameters[4] != previous[4];
+        const bool driveChanged = initialise
+            || coefficientParameters[5] != previous[5]
+            || coefficientParameters[7] != previous[7];
+        const bool feedbackClipChanged = initialise
+            || coefficientParameters[6] != previous[6]
+            || coefficientParameters[7] != previous[7];
+        const bool toneChanged = sampleRateChanged
+            || coefficientParameters[8] != previous[8];
+
+        if (initialise || coefficientParameters[11] != previous[11])
+        {
+            const auto gains = dusk::filtertype::gainsForDecibels(gainDb);
+            cache.gainMinusOne = gains.gainMinusOne;
+            cache.lowTiltMinusOne = gains.lowTiltMinusOne;
+            cache.highTiltMinusOne = gains.highTiltMinusOne;
+        }
+        if (typeChanged || slopeChanged)
+        {
+            cache.type = juce::jlimit(
+                0.0f, static_cast<float>(dusk::filtertype::count - 1),
+                filterTypePosition);
+            cache.typeLeft = juce::jlimit(
+                0, dusk::filtertype::count - 1,
+                static_cast<int>(std::floor(cache.type)));
+            cache.typeRight = juce::jmin(
+                dusk::filtertype::count - 1, cache.typeLeft + 1);
+            cache.typeFraction = cache.type
+                - static_cast<float>(cache.typeLeft);
+            cache.equaliserType = dusk::filtertype::usesGain(
+                static_cast<int>(std::round(cache.type)));
+            cache.slope = juce::jlimit(
+                6.0f, 48.0f, slopeDbPerOctave);
+            cache.activeCells = cache.equaliserType || cache.slope < 12.0f
+                ? juce::jmin(2, maximumKorg35Cells)
+                : juce::jmin(maximumKorg35Cells,
+                    static_cast<int>(std::floor(cache.slope / 12.0f)) + 1);
+            cache.lowSlopeFraction = (cache.slope - 6.0f) / 6.0f;
+            const float cellPosition = cache.slope / 12.0f;
+            cache.lowerCells = juce::jlimit(
+                1, maximumKorg35Cells,
+                static_cast<int>(std::floor(cellPosition)));
+            cache.upperCells = juce::jmin(
+                maximumKorg35Cells, cache.lowerCells + 1);
+            cache.cellFraction = cellPosition
+                - static_cast<float>(cache.lowerCells);
+        }
+        if (resonanceChanged)
+        {
+            const float safeResonance = juce::jlimit(
+                0.0f, 1.0f, resonance);
+            cache.feedbackGain = resonanceFeedbackGain(safeResonance);
+        }
+        if (cutoffChanged)
+        {
+            const float maximumCutoff = juce::jmin(
+                20000.0f, sampleRate * 0.45f);
+            const float safeCutoff = juce::jlimit(
+                20.0f, maximumCutoff, cutoffHz);
+            const float g = std::tan(
+                juce::MathConstants<float>::pi
+                    * safeCutoff / sampleRate);
+            cache.coefficient = g / (1.0f + g);
+        }
+        if (toneChanged)
+        {
+            cache.feedbackTone = juce::jlimit(
+                0.0f, 1.0f, feedbackTonePercent * 0.01f);
+            const float maximumCutoff = juce::jmin(
+                20000.0f, sampleRate * 0.45f);
+            const float toneCutoff = juce::jlimit(
+                20.0f, maximumCutoff,
+                20.0f * std::pow(100.0f, cache.feedbackTone));
+            cache.toneCoefficient = 1.0f - std::exp(
+                -juce::MathConstants<float>::twoPi
+                    * toneCutoff / sampleRate);
+        }
+        if (sampleRateChanged)
+        {
+            const float bassG = std::tan(
+                juce::MathConstants<float>::pi * 110.0f / sampleRate);
+            cache.bassCoefficient = bassG / (1.0f + bassG);
+            cache.dcCoefficient = std::exp(
+                -juce::MathConstants<float>::twoPi * 5.0f / sampleRate);
+        }
+        if (driveChanged)
+        {
+            cache.drive = juce::jlimit(
+                0.0f, 1.0f, chipDrivePercent * 0.01f);
+            const float bias = juce::jlimit(
+                -1.0f, 1.0f, biasPercent * 0.01f);
+            cache.driveGain = 1.0f
+                + 15.0f * std::pow(cache.drive, 1.25f);
+            cache.driveBias = 0.18f * bias * cache.drive;
+            cache.driveOffset = std::tanh(
+                cache.driveGain * cache.driveBias) / cache.driveGain;
+        }
+        if (feedbackClipChanged)
+        {
+            cache.feedbackClip = juce::jlimit(
+                0.0f, 1.0f, feedbackClipPercent * 0.01f);
+            const float bias = juce::jlimit(
+                -1.0f, 1.0f, biasPercent * 0.01f);
+            cache.clipThreshold = 2.0f * std::pow(
+                0.025f, std::pow(cache.feedbackClip, 1.25f));
+            cache.feedbackBias = 0.35f * bias * cache.feedbackClip;
+            cache.feedbackOffset = cache.clipThreshold * std::tanh(
+                cache.feedbackBias / cache.clipThreshold);
+        }
+        if (resonanceChanged
+            || initialise || coefficientParameters[9] != previous[9])
+        {
+            const float safeResonance = juce::jlimit(
+                0.0f, 1.0f, resonance);
+            const float bassLoss = juce::jlimit(
+                0.0f, 1.0f, bassLossPercent * 0.01f);
+            cache.bassLossAmount = 0.78f * bassLoss * safeResonance;
+        }
+        if (resonanceChanged
+            || initialise || coefficientParameters[10] != previous[10])
+        {
+            const float safeResonance = juce::jlimit(
+                0.0f, 1.0f, resonance);
+            const float compensation = juce::jlimit(
+                0.0f, 1.0f,
+                resonanceCompensationPercent * 0.01f);
+            cache.outputCompensation = 1.0f
+                + 2.2f * safeResonance * compensation;
+        }
+        cache.parameters = coefficientParameters;
+        cache.valid = true;
+    }
+}
+
 float DuskAudioProcessor::processKorg35Filter(
-    float sample, int engine, int channel, float filterTypePosition,
-    float cutoffHz, float resonance, float slopeDbPerOctave,
-    float chipDrivePercent, float feedbackClipPercent,
-    float biasPercent, float feedbackTonePercent,
-    float bassLossPercent, float resonanceCompensationPercent,
-    float gainDb,
-    bool internalDistortion, float distortionAmount,
-    int currentDistortion, int previousDistortion,
+    float sample, int engine, int channel, bool internalDistortion,
+    float distortionAmount, int currentDistortion, int previousDistortion,
     float distortionCrossfade) noexcept
 {
     const int safeEngine = juce::jlimit(0, filterEngineCount - 1, engine);
     const int safeChannel = juce::jlimit(0, channelCount - 1, channel);
     const auto stateIndex = static_cast<size_t>(
         safeEngine * channelCount + safeChannel);
-    const float sampleRate = static_cast<float>(
-        juce::jmax(1.0, currentSampleRate));
-    const float maximumCutoff = juce::jmin(20000.0f,
-                                           sampleRate * 0.45f);
-    const float safeCutoff = juce::jlimit(
-        20.0f, maximumCutoff, cutoffHz);
-    const auto filterTypeGains = dusk::filtertype::gainsForDecibels(gainDb);
-    const float safeResonance = juce::jlimit(0.0f, 1.0f, resonance);
-    const float feedbackGain = resonanceFeedbackGain(safeResonance);
-    const float drive = juce::jlimit(
-        0.0f, 1.0f, chipDrivePercent * 0.01f);
-    const float feedbackClip = juce::jlimit(
-        0.0f, 1.0f, feedbackClipPercent * 0.01f);
-    const float bias = juce::jlimit(
-        -1.0f, 1.0f, biasPercent * 0.01f);
-    const float feedbackTone = juce::jlimit(
-        0.0f, 1.0f, feedbackTonePercent * 0.01f);
-    const float bassLoss = juce::jlimit(
-        0.0f, 1.0f, bassLossPercent * 0.01f);
-    const float compensation = juce::jlimit(
-        0.0f, 1.0f, resonanceCompensationPercent * 0.01f);
-    const float type = juce::jlimit(
-        0.0f, static_cast<float>(dusk::filtertype::count - 1),
-        filterTypePosition);
-    const bool equaliserType = dusk::filtertype::usesGain(
-        static_cast<int>(std::round(type)));
-    const float slope = juce::jlimit(6.0f, 48.0f, slopeDbPerOctave);
-    const int activeCells = equaliserType || slope < 12.0f
-        ? juce::jmin(2, maximumKorg35Cells)
-        : juce::jmin(maximumKorg35Cells,
-            static_cast<int>(std::floor(slope / 12.0f)) + 1);
-
-    const float g = std::tan(
-        juce::MathConstants<float>::pi * safeCutoff / sampleRate);
-    const float coefficient = g / (1.0f + g);
-    const float toneCutoff = juce::jlimit(
-        20.0f, maximumCutoff,
-        20.0f * std::pow(100.0f, feedbackTone));
-    const float toneCoefficient = 1.0f - std::exp(
-        -juce::MathConstants<float>::twoPi * toneCutoff / sampleRate);
-    const float driveGain = 1.0f + 15.0f * std::pow(drive, 1.25f);
-    const float driveBias = 0.18f * bias * drive;
-    const float driveOffset = std::tanh(driveGain * driveBias) / driveGain;
-    const float clipThreshold = 2.0f
-        * std::pow(0.025f, std::pow(feedbackClip, 1.25f));
-    const float feedbackBias = 0.35f * bias * feedbackClip;
-    const float feedbackOffset = clipThreshold * std::tanh(
-        feedbackBias / clipThreshold);
-
-    const auto processOnePole = [sampleRate](
-        float input, float frequency, float& state)
+    const auto& cache = korg35CoefficientCache[static_cast<size_t>(safeEngine)];
+    const dusk::filtertype::Gains filterTypeGains {
+        cache.gainMinusOne, cache.lowTiltMinusOne,
+        cache.highTiltMinusOne
+    };
+    const auto processOnePole = [](float input, float coefficient,
+                                   float& state)
     {
-        const float poleG = std::tan(
-            juce::MathConstants<float>::pi * frequency / sampleRate);
-        const float poleA = poleG / (1.0f + poleG);
-        const float v = (input - state) * poleA;
+        const float v = (input - state) * coefficient;
         const float output = v + state;
         state = DuskAudioProcessor::sanitiseSample(output + v, 64.0f);
         return DuskAudioProcessor::sanitiseSample(output, 64.0f);
     };
-    const auto saturateDrive = [drive, driveGain, driveBias,
-                                driveOffset](float value)
+    const auto saturateDrive = [&cache](float value)
     {
-        if (drive <= 1.0e-6f)
+        if (cache.drive <= 1.0e-6f)
             return value;
         const float saturated = std::tanh(
-            driveGain * (value + driveBias)) / driveGain - driveOffset;
-        return value + (saturated - value) * drive;
+            cache.driveGain * (value + cache.driveBias))
+                / cache.driveGain - cache.driveOffset;
+        return value + (saturated - value) * cache.drive;
     };
-    const auto saturateFeedback = [feedbackClip, clipThreshold,
-                                   feedbackBias,
-                                   feedbackOffset](float value)
+    const auto saturateFeedback = [&cache](float value)
     {
-        if (feedbackClip <= 1.0e-6f)
+        if (cache.feedbackClip <= 1.0e-6f)
             return value;
-        return clipThreshold * std::tanh(
-            (value + feedbackBias) / clipThreshold) - feedbackOffset;
+        return cache.clipThreshold * std::tanh(
+            (value + cache.feedbackBias) / cache.clipThreshold)
+                - cache.feedbackOffset;
     };
 
     std::array<float, maximumKorg35Cells + 1> taps {};
     taps[0] = sample;
-    std::array<float, dusk::filtertype::count> firstCellOutputs {};
+    const bool lowPassOnly = juce::exactlyEqual(cache.type, 0.0f);
+    float firstCellBand = 0.0f;
     float cellInput = sample;
-    for (int cell = 0; cell < activeCells; ++cell)
+    for (int cell = 0; cell < cache.activeCells; ++cell)
     {
         const auto cellIndex = static_cast<size_t>(cell);
         auto& stageOneState = korg35StageOneState[cellIndex][stateIndex];
         auto& stageTwoState = korg35StageTwoState[cellIndex][stateIndex];
         auto& toneState = korg35FeedbackToneState[cellIndex][stateIndex];
-        const float cellFeedbackGain = feedbackGain
+        const float cellFeedbackGain = cache.feedbackGain
             * (cell == 0 ? 1.0f : 0.18f);
-        float coreInput = cellInput;
-        float stageOne = 0.0f;
-        float low = 0.0f;
-        float feedbackSignal = toneState;
-        for (int iteration = 0; iteration < 4; ++iteration)
+        float coreInput;
+        if (juce::exactlyEqual(cellFeedbackGain, 0.0f))
         {
-            coreInput = saturateDrive(
-                cellInput - cellFeedbackGain
-                    * saturateFeedback(feedbackSignal));
-            const float v1 = (coreInput - stageOneState) * coefficient;
-            stageOne = v1 + stageOneState;
-            const float v2 = (stageOne - stageTwoState) * coefficient;
-            low = v2 + stageTwoState;
-            const float toneLow = toneState
-                + toneCoefficient * (low - toneState);
-            const float toneHigh = low - toneLow;
-            const float calculatedFeedback = low
-                + (toneHigh - low) * feedbackTone;
-            feedbackSignal += 0.30f
-                * (calculatedFeedback - feedbackSignal);
+            coreInput = saturateDrive(cellInput);
         }
-        const float v1 = (coreInput - stageOneState) * coefficient;
-        stageOne = sanitiseSample(v1 + stageOneState, 64.0f);
+        else
+        {
+            const auto inputForFeedback = [&](float feedback)
+            {
+                return saturateDrive(cellInput - cellFeedbackGain
+                    * saturateFeedback(feedback));
+            };
+            float feedbackSignal = toneState;
+            // Three estimates feed the fourth input evaluation. Only that
+            // final input is used to update the cell's persistent state.
+            for (int iteration = 0; iteration < 3; ++iteration)
+            {
+                const float estimate = inputForFeedback(feedbackSignal);
+                const float v1 = (estimate - stageOneState) * cache.coefficient;
+                const float stageOne = v1 + stageOneState;
+                const float v2 = (stageOne - stageTwoState) * cache.coefficient;
+                const float low = v2 + stageTwoState;
+                const float toneLow = toneState
+                    + cache.toneCoefficient * (low - toneState);
+                const float toneHigh = low - toneLow;
+                const float calculatedFeedback = low
+                    + (toneHigh - low) * cache.feedbackTone;
+                feedbackSignal += 0.30f * (calculatedFeedback - feedbackSignal);
+            }
+            coreInput = inputForFeedback(feedbackSignal);
+        }
+        const float v1 = (coreInput - stageOneState) * cache.coefficient;
+        const float stageOne = sanitiseSample(v1 + stageOneState, 64.0f);
         stageOneState = sanitiseSample(stageOne + v1, 64.0f);
-        const float v2 = (stageOne - stageTwoState) * coefficient;
-        low = sanitiseSample(v2 + stageTwoState, 64.0f);
+        const float v2 = (stageOne - stageTwoState) * cache.coefficient;
+        const float low = sanitiseSample(v2 + stageTwoState, 64.0f);
         stageTwoState = sanitiseSample(low + v2, 64.0f);
         toneState = sanitiseSample(
-            toneState + toneCoefficient * (low - toneState), 64.0f);
-        const float band = sanitiseSample(2.0f * (stageOne - low), 64.0f);
-        const float high = sanitiseSample(
-            coreInput - 2.0f * stageOne + low, 64.0f);
-        const auto outputs = dusk::filtertype::outputs(
-            coreInput, low, band, high, filterTypeGains);
-        if (cell == 0)
-            firstCellOutputs = outputs;
-        cellInput = sanitiseSample(
-            dusk::filtertype::select(outputs, type), 64.0f);
+            toneState + cache.toneCoefficient * (low - toneState), 64.0f);
+        cellInput = low;
+        if (! lowPassOnly)
+        {
+            const float band = sanitiseSample(2.0f * (stageOne - low), 64.0f);
+            const float high = sanitiseSample(
+                coreInput - 2.0f * stageOne + low, 64.0f);
+            const auto outputs = dusk::filtertype::outputs(
+                coreInput, low, band, high, filterTypeGains);
+            if (cell == 0)
+                firstCellBand = band;
+            const float selected = outputs[static_cast<size_t>(cache.typeLeft)]
+                + (outputs[static_cast<size_t>(cache.typeRight)]
+                    - outputs[static_cast<size_t>(cache.typeLeft)])
+                        * cache.typeFraction;
+            cellInput = sanitiseSample(selected, 64.0f);
+        }
         taps[cellIndex + 1] = cellInput;
     }
 
     float filtered = 0.0f;
-    if (equaliserType)
+    if (cache.equaliserType)
     {
         filtered = taps[1];
     }
-    else if (slope < 12.0f)
+    else if (cache.slope < 12.0f)
     {
         const float onePoleLow = processOnePole(
-            sample, safeCutoff, korg35OnePoleState[stateIndex]);
-        const auto lowerOutputs = dusk::filtertype::outputs(
-            sample, onePoleLow, firstCellOutputs[1],
-            sample - onePoleLow, filterTypeGains);
-        const float lower = dusk::filtertype::select(lowerOutputs, type);
+            sample, cache.coefficient, korg35OnePoleState[stateIndex]);
+        float lower = onePoleLow;
+        if (! lowPassOnly)
+        {
+            const auto lowerOutputs = dusk::filtertype::outputs(
+                sample, onePoleLow, firstCellBand, sample - onePoleLow,
+                filterTypeGains);
+            lower = lowerOutputs[static_cast<size_t>(cache.typeLeft)]
+                + (lowerOutputs[static_cast<size_t>(cache.typeRight)]
+                    - lowerOutputs[static_cast<size_t>(cache.typeLeft)])
+                        * cache.typeFraction;
+        }
         filtered = lower + (taps[1] - lower)
-            * ((slope - 6.0f) / 6.0f);
+            * cache.lowSlopeFraction;
     }
     else
     {
-        const float cellPosition = slope / 12.0f;
-        const int lowerCells = juce::jlimit(
-            1, maximumKorg35Cells,
-            static_cast<int>(std::floor(cellPosition)));
-        const int upperCells = juce::jmin(
-            maximumKorg35Cells, lowerCells + 1);
-        const float fraction = cellPosition
-            - static_cast<float>(lowerCells);
-        filtered = taps[static_cast<size_t>(lowerCells)]
-            + (taps[static_cast<size_t>(upperCells)]
-                - taps[static_cast<size_t>(lowerCells)]) * fraction;
+        filtered = taps[static_cast<size_t>(cache.lowerCells)]
+            + (taps[static_cast<size_t>(cache.upperCells)]
+                - taps[static_cast<size_t>(cache.lowerCells)])
+                    * cache.cellFraction;
     }
 
     const float bass = processOnePole(
-        filtered, 110.0f, korg35BassLossState[stateIndex]);
-    filtered -= bass * (0.78f * bassLoss * safeResonance);
-    filtered *= 1.0f + 2.2f * safeResonance * compensation;
+        filtered, cache.bassCoefficient, korg35BassLossState[stateIndex]);
+    filtered -= bass * cache.bassLossAmount;
+    filtered *= cache.outputCompensation;
     if (internalDistortion)
         filtered = processSelectedDistortion(
             filtered, distortionAmount, engine, channel,
             currentDistortion, previousDistortion, distortionCrossfade,
             korg35InternalDistortionStateBank);
 
-    const float dcCoefficient = std::exp(
-        -juce::MathConstants<float>::twoPi * 5.0f / sampleRate);
     const float dcRemoved = sanitiseSample(
         filtered - korg35DcInput[stateIndex]
-            + dcCoefficient * korg35DcOutput[stateIndex], 64.0f);
+            + cache.dcCoefficient * korg35DcOutput[stateIndex], 64.0f);
     korg35DcInput[stateIndex] = filtered;
     korg35DcOutput[stateIndex] = dcRemoved;
     return dcRemoved;

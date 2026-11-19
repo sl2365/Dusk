@@ -481,7 +481,8 @@ enum TargetPositionGroup : int
     filter1DesignerKnob7Position,
     filter2DesignerKnob7Position,
     filter1DesignerKnob8Position,
-    filter2DesignerKnob8Position
+    filter2DesignerKnob8Position,
+    targetPositionGroupCount
 };
 
 inline constexpr int targetPositionGroup(int choice) noexcept

@@ -1,5 +1,22 @@
 # Dusk Changelog
 
+## 1.28.16 — Korg-35, Diode Ladder and audio-thread CPU — 19 November 2026
+
+- Korg-35 evaluates its drive curve once per cell at zero resonance. At higher resonance it keeps all four feedback evaluations.
+- Diode Ladder stops iterating when the next solver step produces the exact same value. Both filters take their low-pass output directly from the existing stages when LPF is selected.
+- Both stereo channels share one set of coefficients per filter. Steady controls are checked once per block. Moving controls still update at sample rate.
+- All architectures now read just their own controls. The sequencer resolves target assignments once per block and skips per-sample gate position calculations for a run of identical Off or Rest steps spanning the selected range.
+
+## 1.28.15 — Lossless Diode Ladder and Korg-35 CPU Caching — 19 November 2026
+
+- Reduced Diode Ladder and Korg-35 audio-thread work by caching parameter-derived coefficients per filter engine and reusing identical results across the left and right channels.
+- Split each cache by dependency so Cutoff, Resonance and Designer modulation recalculate only the maths affected by that changing control.
+- Cached Diode Ladder stage coefficients, feedback/feedthrough terms, saturation thresholds, response band scaling and fixed binomial coefficients.
+- Cached Korg-35 cutoff, feedback-tone, bass and DC coefficients together with its drive, feedback, Type and Slope calculations.
+- Preserved every nonlinear curve, four-iteration solver, filter state update, active stage, internal distortion path and parameter smoothing operation; this is an efficiency change rather than an Eco-quality mode.
+- Kept all parameter IDs, ranges, defaults, Models, presets and the state schema unchanged.
+- Update archives continue to exclude the Resources folder.
+
 ## 1.28.14 — Dusk_Data Folder Migration — 18 November 2026
 
 - Renamed Dusk's portable data folder from `Dusk` to `Dusk_Data`.

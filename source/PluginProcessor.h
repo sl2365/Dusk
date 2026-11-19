@@ -217,6 +217,71 @@ private:
     using MultiplicativeSmoother = juce::SmoothedValue<
         float, juce::ValueSmoothingTypes::Multiplicative>;
 
+    struct DiodeLadderCoefficientCache
+    {
+        std::array<float, 12> parameters {};
+        std::array<float, maximumDiodeLadderStages> coefficients {};
+        float gainMinusOne = 0.0f;
+        float lowTiltMinusOne = 0.0f;
+        float highTiltMinusOne = 0.0f;
+        float saturationShape = 0.0f;
+        float positiveThreshold = 1.0f;
+        float negativeThreshold = 1.0f;
+        float feedbackClip = 0.0f;
+        float clipShape = 0.0f;
+        float clipPositiveThreshold = 1.0f;
+        float clipNegativeThreshold = 1.0f;
+        float inputGain = 1.0f;
+        float feedbackGain = 0.0f;
+        float feedbackFeedthrough = 0.0f;
+        float type = 0.0f;
+        float typeFraction = 0.0f;
+        float poleFraction = 0.0f;
+        float lowerBandScale = 1.0f;
+        float upperBandScale = 1.0f;
+        int typeLeft = 0;
+        int typeRight = 0;
+        int lowerPoles = 1;
+        int upperPoles = 1;
+        bool valid = false;
+    };
+
+    struct Korg35CoefficientCache
+    {
+        std::array<float, 12> parameters {};
+        float gainMinusOne = 0.0f;
+        float lowTiltMinusOne = 0.0f;
+        float highTiltMinusOne = 0.0f;
+        float feedbackGain = 0.0f;
+        float drive = 0.0f;
+        float feedbackClip = 0.0f;
+        float feedbackTone = 0.0f;
+        float coefficient = 0.0f;
+        float toneCoefficient = 0.0f;
+        float bassCoefficient = 0.0f;
+        float driveGain = 1.0f;
+        float driveBias = 0.0f;
+        float driveOffset = 0.0f;
+        float clipThreshold = 1.0f;
+        float feedbackBias = 0.0f;
+        float feedbackOffset = 0.0f;
+        float bassLossAmount = 0.0f;
+        float outputCompensation = 1.0f;
+        float dcCoefficient = 0.0f;
+        float type = 0.0f;
+        float typeFraction = 0.0f;
+        float slope = 12.0f;
+        float lowSlopeFraction = 1.0f;
+        float cellFraction = 0.0f;
+        int typeLeft = 0;
+        int typeRight = 0;
+        int activeCells = 2;
+        int lowerCells = 1;
+        int upperCells = 2;
+        bool equaliserType = false;
+        bool valid = false;
+    };
+
     struct ParameterPointers
     {
         std::atomic<float>* routing = nullptr;
@@ -454,11 +519,9 @@ private:
     void setSavedParameterState(const juce::ValueTree&);
     static float load(const std::atomic<float>*) noexcept;
     bool isSequencerTargetAssigned(int targetChoice) const noexcept;
-    float sequencerTargetDepth(int targetChoice) const noexcept;
     float sequencerModulatedValue(
         int targetChoice, float baseValue, float canonicalSequenceValue,
-        bool bipolar, bool unipolarNegative,
-        juce::RangedAudioParameter* valueParameter = nullptr) const noexcept;
+        bool bipolar, bool unipolarNegative, float targetDepth) const noexcept;
 
     static float applyInputDrive(float sample, float amount,
                                  int distortionType) noexcept;
@@ -544,15 +607,10 @@ private:
         bool internalDistortion, float distortionAmount,
         int currentDistortion, int previousDistortion,
         float distortionCrossfade) noexcept;
+    void updateDiodeLadderCoefficients(size_t engine) noexcept;
     float processDiodeLadderFilter(
-        float sample, int engine, int channel, float filterTypePosition,
-        float cutoffHz, float resonance, float slopeDbPerOctave,
-        float diodeSaturationPercent, float feedbackClipPercent,
-        float biasPercent, float stageTiltPercent,
-        float resonanceLossPercent, float resonanceCompensationPercent,
-        float gainDb,
-        bool internalDistortion, float distortionAmount,
-        int currentDistortion, int previousDistortion,
+        float sample, int engine, int channel, bool internalDistortion,
+        float distortionAmount, int currentDistortion, int previousDistortion,
         float distortionCrossfade) noexcept;
     float processSteinerParkerFilter(
         float sample, int engine, int channel, float filterTypePosition,
@@ -573,15 +631,10 @@ private:
         bool internalDistortion, float distortionAmount,
         int currentDistortion, int previousDistortion,
         float distortionCrossfade) noexcept;
+    void updateKorg35Coefficients(size_t engine) noexcept;
     float processKorg35Filter(
-        float sample, int engine, int channel, float filterTypePosition,
-        float cutoffHz, float resonance, float slopeDbPerOctave,
-        float chipDrivePercent, float feedbackClipPercent,
-        float biasPercent, float feedbackTonePercent,
-        float bassLossPercent, float resonanceCompensationPercent,
-        float gainDb,
-        bool internalDistortion, float distortionAmount,
-        int currentDistortion, int previousDistortion,
+        float sample, int engine, int channel, bool internalDistortion,
+        float distortionAmount, int currentDistortion, int previousDistortion,
         float distortionCrossfade) noexcept;
     float processSpectralBankFilter(
         float sample, int engine, int channel, float centreHz,
@@ -592,59 +645,7 @@ private:
         int currentDistortion, int previousDistortion,
         float distortionCrossfade) noexcept;
     float processFilterArchitecture(
-        float sample, int previousArchitecture, int currentArchitecture,
-        float architectureCrossfade, int engine, int channel,
-        float filterTypePosition, float cutoffHz, float basicResonance,
-        float cleanResonance,
-        float slopeDbPerOctave, float bassLoss, float coreSaturation,
-        float saturationAsymmetry, float poleSpread, float feedback,
-        float feedbackLimit, float ladderStageSaturation,
-        float ladderFeedbackSaturation,
-        float ladderResonanceCompensation, float otaCellDrive,
-        float otaFeedbackDamping,
-        float otaResonanceCompensation,
-        int previousCombModeChoice, int currentCombModeChoice,
-        float combModeCrossfade, float combFrequency,
-        float combFeedback, float combDamping, float combFineTune,
-        float combPolarity, float combStereoSpread,
-        float combDispersion, float combLoopSaturation,
-        float combFeedbackLimit,
-        float formantVowel, float formantShift, float formantFocus,
-        float formantOneLevel, float formantTwoLevel,
-        float formantThreeLevel, float formantBandwidth,
-        float formantSpread, float formantTilt,
-        float phaserFrequency, float phaserFeedback, float phaserDepth,
-        float phaserStages, float phaserSpread, float phaserSkew,
-        float phaserDamping, float phaserStageSaturation,
-        float phaserStereo,
-        float modalFrequency, float modalDecay, float modalBody,
-        float modalModes, float modalRatio, float modalInharmonicity,
-        float modalDecayTilt, float modalDamping, float modalExcitation,
-        float sallenKeyQCurve, float sallenKeyCellGain,
-        float sallenKeyStageCoupling, float sallenKeyComponentVariation,
-        float sallenKeyOpAmpSaturation,
-        float sallenKeyHighFrequencyDamping,
-        float diodeLadderSaturation, float diodeLadderFeedbackClip,
-        float diodeLadderBias, float diodeLadderStageTilt,
-        float diodeLadderResonanceLoss,
-        float diodeLadderResonanceCompensation,
-        float steinerDiodeDrive, float steinerFeedbackClip,
-        float steinerBias, float steinerPoleSpread,
-        float steinerResonanceCurve,
-        float steinerResonanceCompensation,
-        float vactrolRise, float vactrolFall, float vactrolMemory,
-        float vactrolLevelCoupling, float vactrolWarmth,
-        float vactrolBleed,
-        float korg35ChipDrive, float korg35FeedbackClip,
-        float korg35Bias, float korg35FeedbackTone,
-        float korg35BassLoss, float korg35ResonanceCompensation,
-        float spectralCentre, float spectralSpan, float spectralDepth,
-        float spectralBands, float spectralWidth, float spectralPattern,
-        float spectralShift, float spectralContrast, float spectralTilt,
-        float filterGainDb,
-        bool internalDistortion, float distortionAmount,
-        int currentDistortion, int previousDistortion,
-        float distortionCrossfade) noexcept;
+        float sample, int engine, int channel, bool internalDistortion) noexcept;
     float processRectifyDrive(float sample, float amount, int channel) noexcept;
     float processCrackleDrive(float sample, float amount, int channel) noexcept;
     float processLightningDrive(float sample, float amount, int channel) noexcept;
@@ -896,6 +897,8 @@ private:
     std::array<std::array<float, filterStateCount>,
                maximumDiodeLadderStages>
         diodeLadderStageState {};
+    std::array<DiodeLadderCoefficientCache, filterEngineCount>
+        diodeLadderCoefficientCache {};
     std::array<float, filterStateCount> diodeLadderDcInput {};
     std::array<float, filterStateCount> diodeLadderDcOutput {};
     std::array<std::array<float, filterStateCount>, maximumSteinerCells>
@@ -920,6 +923,8 @@ private:
         korg35StageTwoState {};
     std::array<std::array<float, filterStateCount>, maximumKorg35Cells>
         korg35FeedbackToneState {};
+    std::array<Korg35CoefficientCache, filterEngineCount>
+        korg35CoefficientCache {};
     std::array<float, filterStateCount> korg35OnePoleState {};
     std::array<float, filterStateCount> korg35BassLossState {};
     std::array<float, filterStateCount> korg35DcInput {};
