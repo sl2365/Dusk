@@ -1,5 +1,49 @@
 # Dusk Changelog
 
+## 1.28.21 — Visually Centred Filter Dropdowns — 19 November 2026
+
+- Moved every Filter-tab dropdown and its label 6 pixels right in both panels.
+- Centred the dropdowns against the visible left edge of the Cutoff rotary ring rather than the rotary component's larger invisible bounds.
+- Kept all dropdown heights and vertical positions established in v1.28.20.
+- Kept the filter DSP, CPU optimisations, parameters, Models, presets, Sequencer behaviour and state schema unchanged.
+- Update archives continue to exclude the Resources folder.
+
+## 1.28.20 — Centred Filter Dropdowns — 19 November 2026
+
+- Centred each Filter-tab dropdown inside the empty gap between its panel's left edge and the Cutoff knob's left edge.
+- Kept both Architecture rows at their existing vertical position.
+- Moved Type, Dist Type and Placement up 3 pixels in both filter panels.
+- Aligned the bottom edge of each Placement dropdown with the bottom edge of the lower knob value area at y224.
+- Kept the filter DSP, CPU optimisations, parameters, Models, presets, Sequencer behaviour and state schema unchanged.
+- Update archives continue to exclude the Resources folder.
+
+## 1.28.19 — Matched Panel-edge Spacing — 19 November 2026
+
+- Matched each Resonance knob's right-edge gap to the Mix knob's 3-pixel right-edge gap.
+- Rebalanced Cutoff, Resonance and Mix to matching 70-pixel column intervals.
+- Mirrored the revised columns across Filter 1 and Filter 2, including every architecture-specific Filter-tab control.
+- Kept the Filter-tab dropdown positions established in v1.28.18.
+- Kept the filter DSP, CPU optimisations, parameters, Models, presets, Sequencer behaviour and state schema unchanged.
+- Update archives continue to exclude the Resources folder.
+
+## 1.28.18 — Balanced Filter-tab Columns — 19 November 2026
+
+- Spaced Filter 2 Cutoff, Resonance and Mix at matching 74-pixel intervals.
+- Mirrored those control-column positions in Filter 1.
+- Positioned both Resonance columns with the same 7-pixel gap from the right edge of their filter panels.
+- Moved every Filter-tab dropdown and its label 10 pixels right in both panels.
+- Kept the filter DSP, CPU optimisations, parameters, Models, presets, Sequencer behaviour and state schema unchanged.
+- Update archives continue to exclude the Resources folder.
+
+## 1.28.17 — Filter-tab Control Spacing — 19 November 2026
+
+- Moved both Filter-tab knob columns slightly right and increased their horizontal separation from 65 to 70 pixels.
+- Aligned each Architecture label vertically with its Cutoff label.
+- Evenly redistributed the Architecture, Type and Dist Type rows above the unchanged Placement row.
+- Applied the same geometry to Filter 1 and Filter 2, including every architecture-specific Filter-tab control.
+- Kept the filter DSP, CPU optimisations, parameters, Models, presets, Sequencer behaviour and state schema unchanged.
+- Update archives continue to exclude the Resources folder.
+
 ## 1.28.16 — Korg-35, Diode Ladder and audio-thread CPU — 19 November 2026
 
 - Korg-35 evaluates its drive curve once per cell at zero resonance. At higher resonance it keeps all four feedback evaluations.
