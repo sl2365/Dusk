@@ -4538,7 +4538,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     logoMenuButton.onClick = [this] { showLogoZoomMenu(); };
     content.addAndMakeVisible(logoMenuButton);
 
-    versionLabel.setText("v1.28.22", juce::dontSendNotification);
+    versionLabel.setText("v1.28.23", juce::dontSendNotification);
     versionLabel.setJustificationType(juce::Justification::centred);
     versionLabel.setColour(juce::Label::textColourId, knobIndicatorColour);
     versionLabel.setFont(juce::Font(juce::FontOptions(8.5f,
@@ -5482,7 +5482,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     outputDial->slider.setDoubleClickReturnValue(true, 0.0);
     themeDial = addDial(
         "", "THEME",
-        "Turn clockwise for the full Dusk sunset palette or left for charcoal. The indigo strip reaches full opacity at 50% and fades toward either end.",
+        "Turn clockwise for the full Dusk sunset palette or left for charcoal. The indigo strip remains fully opaque throughout the Theme range.",
         false);
     themeDial->label.setJustificationType(juce::Justification::centred);
     themeDial->slider.setRange(0.0, 100.0, 0.1);
@@ -5500,7 +5500,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
         information.setText(
             contextHelpText(
                 "Theme",
-                "Turn clockwise for the full Dusk sunset palette or left for charcoal. The indigo strip is fully visible at 50%."),
+                "Turn clockwise for the full Dusk sunset palette or left for charcoal. The indigo strip remains fully opaque."),
             juce::dontSendNotification);
         repaint();
         if (sequencerPanel != nullptr)
@@ -6018,7 +6018,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addAndMakeVisible(randomButton);
 
     information.setText(
-        "DUSK 1.28.22 | Shared MIDI learn and interface consistency.",
+        "DUSK 1.28.23 | Fully opaque Theme bar.",
         juce::dontSendNotification);
     information.setColour(juce::Label::textColourId,
                           juce::Colours::lightgrey);
@@ -9349,10 +9349,7 @@ void DuskAudioProcessorEditor::paint(juce::Graphics& g)
 
     const juce::Rectangle<float> typeStrip(
         18.0f, 53.0f, static_cast<float>(designWidth - 36), 7.0f);
-    const float stripOpacity = juce::jlimit(
-        0.0f, 1.0f,
-        1.0f - std::abs(fullColourAmount - 0.5f) / 0.5f);
-    g.setColour(themeAccentColour.withAlpha(stripOpacity));
+    g.setColour(themeAccentColour);
     g.fillRoundedRectangle(typeStrip, 3.5f);
 
     if (logoDrawable != nullptr)

@@ -393,7 +393,7 @@ User sequences are stored as `.duskseq` files in the portable Sequences folder.
 - The global Power LED bypasses or enables Dusk processing.
 - Middle-click a knob to restore its factory Init value. Left-button double-click restores the value saved in the current preset; double-clicks with other mouse buttons are ignored.
 - Press the MIDI socket button to enter MIDI Learn. Click an outlined control, then move a MIDI CC controller to assign it. Assigned CC numbers appear at the bottom-centre of their controls; right-click an outlined control to clear its assignment. MIDI mappings are global rather than preset-specific.
-- THEME fades the continuous indigo, violet, pink and orange sunset surround toward neutral charcoal. The Filter and Sequencer remain separate panels while sharing one unbroken vertical colour progression. The upper indigo strip is fully visible at 50% THEME and fades toward both ends of the range, naturally disappearing into the matching full-colour surround at 100%.
+- THEME fades the continuous indigo, violet, pink and orange sunset surround toward neutral charcoal. The Filter and Sequencer remain separate panels while sharing one unbroken vertical colour progression. Dusk does not use background artwork, so the upper indigo strip remains fully opaque throughout the Theme range while the panel colouring continues to follow THEME.
 - Drag the resize handle to scale the interface from 75% to 300%, or click the Dusk logo and choose a fixed 25% step from 75% through 300% in the GUI Zoom menu.
 - The randomise button changes supported filter and Designer controls within bounded ranges while leaving Architecture, routing, filter power, Placement, MIX, global Power and sequencer state unchanged.
 

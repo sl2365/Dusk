@@ -1,5 +1,13 @@
 # Dusk Changelog
 
+## 1.28.23 — Fully Opaque Theme Bar — 27 November 2026
+
+- Kept the upper indigo Theme bar fully opaque throughout the complete Theme range.
+- Left the existing Filter and Sequencer panel-gradient colouring unchanged.
+- Retained all v1.28.22 MIDI learn, reset gestures, popup styling and yellow active-button changes.
+- Kept the filter DSP, CPU optimisations, parameters, Models, presets, sequencer behaviour and state schema unchanged.
+- Update archives continue to exclude the Resources folder.
+
 ## 1.28.22 — Shared MIDI Learn and Interface Consistency — 27 November 2026
 
 - Added the same MIDI-learn workflow used by Transform, Crusher and Afterglow, with a vector MIDI socket button immediately left of Random.
