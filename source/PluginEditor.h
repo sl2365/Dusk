@@ -545,6 +545,7 @@ private:
     bool restoreDialFromSavedState(Dial&);
     void updateContextSensitiveHelp();
     void setMainView(MainView);
+    juce::Rectangle<float> renderedLogoBounds() const;
     void showLogoZoomMenu();
     void setZoomPercent(int);
     void updateArchitectureContext();

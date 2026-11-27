@@ -4636,7 +4636,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     logoMenuButton.onClick = [this] { showLogoZoomMenu(); };
     content.addAndMakeVisible(logoMenuButton);
 
-    versionLabel.setText("v1.28.27", juce::dontSendNotification);
+    versionLabel.setText("v1.28.28", juce::dontSendNotification);
     versionLabel.setJustificationType(juce::Justification::centred);
     versionLabel.setColour(juce::Label::textColourId, knobIndicatorColour);
     versionLabel.setFont(juce::Font(juce::FontOptions(8.5f,
@@ -6221,7 +6221,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addAndMakeVisible(randomButton);
 
     information.setText(
-        "DUSK 1.28.27 | Correct 75% GUI zoom sizing.",
+        "DUSK 1.28.28 | Logo-only GUI Zoom click area.",
         juce::dontSendNotification);
     information.setColour(juce::Label::textColourId,
                           juce::Colours::lightgrey);
@@ -7481,6 +7481,18 @@ void DuskAudioProcessorEditor::setMainView(MainView view)
             "FILTER VIEW | Standard architectures use nine Types; LO SHELF, HI SHELF, BELL and TILT replace Slope with Gain.\nThe graph shows F1, F2 and the routing-aware combined small-signal response.",
             juce::dontSendNotification);
     saveInterfaceSettings();
+}
+
+juce::Rectangle<float> DuskAudioProcessorEditor::renderedLogoBounds() const
+{
+    if (logoDrawable == nullptr)
+        return {};
+    return juce::RectanglePlacement(
+        juce::RectanglePlacement::xLeft
+            | juce::RectanglePlacement::yMid
+            | juce::RectanglePlacement::onlyReduceInSize)
+        .appliedTo(logoDrawable->getDrawableBounds(),
+                   juce::Rectangle<float>(22.0f, 5.0f, 280.0f, 43.0f));
 }
 
 void DuskAudioProcessorEditor::showLogoZoomMenu()
@@ -9630,10 +9642,8 @@ void DuskAudioProcessorEditor::paint(juce::Graphics& g)
 
     if (logoDrawable != nullptr)
         logoDrawable->drawWithin(
-            g, juce::Rectangle<float>(22.0f, 5.0f, 280.0f, 43.0f),
-            juce::RectanglePlacement::xLeft
-                | juce::RectanglePlacement::yMid
-                | juce::RectanglePlacement::onlyReduceInSize,
+            g, renderedLogoBounds(),
+            juce::RectanglePlacement::stretchToFit,
             1.0f);
     g.restoreState();
 }
@@ -9876,7 +9886,7 @@ void DuskAudioProcessorEditor::resized()
     placeDial(mixDial, 845, 67);
     placeDial(outputDial, 845, 154);
 
-    logoMenuButton.setBounds(22, 5, 280, 43);
+    logoMenuButton.setBounds(renderedLogoBounds().toNearestInt());
     versionLabel.setBounds(designWidth - 57, 2, 50, 12);
     filterViewButton.setBounds(318, 9, 114, 18);
     designerViewButton.setBounds(318, 25, 114, 18);

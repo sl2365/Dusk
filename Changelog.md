@@ -1,5 +1,11 @@
 # Dusk Changelog
 
+## 1.28.28 — Logo-Only GUI Zoom Click Area — 27 November 2026
+
+- Restricted the GUI Zoom click target to the actual proportionally rendered Dusk logo instead of the full 280-pixel header area.
+- The popup remains anchored to the logo and follows it correctly at every supported zoom setting.
+- GUI-only change; DSP, parameters, presets, MIDI assignments and Resources are unchanged.
+
 ## 1.28.27 — 75% GUI Zoom Resize Fix — 27 November 2026
 
 - Fixed the GUI being cut off at 75% by deriving the resize limits from Dusk's current collapsed or expanded design height instead of using stale hard-coded dimensions.
