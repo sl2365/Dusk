@@ -32,6 +32,7 @@ private:
     {
     public:
         std::function<bool()> onSavedStateReset;
+        std::function<void()> onInitReset;
         void setCentreDetent(double value, double radius)
         {
             centreDetent = value;
@@ -47,16 +48,54 @@ private:
                 return centreDetent;
             return attemptedValue;
         }
+        void mouseDown(const juce::MouseEvent& event) override
+        {
+            middleResetGesture = event.mods.isMiddleButtonDown();
+            if (middleResetGesture)
+            {
+                if (isEnabled() && onInitReset != nullptr)
+                    onInitReset();
+                return;
+            }
+            juce::Slider::mouseDown(event);
+        }
+        void mouseDrag(const juce::MouseEvent& event) override
+        {
+            if (! middleResetGesture)
+                juce::Slider::mouseDrag(event);
+        }
+        void mouseUp(const juce::MouseEvent& event) override
+        {
+            if (middleResetGesture)
+            {
+                middleResetGesture = false;
+                return;
+            }
+            juce::Slider::mouseUp(event);
+        }
         void mouseDoubleClick(const juce::MouseEvent& event) override
         {
-            if (onSavedStateReset != nullptr && onSavedStateReset())
+            if (! event.mods.isLeftButtonDown() || middleResetGesture
+                || event.mods.isMiddleButtonDown()
+                || event.mods.isRightButtonDown())
                 return;
+            if (onSavedStateReset != nullptr)
+            {
+                if (onSavedStateReset())
+                    return;
+                if (onInitReset != nullptr)
+                {
+                    onInitReset();
+                    return;
+                }
+            }
             juce::Slider::mouseDoubleClick(event);
         }
     private:
         double centreDetent = 0.0;
         double detentRadius = 0.0;
         bool centreDetentEnabled = false;
+        bool middleResetGesture = false;
     };
 
     class SteppedComboBox final : public juce::ComboBox
@@ -153,6 +192,7 @@ private:
         DuskAudioProcessor& processor;
     };
 
+    class MidiLearnOverlay;
     class SequencerPanel;
     class FolderTreeItem;
     class LookAndFeel final : public juce::LookAndFeel_V4
@@ -194,7 +234,7 @@ private:
             return popupBorderColour;
         }
     private:
-        juce::Colour popupBorderColour { 0xff1479b8 };
+        juce::Colour popupBorderColour { 0xff424c87 };
         bool useCompactPopupFont = false;
     };
 
@@ -456,10 +496,12 @@ private:
     juce::ToggleButton presetSaveAsButton;
     juce::ToggleButton presetOpenFolderButton;
     juce::ToggleButton randomButton { "!!!" };
+    juce::ToggleButton midiLearnButton;
     juce::ToggleButton sequencerButton { "SEQ" };
     juce::ToggleButton filter1ModelMenuButton { "..." };
     juce::ToggleButton filter2ModelMenuButton { "..." };
     std::unique_ptr<SequencerPanel> sequencerPanel;
+    std::unique_ptr<MidiLearnOverlay> midiLearnOverlay;
     std::unique_ptr<FolderTreeItem> presetFolderRoot;
     std::unique_ptr<juce::FileChooser> presetFileChooser;
     std::unique_ptr<juce::FileChooser> filterModelFileChooser;
@@ -503,6 +545,7 @@ private:
     juce::Colour filterAccent(int filterIndex) const;
     juce::Colour panelColour(int filterIndex) const;
     void setPresetBrowserOpen(bool);
+    void setMidiLearnOpen(bool);
     void updatePresetBrowserVisibility();
     void updateFilterControlEnablement();
     void rebuildPresetFolderTree();
@@ -559,6 +602,7 @@ private:
     bool filterModelBoxesReady = false;
     bool favouritesViewSelected = false;
     bool sequencerOpen = false;
+    bool midiLearnOpen = false;
     bool previousPresetKeyDown = false;
     bool nextPresetKeyDown = false;
     int selectedPresetBrowserColumn = 0;

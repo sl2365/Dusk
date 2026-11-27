@@ -324,6 +324,170 @@ DuskAudioProcessor::DuskAudioProcessor()
     getPresetsDirectory().createDirectory();
     getSequencesDirectory().createDirectory();
     getModelsDirectory().createDirectory();
+    for (auto& event : midiIncoming)
+        event.store(0, std::memory_order_relaxed);
+    loadMidiMappings();
+    updateMidiCapture();
+}
+
+DuskAudioProcessor::~DuskAudioProcessor()
+{
+    midiCaptureEnabled.store(false, std::memory_order_release);
+    stopTimer();
+}
+
+void DuskAudioProcessor::loadMidiMappings()
+{
+    const auto file = getSettingsDirectory().getChildFile("MidiLearn.ini");
+    juce::StringArray lines;
+    lines.addLines(file.loadFileAsString());
+    for (const auto& line : lines)
+    {
+        const auto id = line.upToFirstOccurrenceOf("=", false, false).trim();
+        const auto ccText = line.fromFirstOccurrenceOf("=", false, false).trim();
+        if (id.isEmpty() || ccText.isEmpty()
+            || ! ccText.containsOnly("0123456789")
+            || parameters.getParameter(id) == nullptr)
+            continue;
+        const int cc = ccText.getIntValue();
+        if (cc < 0 || cc >= midiCCCount)
+            continue;
+        for (auto& mapped : midiMapping)
+            if (mapped == id)
+                mapped.clear();
+        midiMapping[static_cast<std::size_t>(cc)] = id;
+    }
+}
+
+void DuskAudioProcessor::saveMidiMappings() const
+{
+    juce::String text = "[MidiLearn]\n";
+    for (int cc = 0; cc < midiCCCount; ++cc)
+        if (midiMapping[static_cast<std::size_t>(cc)].isNotEmpty())
+            text += midiMapping[static_cast<std::size_t>(cc)]
+                 + "=" + juce::String(cc) + "\n";
+    getSettingsDirectory().getChildFile("MidiLearn.ini")
+        .replaceWithText(text);
+}
+
+int DuskAudioProcessor::getMidiLearnCC(const juce::String& id) const
+{
+    if (id.isEmpty())
+        return -1;
+    for (int cc = 0; cc < midiCCCount; ++cc)
+        if (midiMapping[static_cast<std::size_t>(cc)] == id)
+            return cc;
+    return -1;
+}
+
+void DuskAudioProcessor::updateMidiCapture()
+{
+    const bool needed = midiArmedId.isNotEmpty()
+        || std::any_of(midiMapping.begin(), midiMapping.end(),
+            [](const juce::String& id) { return id.isNotEmpty(); });
+    midiCaptureEnabled.store(needed, std::memory_order_release);
+    if (needed)
+    {
+        if (! isTimerRunning())
+            startTimerHz(60);
+    }
+    else
+        stopTimer();
+}
+
+void DuskAudioProcessor::armMidiLearn(const juce::String& id)
+{
+    if (parameters.getParameter(id) == nullptr)
+        return;
+    midiArmAfter = midiLatest.load(std::memory_order_acquire) >> 14;
+    midiArmedId = id;
+    updateMidiCapture();
+}
+
+void DuskAudioProcessor::cancelMidiLearn()
+{
+    midiArmedId.clear();
+    updateMidiCapture();
+}
+
+void DuskAudioProcessor::clearMidiLearn(const juce::String& id)
+{
+    if (midiArmedId == id)
+        midiArmedId.clear();
+    const int cc = getMidiLearnCC(id);
+    if (cc >= 0)
+    {
+        midiMapping[static_cast<std::size_t>(cc)].clear();
+        saveMidiMappings();
+    }
+    updateMidiCapture();
+}
+
+void DuskAudioProcessor::captureMidiCC(const juce::MidiBuffer& midi) noexcept
+{
+    if (! midiCaptureEnabled.load(std::memory_order_acquire))
+        return;
+    for (const auto event : midi)
+    {
+        if (event.numBytes != 3 || (event.data[0] & 0xf0) != 0xb0)
+            continue;
+        const int cc = event.data[1] & 0x7f;
+        if (cc >= midiCCCount)
+            continue;
+        const auto packed = (++midiSerial << 14)
+            | (static_cast<std::uint64_t>(cc) << 7)
+            | static_cast<std::uint64_t>(event.data[2] & 0x7f);
+        midiIncoming[static_cast<std::size_t>(cc)].store(
+            packed, std::memory_order_release);
+        midiLatest.store(packed, std::memory_order_release);
+    }
+}
+
+void DuskAudioProcessor::timerCallback()
+{
+    const auto latest = midiLatest.load(std::memory_order_acquire);
+    if (latest == midiLastDrained)
+        return;
+    midiLastDrained = latest;
+    if (midiArmedId.isNotEmpty() && (latest >> 14) > midiArmAfter)
+    {
+        const auto cc = static_cast<std::size_t>((latest >> 7) & 0x7f);
+        if (cc < midiMapping.size())
+        {
+            for (auto& id : midiMapping)
+                if (id == midiArmedId)
+                    id.clear();
+            midiMapping[cc] = midiArmedId;
+            midiArmedId.clear();
+            saveMidiMappings();
+            if (auto* parameter = parameters.getParameter(midiMapping[cc]))
+            {
+                const float value = static_cast<float>(latest & 0x7f)
+                                  / 127.0f;
+                const float snapped = parameter->convertTo0to1(
+                    parameter->convertFrom0to1(value));
+                if (parameter->getValue() != snapped)
+                    parameter->setValueNotifyingHost(snapped);
+            }
+        }
+    }
+    for (std::size_t cc = 0; cc < midiIncoming.size(); ++cc)
+    {
+        const auto event = midiIncoming[cc].load(std::memory_order_acquire);
+        if (event == midiConsumed[cc])
+            continue;
+        midiConsumed[cc] = event;
+        if (midiMapping[cc].isEmpty())
+            continue;
+        if (auto* parameter = parameters.getParameter(midiMapping[cc]))
+        {
+            const float value = static_cast<float>(event & 0x7f) / 127.0f;
+            const float snapped = parameter->convertTo0to1(
+                parameter->convertFrom0to1(value));
+            if (parameter->getValue() != snapped)
+                parameter->setValueNotifyingHost(snapped);
+        }
+    }
 }
 
 juce::File DuskAudioProcessor::getDataDirectory()
@@ -3972,6 +4136,7 @@ void DuskAudioProcessor::processBlock(
     juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
+    captureMidiCC(midi);
     const int sampleCount = buffer.getNumSamples();
     const int hostChannels = buffer.getNumChannels();
     const int activeChannels = juce::jmin(channelCount, hostChannels);

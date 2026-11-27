@@ -1,5 +1,17 @@
 # Dusk Changelog
 
+## 1.28.22 — Shared MIDI Learn and Interface Consistency — 27 November 2026
+
+- Added the same MIDI-learn workflow used by Transform, Crusher and Afterglow, with a vector MIDI socket button immediately left of Random.
+- MIDI Learn outlines every available parameter control, displays assigned CC numbers at the bottom-centre of each control and clears an assignment by right-clicking it.
+- Saved MIDI mappings globally in `Dusk_Data/Settings/MidiLearn.ini`, independently of presets.
+- Middle-click now restores an individual knob to its factory Init value. Left-button double-click restores the current preset's saved value; other mouse buttons cannot trigger the double-click reset.
+- Matched the popup and GUI Zoom menus to Dusk's dropdown styling, added the `GUI Zoom` heading and used the Theme accent for every popup border.
+- Changed the Theme strip so its opacity rises to full at 50% and fades away toward either end of the Theme range.
+- Matched the active Preset Browser, Sequencer and linked Start/End buttons to the shared yellow button style while preserving their existing off state.
+- Kept the filter DSP, CPU optimisations, parameter IDs, ranges, defaults, Models, preset format and sequencer audio behaviour unchanged.
+- Update archives continue to exclude the Resources folder.
+
 ## 1.28.21 — Visually Centred Filter Dropdowns — 19 November 2026
 
 - Moved every Filter-tab dropdown and its label 6 pixels right in both panels.

@@ -25,7 +25,7 @@ set "BUNDLE_BINARY=%BUILD_DIR%\Dusk_artefacts\Release\VST3\Dusk.vst3\Contents\x8
 set "FINAL_PLUGIN=%DIST_DIR%\Dusk.vst3"
 
 echo.
-echo Dusk 64-bit VST3 - v1.28.21 Build
+echo Dusk 64-bit VST3 - v1.28.22 Build
 echo ======================================
 echo.
 

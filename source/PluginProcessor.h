@@ -5,14 +5,16 @@
 #include "DuskSequencer.h"
 #include <array>
 #include <complex>
+#include <cstdint>
 #include <optional>
 #include <vector>
 
-class DuskAudioProcessor final : public juce::AudioProcessor
+class DuskAudioProcessor final : public juce::AudioProcessor,
+                                 private juce::Timer
 {
 public:
     DuskAudioProcessor();
-    ~DuskAudioProcessor() override = default;
+    ~DuskAudioProcessor() override;
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
@@ -38,6 +40,15 @@ public:
     void changeProgramName(int, const juce::String&) override {}
     void getStateInformation(juce::MemoryBlock&) override;
     void setStateInformation(const void*, int) override;
+
+    // MIDI learn is stored outside preset state. The audio thread only
+    // captures CC bytes; mapping edits and host notifications run on the
+    // message thread.
+    void armMidiLearn(const juce::String& id);
+    void cancelMidiLearn();
+    void clearMidiLearn(const juce::String& id);
+    int getMidiLearnCC(const juce::String& id) const;
+    juce::String getArmedMidiLearn() const { return midiArmedId; }
 
     juce::AudioProcessorValueTreeState parameters;
     static juce::AudioProcessorValueTreeState::ParameterLayout
@@ -189,6 +200,22 @@ public:
         int filterTypeChoice) noexcept;
 
 private:
+    static constexpr int midiCCCount = 120;
+    std::array<std::atomic<std::uint64_t>, midiCCCount> midiIncoming {};
+    std::array<std::uint64_t, midiCCCount> midiConsumed {};
+    std::array<juce::String, midiCCCount> midiMapping {};
+    std::atomic<std::uint64_t> midiLatest { 0 };
+    std::atomic<bool> midiCaptureEnabled { false };
+    std::uint64_t midiSerial = 0;
+    std::uint64_t midiArmAfter = 0;
+    std::uint64_t midiLastDrained = 0;
+    juce::String midiArmedId;
+    void captureMidiCC(const juce::MidiBuffer&) noexcept;
+    void timerCallback() override;
+    void updateMidiCapture();
+    void loadMidiMappings();
+    void saveMidiMappings() const;
+
     static constexpr int stateSchemaVersion = 27;
     static constexpr int filterEngineCount = 2;
     static constexpr int channelCount = 2;

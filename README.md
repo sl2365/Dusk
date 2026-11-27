@@ -391,7 +391,9 @@ User sequences are stored as `.duskseq` files in the portable Sequences folder.
 - Right-click the current preset name for the quick menu.
 - MIX LOCK keeps the current MIX value when another preset is loaded.
 - The global Power LED bypasses or enables Dusk processing.
-- THEME fades the continuous indigo, violet, pink and orange sunset surround toward neutral charcoal. The Filter and Sequencer remain separate panels while sharing one unbroken vertical colour progression. The fully opaque top bar always uses the sunset's upper indigo; at maximum THEME the background reaches that same colour beneath it, so the bar blends in naturally without changing or becoming transparent.
+- Middle-click a knob to restore its factory Init value. Left-button double-click restores the value saved in the current preset; double-clicks with other mouse buttons are ignored.
+- Press the MIDI socket button to enter MIDI Learn. Click an outlined control, then move a MIDI CC controller to assign it. Assigned CC numbers appear at the bottom-centre of their controls; right-click an outlined control to clear its assignment. MIDI mappings are global rather than preset-specific.
+- THEME fades the continuous indigo, violet, pink and orange sunset surround toward neutral charcoal. The Filter and Sequencer remain separate panels while sharing one unbroken vertical colour progression. The upper indigo strip is fully visible at 50% THEME and fades toward both ends of the range, naturally disappearing into the matching full-colour surround at 100%.
 - Drag the resize handle to scale the interface from 75% to 300%, or click the Dusk logo and choose a fixed 25% step from 75% through 300% in the GUI Zoom menu.
 - The randomise button changes supported filter and Designer controls within bounded ranges while leaving Architecture, routing, filter power, Placement, MIX, global Power and sequencer state unchanged.
 
@@ -400,9 +402,10 @@ User sequences are stored as `.duskseq` files in the portable Sequences folder.
 Dusk keeps its user data beside `Dusk.vst3`:
 
 ```text
-Dusk/
+Dusk_Data/
 ├── Settings/
-│   └── Settings.ini
+│   ├── Settings.ini
+│   └── MidiLearn.ini
 ├── Presets/
 │   └── *.duskpreset
 ├── Sequences/

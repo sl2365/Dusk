@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "MidiLearnIcon.h"
 #include <BinaryData.h>
 #include <algorithm>
 #include <cmath>
@@ -11,6 +12,7 @@ const juce::Colour knobLabelColour(0xff8d949e);
 const juce::Colour knobValueColour(knobLabelColour.brighter(0.18f));
 const juce::Colour controlAccentColour(0xff65cbb9);
 const juce::Colour knobIndicatorColour(0xffd2b84f);
+const juce::Colour themeAccentColour(0xff424c87);
 const juce::Colour tempoSyncLedColour(0xff55c96b);
 const juce::Colour linkLedColour(0xffffad42);
 const juce::Colour bipolarLedColour(0xffd96b72);
@@ -1398,6 +1400,24 @@ public:
             setTooltip("Drop a Dusk knob label here. The small knob sets that target's individual modulation depth.");
         }
 
+        void visitMidiDepths(const std::function<void(
+            juce::Component&, const juce::String&,
+            juce::Rectangle<int>, bool)>& visit)
+        {
+            const auto slots = assignedSlots();
+            for (int row = 0;
+                 row < visibleRowCount()
+                    && row + firstVisibleRow < static_cast<int>(slots.size());
+                 ++row)
+            {
+                const int slot = slots[static_cast<std::size_t>(
+                    row + firstVisibleRow)];
+                visit(*this,
+                      dusk::sequencer::targetDepthParameterId(slot),
+                      depthBoundsForVisibleRow(row), true);
+            }
+        }
+
         bool isInterestedInDragSource(const SourceDetails& details) override
         {
             const auto description = details.description.toString();
@@ -1587,6 +1607,13 @@ public:
 
         void mouseDown(const juce::MouseEvent& event) override
         {
+            if (event.mods.isMiddleButtonDown())
+            {
+                resetDepth(event, true);
+                return;
+            }
+            if (! event.mods.isLeftButtonDown())
+                return;
             if (randomButtonBounds().contains(event.getPosition()))
             {
                 randomiseTargets();
@@ -1660,6 +1687,16 @@ public:
 
         void mouseDoubleClick(const juce::MouseEvent& event) override
         {
+            if (event.mods.isLeftButtonDown()
+                && ! event.mods.isMiddleButtonDown()
+                && ! event.mods.isRightButtonDown())
+                resetDepth(event, false);
+        }
+
+        void resetDepth(const juce::MouseEvent& event, bool init)
+        {
+            if (! isEnabled())
+                return;
             const int row = (event.y - 20) / rowHeight + firstVisibleRow;
             const auto slots = assignedSlots();
             if (event.y < 20
@@ -1672,8 +1709,8 @@ public:
                     event.getPosition()))
                 return;
 
-            auto* parameter = depths[static_cast<size_t>(
-                slots[static_cast<size_t>(row)])];
+            const int slot = slots[static_cast<size_t>(row)];
+            auto* parameter = depths[static_cast<size_t>(slot)];
             if (parameter == nullptr)
                 return;
             if (draggedDepthParameter != nullptr)
@@ -1681,9 +1718,12 @@ public:
                 draggedDepthParameter->endChangeGesture();
                 draggedDepthParameter = nullptr;
             }
-            parameter->beginChangeGesture();
-            parameter->setValueNotifyingHost(parameter->getDefaultValue());
-            parameter->endChangeGesture();
+            const auto saved = init ? std::optional<float>{}
+                : processor.getSavedParameterValue(
+                    dusk::sequencer::targetDepthParameterId(slot));
+            const float value = saved.value_or(
+                parameter->convertFrom0to1(parameter->getDefaultValue()));
+            setParameterActualValue(parameter, value);
             setDepthTooltip(parameter->convertFrom0to1(
                 parameter->getValue()));
             repaint();
@@ -1999,6 +2039,7 @@ public:
         rangeLinkButton.setClickingTogglesState(true);
         rangeLinkButton.getProperties().set("rangeLinkIcon", true);
         rangeLinkButton.getProperties().set("compactRangeLink", true);
+        rangeLinkButton.getProperties().set("yellowActive", true);
         rangeLinkButton.getProperties().set("activeColour",
                                              controlAccentColour.toString());
         nudgeLeft.onClick = [this] { grid.nudge(-1); };
@@ -2114,6 +2155,16 @@ public:
             box->setScrollWheelEnabled(true);
             box->getProperties().set("compactClosedCombo", true);
         }
+        directionBox.getProperties().set(
+            "midiLearnId", "sequencerDirection");
+        hostSync.getProperties().set(
+            "midiLearnId", "sequencerHostSync");
+        enabledButton.getProperties().set(
+            "midiLearnId", "sequencerEnabled");
+        rangeLinkButton.getProperties().set(
+            "midiLearnId", "sequencerRangeLink");
+        gateModeButton.getProperties().set(
+            "midiLearnId", "sequencerGateMode");
         directionAttachment = std::make_unique<
             juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
                 processor.parameters, "sequencerDirection", directionBox);
@@ -2486,6 +2537,14 @@ public:
         targets.setBounds(774, 92, getWidth() - 792, 136);
     }
 
+    void visitMidiDepths(const std::function<void(
+        juce::Component&, const juce::String&,
+        juce::Rectangle<int>, bool)>& visit)
+    {
+        if (targets.isShowing())
+            targets.visitMidiDepths(visit);
+    }
+
 private:
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     void setPolarityMode(int polarityMode)
@@ -2708,12 +2767,22 @@ private:
     std::unique_ptr<SliderAttachment> makeSliderAttachment(
         const juce::String& id, juce::Slider& slider)
     {
+        slider.getProperties().set("midiLearnId", id);
         return std::make_unique<SliderAttachment>(processor.parameters,
                                                    id, slider);
     }
 
     void configureSavedReset(DetentedSlider& slider, juce::String id)
     {
+        if (auto* parameter = processor.parameters.getParameter(id))
+        {
+            const double initValue = parameter->convertFrom0to1(
+                parameter->getDefaultValue());
+            slider.onInitReset = [&slider, initValue]
+            {
+                slider.setValue(initValue, juce::sendNotificationSync);
+            };
+        }
         slider.onSavedStateReset = [this, &slider, id = std::move(id)]
         {
             const auto saved = processor.getSavedParameterValue(id);
@@ -3860,6 +3929,10 @@ void DuskAudioProcessorEditor::LookAndFeel::drawToggleButton(
         button.getProperties().getWithDefault("folderIcon", false));
     const bool rangeLinkIcon = static_cast<bool>(
         button.getProperties().getWithDefault("rangeLinkIcon", false));
+    const bool midiIcon = static_cast<bool>(
+        button.getProperties().getWithDefault("midiLearnIcon", false));
+    const bool yellowActive = static_cast<bool>(
+        button.getProperties().getWithDefault("yellowActive", false));
     const bool randomIcon = static_cast<bool>(
         button.getProperties().getWithDefault("randomIcon", false));
     const bool mixLockIcon = static_cast<bool>(
@@ -3900,15 +3973,19 @@ void DuskAudioProcessorEditor::LookAndFeel::drawToggleButton(
 
     if (snowflakeIcon || listIcon || presetArrowDirection != 0
         || saveIcon || saveAsIcon || folderIcon || rangeLinkIcon
-        || randomIcon || mixLockIcon || standardTextButton)
+        || randomIcon || mixLockIcon || standardTextButton || midiIcon)
     {
         const auto buttonBounds = bounds.reduced(0.5f);
         if (! mixLockIcon)
         {
-            g.setColour(active && enabled ? activeColour.darker(0.32f)
+            g.setColour(active && enabled
+                            ? (yellowActive ? juce::Colour(0xff47432c)
+                                            : activeColour.darker(0.32f))
                                          : juce::Colour(0xff242a30));
             g.fillRoundedRectangle(buttonBounds, 3.0f);
-            g.setColour(active && enabled ? activeColour.brighter(0.12f)
+            g.setColour(active && enabled
+                            ? (yellowActive ? knobIndicatorColour
+                                            : activeColour.brighter(0.12f))
                                          : (shouldDrawButtonAsHighlighted
                                                 ? knobLabelColour
                                                 : juce::Colour(0xff59616a)));
@@ -3921,7 +3998,10 @@ void DuskAudioProcessorEditor::LookAndFeel::drawToggleButton(
             : presetArrowDirection != 0
             ? knobIndicatorColour.withAlpha(enabled ? 0.9f : 0.2f)
             : (enabled
-                   ? (active ? juce::Colours::white : knobValueColour)
+                   ? (active ? (yellowActive
+                                    ? knobIndicatorColour.brighter(0.12f)
+                                    : juce::Colours::white)
+                             : knobValueColour)
                    : knobLabelColour.darker(0.45f));
         g.setColour(iconColour);
         if (mixLockIcon)
@@ -3936,6 +4016,10 @@ void DuskAudioProcessorEditor::LookAndFeel::drawToggleButton(
             g.setColour(juce::Colour(0xff242a30));
             g.fillEllipse(centre.x - 1.0f, centre.y + 1.0f,
                           2.0f, 2.0f);
+        }
+        else if (midiIcon)
+        {
+            dusk::artwork::drawMidiLearnIcon(g, bounds, knobLabelColour);
         }
         else if (randomIcon)
         {
@@ -4237,6 +4321,188 @@ DuskAudioProcessorEditor::LookAndFeel::getOptionsForComboBoxPopupMenu(
         .withStandardItemHeight(label.getHeight());
 }
 
+class DuskAudioProcessorEditor::MidiLearnOverlay final
+    : public juce::Component
+{
+public:
+    explicit MidiLearnOverlay(DuskAudioProcessorEditor& owner)
+        : editor(owner)
+    {
+    }
+
+    void refresh()
+    {
+        std::vector<Target> next;
+        const auto add = [this, &next](
+            juce::Component& component, const juce::String& id,
+            juce::Rectangle<int> local, bool circle)
+        {
+            if (id.isEmpty() || ! component.isShowing()
+                || ! component.isEnabled()
+                || editor.processor.parameters.getParameter(id) == nullptr)
+                return;
+            auto bounds = getLocalArea(&component, local).toFloat();
+            if (bounds.isEmpty())
+                return;
+            for (auto& target : next)
+            {
+                if (target.id == id)
+                {
+                    target.bounds = target.bounds.getUnion(bounds);
+                    target.circle = false;
+                    return;
+                }
+            }
+            next.push_back(
+                { id, bounds, circle, editor.processor.getMidiLearnCC(id),
+                  editor.processor.getArmedMidiLearn() == id });
+        };
+        const auto scan = [this, &add](const auto& self,
+                                       juce::Component& parent) -> void
+        {
+            for (int i = 0; i < parent.getNumChildComponents(); ++i)
+            {
+                auto* child = parent.getChildComponent(i);
+                if (child == this || ! child->isShowing())
+                    continue;
+                const auto id = child->getProperties().getWithDefault(
+                    "midiLearnId", juce::var()).toString();
+                if (id.isNotEmpty())
+                {
+                    if (auto* slider = dynamic_cast<juce::Slider*>(child))
+                    {
+                        const auto style = slider->getSliderStyle();
+                        const bool rotary = style == juce::Slider::Rotary
+                            || style == juce::Slider::RotaryHorizontalDrag
+                            || style == juce::Slider::RotaryVerticalDrag
+                            || style
+                                == juce::Slider::RotaryHorizontalVerticalDrag;
+                        auto bounds = slider->getLookAndFeel()
+                            .getSliderLayout(*slider).sliderBounds;
+                        if (rotary)
+                        {
+                            const auto size = juce::jmin(
+                                bounds.getWidth(), bounds.getHeight());
+                            const int diameter = juce::jmin(
+                                size,
+                                juce::roundToInt(size * 0.8f + 7.0f));
+                            bounds = juce::Rectangle<int>(diameter, diameter)
+                                .withCentre(bounds.getCentre());
+                        }
+                        add(*child, id, bounds, rotary);
+                    }
+                    else
+                        add(*child, id, child->getLocalBounds(), false);
+                    continue;
+                }
+                self(self, *child);
+            }
+        };
+        scan(scan, editor.content);
+        if (editor.sequencerOpen && editor.sequencerPanel != nullptr)
+            editor.sequencerPanel->visitMidiDepths(add);
+        if (next != targets)
+        {
+            targets = std::move(next);
+            repaint();
+        }
+    }
+
+    bool hitTest(int x, int y) override
+    {
+        return find({ static_cast<float>(x), static_cast<float>(y) })
+            != nullptr;
+    }
+
+    void mouseDown(const juce::MouseEvent& event) override
+    {
+        const auto* target = find(event.position);
+        if (target == nullptr)
+            return;
+        const auto id = target->id;
+        if (event.mods.isRightButtonDown())
+        {
+            editor.processor.clearMidiLearn(id);
+            editor.information.setText(
+                "MIDI LEARN | Assignment cleared.",
+                juce::dontSendNotification);
+        }
+        else if (event.mods.isLeftButtonDown())
+        {
+            editor.processor.armMidiLearn(id);
+            const auto* parameter = editor.processor.parameters.getParameter(id);
+            editor.information.setText(
+                "MIDI LEARN | Move a MIDI controller for "
+                    + (parameter != nullptr ? parameter->getName(64) : id)
+                    + ".",
+                juce::dontSendNotification);
+        }
+        refresh();
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        for (const auto& target : targets)
+        {
+            const auto colour = target.armed
+                ? juce::Colour(0xffffd46a) : juce::Colour(0xff69bfff);
+            g.setColour(colour.withAlpha(
+                target.cc >= 0 || target.armed ? 1.0f : 0.7f));
+            if (target.circle)
+                g.drawEllipse(target.bounds, 1.5f);
+            else
+                g.drawRoundedRectangle(target.bounds, 2.0f, 1.3f);
+            if (target.cc >= 0)
+            {
+                const auto badge = juce::Rectangle<float>(22.0f, 12.0f)
+                    .withCentre({ target.bounds.getCentreX(),
+                                  target.bounds.getBottom() - 3.0f });
+                g.setColour(juce::Colour(0xff316b9f));
+                g.fillRoundedRectangle(badge, 3.0f);
+                g.setColour(juce::Colour(0xffa8d8ff));
+                g.drawRoundedRectangle(badge, 3.0f, 0.8f);
+                g.setColour(juce::Colours::white);
+                g.setFont(juce::FontOptions(9.0f, juce::Font::bold));
+                g.drawText(juce::String(target.cc), badge.toNearestInt(),
+                           juce::Justification::centred, false);
+            }
+        }
+    }
+
+private:
+    struct Target
+    {
+        juce::String id;
+        juce::Rectangle<float> bounds;
+        bool circle;
+        int cc;
+        bool armed;
+        bool operator==(const Target& other) const
+        {
+            return id == other.id && bounds == other.bounds
+                && circle == other.circle && cc == other.cc
+                && armed == other.armed;
+        }
+    };
+
+    const Target* find(juce::Point<float> point) const
+    {
+        for (auto it = targets.rbegin(); it != targets.rend(); ++it)
+        {
+            const auto badge = juce::Rectangle<float>(22.0f, 12.0f)
+                .withCentre({ it->bounds.getCentreX(),
+                              it->bounds.getBottom() - 3.0f });
+            if (it->bounds.contains(point)
+                || (it->cc >= 0 && badge.contains(point)))
+                return &*it;
+        }
+        return nullptr;
+    }
+
+    DuskAudioProcessorEditor& editor;
+    std::vector<Target> targets;
+};
+
 DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     : AudioProcessorEditor(&p), processor(p), responseDisplay(p)
 {
@@ -4256,6 +4522,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     logoDrawable = juce::Drawable::createFromImageData(
         BinaryData::dusk_logo_png,
         static_cast<size_t>(BinaryData::dusk_logo_pngSize));
+    lookAndFeel.setPopupBorderColour(themeAccentColour);
     setLookAndFeel(&lookAndFeel);
     addAndMakeVisible(content);
     content.addMouseListener(this, true);
@@ -4271,7 +4538,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     logoMenuButton.onClick = [this] { showLogoZoomMenu(); };
     content.addAndMakeVisible(logoMenuButton);
 
-    versionLabel.setText("v1.28.21", juce::dontSendNotification);
+    versionLabel.setText("v1.28.22", juce::dontSendNotification);
     versionLabel.setJustificationType(juce::Justification::centred);
     versionLabel.setColour(juce::Label::textColourId, knobIndicatorColour);
     versionLabel.setFont(juce::Font(juce::FontOptions(8.5f,
@@ -5215,13 +5482,17 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     outputDial->slider.setDoubleClickReturnValue(true, 0.0);
     themeDial = addDial(
         "", "THEME",
-        "Turn clockwise for the full Dusk sunset palette or left for charcoal. The fixed top bar remains opaque and blends naturally into the fully coloured background.",
+        "Turn clockwise for the full Dusk sunset palette or left for charcoal. The indigo strip reaches full opacity at 50% and fades toward either end.",
         false);
     themeDial->label.setJustificationType(juce::Justification::centred);
     themeDial->slider.setRange(0.0, 100.0, 0.1);
     themeDial->slider.setValue(storedSettings.themePercent,
                                juce::dontSendNotification);
     themeDial->slider.setDoubleClickReturnValue(true, 100.0);
+    themeDial->slider.onInitReset = [this]
+    {
+        themeDial->slider.setValue(100.0, juce::sendNotificationSync);
+    };
     themeDial->slider.setTextBoxStyle(
         juce::Slider::NoTextBox, false, 0, 0);
     themeDial->slider.onValueChange = [this]
@@ -5229,7 +5500,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
         information.setText(
             contextHelpText(
                 "Theme",
-                "Turn clockwise for the full Dusk sunset palette, or left for charcoal."),
+                "Turn clockwise for the full Dusk sunset palette or left for charcoal. The indigo strip is fully visible at 50%."),
             juce::dontSendNotification);
         repaint();
         if (sequencerPanel != nullptr)
@@ -5394,6 +5665,26 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
         handleFilterModelSelection(2);
     };
 
+    routingBox.getProperties().set("midiLearnId", "routing");
+    filter1ArchitectureBox.getProperties().set(
+        "midiLearnId", "filter1Architecture");
+    filter2ArchitectureBox.getProperties().set(
+        "midiLearnId", "filter2Architecture");
+    filter1TypeBox.getProperties().set("midiLearnId", "filter1Type");
+    filter2TypeBox.getProperties().set("midiLearnId", "filter2Type");
+    filter1CombModeBox.getProperties().set(
+        "midiLearnId", "filter1CombMode");
+    filter2CombModeBox.getProperties().set(
+        "midiLearnId", "filter2CombMode");
+    filter1DistortionTypeBox.getProperties().set(
+        "midiLearnId", "filter1DistortionType");
+    filter2DistortionTypeBox.getProperties().set(
+        "midiLearnId", "filter2DistortionType");
+    filter1DistortionPlacementBox.getProperties().set(
+        "midiLearnId", "filter1DistortionPlacement");
+    filter2DistortionPlacementBox.getProperties().set(
+        "midiLearnId", "filter2DistortionPlacement");
+
     routingAttachment = std::make_unique<
         juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
             processor.parameters, "routing", routingBox);
@@ -5468,6 +5759,10 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     };
     configureFilterPower(filter1PowerButton, "Filter 1", "1");
     configureFilterPower(filter2PowerButton, "Filter 2", "2");
+    filter1PowerButton.getProperties().set(
+        "midiLearnId", "filter1Enabled");
+    filter2PowerButton.getProperties().set(
+        "midiLearnId", "filter2Enabled");
     filter1PowerAttachment = std::make_unique<
         juce::AudioProcessorValueTreeState::ButtonAttachment>(
             processor.parameters, "filter1Enabled", filter1PowerButton);
@@ -5564,6 +5859,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     bypassButton.getProperties().set("ledOnly", true);
     bypassButton.getProperties().set(
         "activeColour", powerLedColour.toString());
+    bypassButton.getProperties().set("midiLearnId", "bypass");
     content.addAndMakeVisible(bypassButton);
     if (auto* parameter = processor.parameters.getParameter("bypass"))
         bypassAttachment = std::make_unique<juce::ParameterAttachment>(
@@ -5590,6 +5886,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     presetBrowserButton.setName("Preset Browser");
     presetBrowserButton.setTooltip("Open or close the preset browser");
     presetBrowserButton.getProperties().set("listIcon", true);
+    presetBrowserButton.getProperties().set("yellowActive", true);
     presetBrowserButton.getProperties().set(
         "activeColour", presetAccentColour.toString());
     presetBrowserButton.setClickingTogglesState(true);
@@ -5698,6 +5995,18 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
                 juce::dontSendNotification);
     };
 
+    midiLearnButton.setName("MIDI LEARN");
+    midiLearnButton.setTooltip(
+        "Click a highlighted control, then move a MIDI CC controller; right-click to clear its assignment.");
+    midiLearnButton.setClickingTogglesState(true);
+    midiLearnButton.getProperties().set("midiLearnIcon", true);
+    midiLearnButton.getProperties().set("yellowActive", true);
+    midiLearnButton.onClick = [this]
+    {
+        setMidiLearnOpen(midiLearnButton.getToggleState());
+    };
+    content.addAndMakeVisible(midiLearnButton);
+
     randomButton.setClickingTogglesState(false);
     randomButton.setName("Randomise");
     randomButton.getProperties().set("randomIcon", true);
@@ -5709,7 +6018,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addAndMakeVisible(randomButton);
 
     information.setText(
-        "DUSK 1.28.21 | Visually centred Filter dropdowns.",
+        "DUSK 1.28.22 | Shared MIDI learn and interface consistency.",
         juce::dontSendNotification);
     information.setColour(juce::Label::textColourId,
                           juce::Colours::lightgrey);
@@ -5747,6 +6056,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     sequencerButton.setToggleState(sequencerOpen,
                                    juce::dontSendNotification);
     sequencerButton.getProperties().set("standardTextButton", true);
+    sequencerButton.getProperties().set("yellowActive", true);
     sequencerButton.getProperties().set(
         "activeColour", controlAccentColour.toString());
     sequencerButton.setTooltip("Show or hide the sequencer");
@@ -5755,6 +6065,10 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
         setSequencerOpen(sequencerButton.getToggleState());
     };
     content.addAndMakeVisible(sequencerButton);
+
+    midiLearnOverlay = std::make_unique<MidiLearnOverlay>(*this);
+    content.addChildComponent(*midiLearnOverlay);
+    midiLearnOverlay->setVisible(false);
 
     updateSequencerTargetHighlights();
     updatePresetNavigationDisplay();
@@ -5779,6 +6093,8 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
 DuskAudioProcessorEditor::~DuskAudioProcessorEditor()
 {
     stopTimer();
+    processor.cancelMidiLearn();
+    midiLearnOverlay.reset();
     saveInterfaceSettings();
     if (presetFolderNameWindow != nullptr)
     {
@@ -5908,6 +6224,8 @@ DuskAudioProcessorEditor::Dial* DuskAudioProcessorEditor::addDial(
     {
         return pointer->parameterId;
     };
+    if (attachToParameter)
+        dial->slider.getProperties().set("midiLearnId", id);
     dial->label.setTooltip(
         "Drag " + juce::String(caption) + " onto a sequencer target slot");
     dial->label.setJustificationType(juce::Justification::centredTop);
@@ -5918,8 +6236,20 @@ DuskAudioProcessorEditor::Dial* DuskAudioProcessorEditor::addDial(
     content.addAndMakeVisible(dial->slider);
     content.addAndMakeVisible(dial->label);
     if (attachToParameter)
+    {
         dial->attachment = std::make_unique<SliderAttachment>(
             processor.parameters, id, dial->slider);
+        if (auto* parameter = processor.parameters.getParameter(id))
+        {
+            const double initValue = parameter->convertFrom0to1(
+                parameter->getDefaultValue());
+            pointer->slider.onInitReset = [pointer, initValue]
+            {
+                pointer->slider.setValue(
+                    initValue, juce::sendNotificationSync);
+            };
+        }
+    }
     if (attachToParameter)
         pointer->slider.onSavedStateReset = [this, pointer]
         {
@@ -6780,6 +7110,7 @@ void DuskAudioProcessorEditor::showSaveFilterModelAs(int filterIndex)
 void DuskAudioProcessorEditor::showFilterModelMenu(int filterIndex)
 {
     juce::PopupMenu menu;
+    menu.setLookAndFeel(&lookAndFeel);
     menu.addItem(1, "Save Current as User Model...");
     menu.addItem(2, "Refresh User Models");
     menu.addItem(3, "Open Models Folder");
@@ -6918,6 +7249,7 @@ void DuskAudioProcessorEditor::showLogoZoomMenu()
     constexpr std::array<int, 10> zoomChoices
         { 75, 100, 125, 150, 175, 200, 225, 250, 275, 300 };
     juce::PopupMenu menu;
+    menu.setLookAndFeel(&lookAndFeel);
     menu.addSectionHeader("GUI Zoom");
     for (const int percent : zoomChoices)
     {
@@ -6928,8 +7260,12 @@ void DuskAudioProcessorEditor::showLogoZoomMenu()
     menu.showMenuAsync(
         juce::PopupMenu::Options()
             .withTargetComponent(&logoMenuButton)
+            .withTargetScreenArea(logoMenuButton.getScreenBounds())
             .withPreferredPopupDirection(
-                juce::PopupMenu::Options::PopupDirection::downwards),
+                juce::PopupMenu::Options::PopupDirection::downwards)
+            .withMinimumWidth(75)
+            .withMaximumNumColumns(1)
+            .withStandardItemHeight(19),
         [safeThis](int result)
         {
             if (safeThis != nullptr && result >= 75 && result <= 300)
@@ -6957,6 +7293,8 @@ void DuskAudioProcessorEditor::setZoomPercent(int requestedPercent)
 
 void DuskAudioProcessorEditor::setPresetBrowserOpen(bool shouldOpen)
 {
+    if (shouldOpen && midiLearnOpen)
+        setMidiLearnOpen(false);
     presetBrowserOpen = shouldOpen;
     presetBrowserButton.setToggleState(shouldOpen,
                                        juce::dontSendNotification);
@@ -6974,6 +7312,26 @@ void DuskAudioProcessorEditor::setPresetBrowserOpen(bool shouldOpen)
             juce::dontSendNotification);
     }
     updatePresetBrowserVisibility();
+}
+
+void DuskAudioProcessorEditor::setMidiLearnOpen(bool shouldOpen)
+{
+    if (midiLearnOverlay == nullptr)
+        return;
+    midiLearnOpen = shouldOpen;
+    midiLearnButton.setToggleState(shouldOpen, juce::dontSendNotification);
+    midiLearnOverlay->setVisible(shouldOpen);
+    if (shouldOpen)
+    {
+        midiLearnOverlay->setBounds(content.getLocalBounds());
+        midiLearnOverlay->toFront(false);
+        midiLearnOverlay->refresh();
+        information.setText(
+            "MIDI LEARN | Click a highlighted control, then move a MIDI CC controller. Right-click to clear.",
+            juce::dontSendNotification);
+    }
+    else
+        processor.cancelMidiLearn();
 }
 
 void DuskAudioProcessorEditor::updatePresetBrowserVisibility()
@@ -7384,6 +7742,7 @@ void DuskAudioProcessorEditor::updatePresetBrowserVisibility()
     routingBox.setVisible(true);
     routingLabel.setVisible(true);
     information.setVisible(! presetBrowserOpen);
+    midiLearnButton.setVisible(! presetBrowserOpen);
     randomButton.setVisible(! presetBrowserOpen);
     mixLockButton.setVisible(! presetBrowserOpen);
     presetFolderLabel.setVisible(presetBrowserOpen);
@@ -8301,7 +8660,7 @@ void DuskAudioProcessorEditor::showPresetContextMenu(
                  copiedPresetFile.existsAsFile()
                     && ! favouritesViewSelected
                     && selectedPresetFolder.isDirectory());
-    lookAndFeel.setPopupBorderColour(filterAccent(1));
+    lookAndFeel.setPopupBorderColour(themeAccentColour);
     const auto safeThis = juce::Component::SafePointer<
         DuskAudioProcessorEditor>(this);
     const auto destinationFolder = selectedPresetFolder;
@@ -8493,7 +8852,7 @@ void DuskAudioProcessorEditor::showPresetFolderContextMenu(
     menu.addItem(3, "Paste preset here",
                  ! favourites && copiedPresetFile.existsAsFile()
                     && folder.isDirectory());
-    lookAndFeel.setPopupBorderColour(filterAccent(1));
+    lookAndFeel.setPopupBorderColour(themeAccentColour);
     const auto safeThis = juce::Component::SafePointer<
         DuskAudioProcessorEditor>(this);
     menu.showMenuAsync(
@@ -8677,7 +9036,7 @@ void DuskAudioProcessorEditor::showPresetQuickMenu()
     juce::PopupMenu menu;
     menu.setLookAndFeel(&lookAndFeel);
     menu.addCustomItem(1, std::move(quickList), nullptr, "Preset list");
-    lookAndFeel.setPopupBorderColour(filterAccent(1));
+    lookAndFeel.setPopupBorderColour(themeAccentColour);
     menu.showMenuAsync(
         juce::PopupMenu::Options()
             .withTargetComponent(&currentPresetLabel)
@@ -8990,7 +9349,10 @@ void DuskAudioProcessorEditor::paint(juce::Graphics& g)
 
     const juce::Rectangle<float> typeStrip(
         18.0f, 53.0f, static_cast<float>(designWidth - 36), 7.0f);
-    g.setColour(juce::Colour(0xff424c87));
+    const float stripOpacity = juce::jlimit(
+        0.0f, 1.0f,
+        1.0f - std::abs(fullColourAmount - 0.5f) / 0.5f);
+    g.setColour(themeAccentColour.withAlpha(stripOpacity));
     g.fillRoundedRectangle(typeStrip, 3.5f);
 
     if (logoDrawable != nullptr)
@@ -9305,7 +9667,8 @@ void DuskAudioProcessorEditor::resized()
     presetSaveAsButton.setBounds(870, 130, 26, 26);
     presetOpenFolderButton.setBounds(870, 175, 26, 26);
 
-    information.setBounds(25, 234, 803, 32);
+    information.setBounds(25, 234, 767, 32);
+    midiLearnButton.setBounds(800, 236, 26, 26);
     randomButton.setBounds(836, 236, 26, 26);
     sequencerButton.setBounds(presetBrowserOpen ? 865 : 872,
                               presetBrowserOpen ? 220 : 236,
@@ -9314,6 +9677,13 @@ void DuskAudioProcessorEditor::resized()
         sequencerPanel->setBounds(
             8, collapsedDesignHeight, designWidth - 16,
             expandedDesignHeight - collapsedDesignHeight - 8);
+
+    if (midiLearnOverlay != nullptr)
+    {
+        midiLearnOverlay->setBounds(content.getLocalBounds());
+        if (midiLearnOverlay->isVisible())
+            midiLearnOverlay->refresh();
+    }
 
     if (isShowing() && ! presetBrowserOpen
         && getWidth() != observedEditorWidth)
@@ -9332,6 +9702,8 @@ void DuskAudioProcessorEditor::resized()
 
 void DuskAudioProcessorEditor::timerCallback()
 {
+    if (midiLearnOverlay != nullptr && midiLearnOverlay->isVisible())
+        midiLearnOverlay->refresh();
     const bool leftKeyDown = isShowing()
         && juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::leftKey);
     const bool rightKeyDown = isShowing()

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(Dusk VERSION 1.28.21 LANGUAGES C CXX)
+project(Dusk VERSION 1.28.22 LANGUAGES C CXX)
 
 set(JUCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../../_Tools/JUCE/_9.0.4")
 if(NOT EXISTS "${JUCE_DIR}/CMakeLists.txt")
@@ -8,7 +8,7 @@ endif()
 add_subdirectory("${JUCE_DIR}" "${CMAKE_BINARY_DIR}/JUCE")
 
 juce_add_plugin(Dusk
-    VERSION 1.28.21
+    VERSION 1.28.22
     COMPANY_NAME "sl23"
     BUNDLE_ID "com.sl23.dusk"
     IS_SYNTH FALSE
@@ -33,7 +33,7 @@ target_sources(Dusk PRIVATE
     DuskFormant.cpp DuskPhaser.cpp DuskModal.cpp DuskSallenKey.cpp
     DuskDiodeLadder.cpp DuskSteinerParker.cpp DuskVactrolLpg.cpp
     DuskKorg35.cpp DuskSpectralBank.cpp
-    PluginEditor.cpp PluginEditor.h
+    PluginEditor.cpp PluginEditor.h MidiLearnIcon.h
     DuskArchitectures.h DuskFilterTypes.h DuskSequencer.h)
 target_compile_features(Dusk PRIVATE cxx_std_17)
 target_compile_definitions(Dusk PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
