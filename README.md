@@ -34,8 +34,8 @@ Dusk creates a portable `Dusk_Data` folder beside the installed plugin. Existing
 1. Select `Filter 1`, `Filter 2`, `1 > 2` or `1 + 2` from Routing.
 2. Use each amber filter LED to switch that filter on or off. Lit means on.
 3. Choose an Architecture for each active filter. Clean SVF, Ladder, Diode Ladder, Steiner-Parker, Vactrol/LPG, Korg-35/MS-20, OTA and Sallen-Key use the standard Type control; Comb, Formant, Phaser, Modal Resonator and Spectral Bank provide their own main controls.
-4. For standard architectures, set Cutoff and Resonance. LPF, BPF, HPF, Notch and Peak use the continuous 6–48 dB/octave Slope; LO SHELF, HI SHELF, Bell and Tilt replace Slope with a -18 to +18 dB Gain control. Comb uses Frequency, Feedback and Damping; Formant uses Vowel, Shift and Focus; Phaser uses Frequency, Feedback and Depth; Modal Resonator uses Frequency, Decay and Body; Spectral Bank uses Frequency, Span and Depth.
-5. Add Drive, choose a distortion Type, then choose its Pre, Internal or Post Placement.
+4. For standard architectures, select one of the nine response-curve icons, then set Cutoff and Resonance. LPF, BPF, HPF, Notch and Peak use the continuous 6–48 dB/octave Slope; LO SHELF, HI SHELF, Bell and Tilt replace Slope with a -18 to +18 dB Gain control. Comb uses Frequency, Feedback and Damping; Formant uses Vowel, Shift and Focus; Phaser uses Frequency, Feedback and Depth; Modal Resonator uses Frequency, Decay and Body; Spectral Bank uses Frequency, Span and Depth.
+5. Add Drive, choose a distortion Type, then use the amber PRE, INTERNAL or POST radio selection to place it in the signal path.
 6. Click anywhere inside the outlined FILTER/DESIGNER selector to swap views, then use DESIGNER to change the controls belonging to the selected Architecture or recall a Model.
 7. Use MIX and OUT to set the final wet balance and level.
 
@@ -59,7 +59,7 @@ Each side controls one independent filter engine.
 | Control | Function |
 |---|---|
 | Architecture | Selects the genuine DSP structure: Clean SVF, Ladder, Diode Ladder, Steiner-Parker, Vactrol/LPG, Korg-35/MS-20, OTA, Comb, Formant, Phaser, Modal Resonator, Sallen-Key or Spectral Bank |
-| Type | For standard architectures, selects LPF, BPF, HPF, NOTCH, PEAK, LO SHELF, HI SHELF, BELL or TILT |
+| Type | Nine direct response-curve buttons select LPF, BPF, HPF, NOTCH, PEAK, LO SHELF, HI SHELF, BELL or TILT for standard architectures |
 | Cutoff | For standard architectures, sets the principal or pivot frequency from 20 Hz to 20 kHz |
 | Resonance | For standard architectures, emphasises the response around Cutoff and sets the Bell width/character |
 | Slope | For LPF, BPF, HPF, NOTCH and PEAK, continuously changes the response from 6 to 48 dB/octave |
@@ -82,7 +82,7 @@ Each side controls one independent filter engine.
 | Depth | For Spectral Bank, blends continuously from the direct signal to the weighted band bank |
 | Drive | Sets the amount sent to the selected distortion model |
 | Dist Type | Selects one of the 17 distortion models |
-| Placement | Places that distortion before, inside or after the filter |
+| Placement | PRE, INTERNAL and POST radio LEDs place distortion before, inside or after the filter |
 | Amber LED | Powers the individual filter on or off; lit is on |
 
 PEAK remains the selected architecture's resonant peak response. BELL is the separate parametric response with its own Gain control. The four EQ Types use a fixed 12 dB/two-pole architecture core so hidden Slope settings cannot silently alter their shape.

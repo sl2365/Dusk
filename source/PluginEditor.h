@@ -192,6 +192,21 @@ private:
         DuskAudioProcessor& processor;
     };
 
+    class FilterTypeButton final : public juce::Button
+    {
+    public:
+        FilterTypeButton() : juce::Button("Filter type") {}
+        void setMode(int newMode)
+        {
+            mode = juce::jlimit(0, 8, newMode);
+            repaint();
+        }
+        void paintButton(juce::Graphics&, bool highlighted,
+                         bool down) override;
+    private:
+        int mode = 0;
+    };
+
     class MidiLearnOverlay;
     class SequencerPanel;
     class FolderTreeItem;
@@ -450,6 +465,10 @@ private:
     SteppedComboBox filter2DistortionPlacementBox;
     SteppedComboBox filter1ModelBox;
     SteppedComboBox filter2ModelBox;
+    std::array<FilterTypeButton, 9> filter1TypeButtons;
+    std::array<FilterTypeButton, 9> filter2TypeButtons;
+    std::array<juce::ToggleButton, 3> filter1PlacementButtons;
+    std::array<juce::ToggleButton, 3> filter2PlacementButtons;
     juce::Label routingLabel;
     juce::Label filter1ArchitectureLabel;
     juce::Label filter2ArchitectureLabel;
@@ -529,6 +548,8 @@ private:
     void showLogoZoomMenu();
     void setZoomPercent(int);
     void updateArchitectureContext();
+    void updateFilterTypeButtons(int filterIndex);
+    void updateDistortionPlacementButtons(int filterIndex);
     int architectureChoiceForFilter(int filterIndex) const;
     void refreshFilterModelBoxes();
     void handleFilterModelSelection(int filterIndex);

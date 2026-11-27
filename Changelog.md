@@ -1,5 +1,27 @@
 # Dusk Changelog
 
+## 1.28.26 — Final Filter Type Grid Alignment — 27 November 2026
+
+- Moved both Filter Type grids another 3 pixels left while leaving the Placement radio controls unchanged.
+- Kept the v1.28.25 icon order, parameter mapping, automation, MIDI assignments, presets and DSP unchanged.
+- Update archives continue to exclude the Resources folder.
+
+## 1.28.25 — Filter Type Grid Spacing and Order — 27 November 2026
+
+- Moved both 3×3 Filter Type grids 7 pixels left while leaving the Placement radio buttons unchanged.
+- Reordered the visible grid to LPF/BPF/HPF, Notch/Peak/Bell and LO SHELF/Tilt/HI SHELF.
+- Kept every Type's original parameter value, icon, tooltip, automation, MIDI assignment, preset compatibility and DSP behaviour unchanged.
+- Update archives continue to exclude the Resources folder.
+
+## 1.28.24 — Direct Type and Placement Selectors — 27 November 2026
+
+- Replaced each standard Filter Type dropdown with a direct 3×3 grid of nine vector response-curve buttons.
+- Added distinct LPF, BPF, HPF, Notch, Peak, LO SHELF, HI SHELF, Bell and Tilt icons that remain sharp at every GUI zoom setting.
+- Replaced each distortion Placement dropdown with amber PRE, INTERNAL and POST radio LEDs.
+- Moved the remaining Architecture and Dist Type dropdowns upward while retaining Comb Mode where its architecture requires it.
+- Kept the existing Type and Placement parameter IDs, values, automation, MIDI learn, presets, Models, state schema and DSP unchanged.
+- Update archives continue to exclude the Resources folder.
+
 ## 1.28.23 — Fully Opaque Theme Bar — 27 November 2026
 
 - Kept the upper indigo Theme bar fully opaque throughout the complete Theme range.
