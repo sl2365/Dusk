@@ -4636,7 +4636,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     logoMenuButton.onClick = [this] { showLogoZoomMenu(); };
     content.addAndMakeVisible(logoMenuButton);
 
-    versionLabel.setText("v1.28.26", juce::dontSendNotification);
+    versionLabel.setText("v1.28.27", juce::dontSendNotification);
     versionLabel.setJustificationType(juce::Justification::centred);
     versionLabel.setColour(juce::Label::textColourId, knobIndicatorColour);
     versionLabel.setFont(juce::Font(juce::FontOptions(8.5f,
@@ -6221,7 +6221,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addAndMakeVisible(randomButton);
 
     information.setText(
-        "DUSK 1.28.26 | Final filter Type grid alignment.",
+        "DUSK 1.28.27 | Correct 75% GUI zoom sizing.",
         juce::dontSendNotification);
     information.setColour(juce::Label::textColourId,
                           juce::Colours::lightgrey);
@@ -6278,12 +6278,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     updatePresetBrowserVisibility();
     updateFilterControlEnablement();
     setResizable(true, true);
-    setResizeLimits(695, sequencerOpen ? 414 : 207,
-                    2778, sequencerOpen ? 1656 : 828);
-    if (auto* editorConstrainer = getConstrainer())
-        editorConstrainer->setFixedAspectRatio(
-            static_cast<double>(designWidth)
-                / static_cast<double>(activeDesignHeight()));
+    updateEditorResizeLimits();
     const float scale = static_cast<float>(storedSettings.scalePercent) * 0.01f;
     setSize(juce::roundToInt(static_cast<float>(designWidth) * scale),
             juce::roundToInt(static_cast<float>(activeDesignHeight()) * scale));
@@ -8098,6 +8093,19 @@ void DuskAudioProcessorEditor::updateFilterControlEnablement()
     content.repaint();
 }
 
+void DuskAudioProcessorEditor::updateEditorResizeLimits()
+{
+    const int designHeight = activeDesignHeight();
+    // Round the minimum down to accommodate integer-pixel rounding by
+    // both JUCE and the host at 75% (e.g. 694.5 x 397.5 when expanded).
+    // Derive the limits from the current design, not a previous layout.
+    if (auto* editorConstrainer = getConstrainer())
+        editorConstrainer->setFixedAspectRatio(
+            static_cast<double>(designWidth) / static_cast<double>(designHeight));
+    setResizeLimits(designWidth * 3 / 4, designHeight * 3 / 4,
+                    designWidth * 3, designHeight * 3);
+}
+
 void DuskAudioProcessorEditor::setSequencerOpen(bool shouldOpen)
 {
     if (sequencerOpen == shouldOpen)
@@ -8110,12 +8118,7 @@ void DuskAudioProcessorEditor::setSequencerOpen(bool shouldOpen)
     sequencerButton.setToggleState(shouldOpen, juce::dontSendNotification);
     if (sequencerPanel != nullptr)
         sequencerPanel->setVisible(shouldOpen);
-    if (auto* editorConstrainer = getConstrainer())
-        editorConstrainer->setFixedAspectRatio(
-            static_cast<double>(designWidth)
-                / static_cast<double>(activeDesignHeight()));
-    setResizeLimits(695, shouldOpen ? 414 : 207,
-                    2778, shouldOpen ? 1656 : 828);
+    updateEditorResizeLimits();
     setSize(juce::roundToInt(static_cast<float>(designWidth) * scale),
             juce::roundToInt(static_cast<float>(activeDesignHeight()) * scale));
     saveInterfaceSettings();

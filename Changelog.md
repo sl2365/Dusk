@@ -1,5 +1,11 @@
 # Dusk Changelog
 
+## 1.28.27 — 75% GUI Zoom Resize Fix — 27 November 2026
+
+- Fixed the GUI being cut off at 75% by deriving the resize limits from Dusk's current collapsed or expanded design height instead of using stale hard-coded dimensions.
+- Allowed correct integer-pixel rounding at the 75% minimum while retaining Dusk's fixed aspect ratio and 75–300% zoom range.
+- Applied the same resize limits when the editor opens and whenever the sequencer is shown or hidden. DSP, controls, presets, MIDI assignments and Resources are unchanged.
+
 ## 1.28.26 — Final Filter Type Grid Alignment — 27 November 2026
 
 - Moved both Filter Type grids another 3 pixels left while leaving the Placement radio controls unchanged.
