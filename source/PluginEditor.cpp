@@ -2138,12 +2138,12 @@ public:
             if (selected >= 0)
                 grid.applyWaveform(
                     static_cast<dusk::sequencer::Waveform>(selected));
-            waveformBox.setSelectedId(0, juce::dontSendNotification);
         };
 
         directionBox.addItemList(
             { "Loop", "Bounce", "Reverse", "Played", "Random" }, 1);
-        for (auto* box : { &waveformBox, &userSequenceBox, &directionBox })
+        for (auto* box : std::array<juce::ComboBox*, 3>
+             {{ &waveformBox, &userSequenceBox, &directionBox }})
         {
             box->setJustificationType(juce::Justification::centred);
             box->setColour(juce::ComboBox::backgroundColourId,
@@ -2972,8 +2972,8 @@ private:
     juce::ToggleButton animateButton;
     juce::ToggleButton gateModeButton;
     juce::ToggleButton rangeLinkButton;
-    juce::ComboBox waveformBox;
-    juce::ComboBox userSequenceBox;
+    SteppedComboBox waveformBox;
+    SteppedComboBox userSequenceBox;
     juce::ComboBox directionBox;
     juce::ToggleButton nudgeLeft;
     juce::ToggleButton nudgeRight;
@@ -4636,7 +4636,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     logoMenuButton.onClick = [this] { showLogoZoomMenu(); };
     content.addAndMakeVisible(logoMenuButton);
 
-    versionLabel.setText("v1.28.28", juce::dontSendNotification);
+    versionLabel.setText("v1.28.31", juce::dontSendNotification);
     versionLabel.setJustificationType(juce::Justification::centred);
     versionLabel.setColour(juce::Label::textColourId, knobIndicatorColour);
     versionLabel.setFont(juce::Font(juce::FontOptions(8.5f,
@@ -5806,6 +5806,54 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     configureTypeButtons(
         filter2TypeButtons, filter2TypeBox, "filter2Type");
 
+    constexpr std::array<const char*, 3> combModeNames
+        {{ "FDBK", "FFWD", "ALL-PASS" }};
+    constexpr std::array<const char*, 3> combModeTooltips
+    {{
+        "Feedback returns the delayed signal through the comb loop.",
+        "Feedforward mixes the delayed signal without recirculating it.",
+        "All-pass uses the comb delay primarily for phase movement."
+    }};
+    const auto configureCombModeButtons = [this, &combModeNames,
+                                            &combModeTooltips](
+        auto& buttons, SteppedComboBox& bridge,
+        const juce::String& parameterId)
+    {
+        for (size_t index = 0; index < buttons.size(); ++index)
+        {
+            auto& button = buttons[index];
+            button.setButtonText(combModeNames[index]);
+            button.setClickingTogglesState(false);
+            button.setMouseCursor(juce::MouseCursor::PointingHandCursor);
+            button.setName("Comb Mode");
+            button.getProperties().set(
+                contextHelpTitleProperty, "Comb Mode");
+            button.getProperties().set("midiLearnId", parameterId);
+            button.getProperties().set("compactFilterRadio", true);
+            button.getProperties().set("fixedLedCentreX", 7.0f);
+            button.getProperties().set("ledDiameter", 8.0f);
+            button.getProperties().set(
+                "activeColour", linkLedColour.toString());
+            button.setColour(
+                juce::ToggleButton::textColourId, knobLabelColour);
+            button.setTooltip(combModeTooltips[index]);
+            button.onClick = [this, bridgePtr = &bridge,
+                              index, parameterId]
+            {
+                bridgePtr->setSelectedId(
+                    static_cast<int>(index) + 1,
+                    juce::sendNotificationSync);
+                updateCombModeButtons(
+                    parameterId == "filter2CombMode" ? 2 : 1);
+            };
+            content.addAndMakeVisible(button);
+        }
+    };
+    configureCombModeButtons(
+        filter1CombModeButtons, filter1CombModeBox, "filter1CombMode");
+    configureCombModeButtons(
+        filter2CombModeButtons, filter2CombModeBox, "filter2CombMode");
+
     constexpr std::array<const char*, 3> placementNames
         {{ "PRE", "INTERNAL", "POST" }};
     constexpr std::array<const char*, 3> placementTooltips
@@ -5921,6 +5969,14 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     {
         updateDistortionPlacementButtons(2);
     };
+    filter1CombModeBox.onChange = [this]
+    {
+        updateCombModeButtons(1);
+    };
+    filter2CombModeBox.onChange = [this]
+    {
+        updateCombModeButtons(2);
+    };
     filter1ArchitectureBox.onChange = [this]
     {
         if (! applyingFilterModel)
@@ -6022,6 +6078,8 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     configureFilterTypeHelp(filter2TypeBox, "FILTER 2", 2);
     updateFilterTypeButtons(1);
     updateFilterTypeButtons(2);
+    updateCombModeButtons(1);
+    updateCombModeButtons(2);
     updateDistortionPlacementButtons(1);
     updateDistortionPlacementButtons(2);
 
@@ -6221,7 +6279,7 @@ DuskAudioProcessorEditor::DuskAudioProcessorEditor(DuskAudioProcessor& p)
     content.addAndMakeVisible(randomButton);
 
     information.setText(
-        "DUSK 1.28.28 | Logo-only GUI Zoom click area.",
+        "DUSK 1.28.31 | Sequencer menu scrolling build fix.",
         juce::dontSendNotification);
     information.setColour(juce::Label::textColourId,
                           juce::Colours::lightgrey);
@@ -6540,6 +6598,28 @@ void DuskAudioProcessorEditor::updateFilterTypeButtons(int filterIndex)
     if (selected <= 0)
         if (const auto* value = processor.parameters.getRawParameterValue(
                 filterIndex == 2 ? "filter2Type" : "filter1Type"))
+            selected = juce::roundToInt(value->load()) + 1;
+    selected = juce::jlimit(1, static_cast<int>(buttons.size()), selected);
+    for (size_t index = 0; index < buttons.size(); ++index)
+    {
+        auto& button = buttons[index];
+        button.setToggleState(
+            selected == static_cast<int>(index) + 1,
+            juce::dontSendNotification);
+        button.repaint();
+    }
+}
+
+void DuskAudioProcessorEditor::updateCombModeButtons(int filterIndex)
+{
+    auto& bridge = filterIndex == 2 ? filter2CombModeBox
+                                    : filter1CombModeBox;
+    auto& buttons = filterIndex == 2 ? filter2CombModeButtons
+                                     : filter1CombModeButtons;
+    int selected = bridge.getSelectedId();
+    if (selected <= 0)
+        if (const auto* value = processor.parameters.getRawParameterValue(
+                filterIndex == 2 ? "filter2CombMode" : "filter1CombMode"))
             selected = juce::roundToInt(value->load()) + 1;
     selected = juce::jlimit(1, static_cast<int>(buttons.size()), selected);
     for (size_t index = 0; index < buttons.size(); ++index)
@@ -7985,10 +8065,14 @@ void DuskAudioProcessorEditor::updatePresetBrowserVisibility()
         button.setVisible(showFilterControls);
     for (auto& button : filter2PlacementButtons)
         button.setVisible(showFilterControls);
-    filter1CombModeBox.setVisible(showFilterControls && filter1UsesComb);
+    filter1CombModeBox.setVisible(false);
     filter1CombModeLabel.setVisible(showFilterControls && filter1UsesComb);
-    filter2CombModeBox.setVisible(showFilterControls && filter2UsesComb);
+    filter2CombModeBox.setVisible(false);
     filter2CombModeLabel.setVisible(showFilterControls && filter2UsesComb);
+    for (auto& button : filter1CombModeButtons)
+        button.setVisible(showFilterControls && filter1UsesComb);
+    for (auto& button : filter2CombModeButtons)
+        button.setVisible(showFilterControls && filter2UsesComb);
     responseDisplay.setVisible(! presetBrowserOpen);
     filter1PowerButton.setVisible(! presetBrowserOpen);
     filter2PowerButton.setVisible(! presetBrowserOpen);
@@ -8087,6 +8171,16 @@ void DuskAudioProcessorEditor::updateFilterControlEnablement()
         button.setAlpha(enabled[0] ? 1.0f : 0.48f);
     }
     for (auto& button : filter2TypeButtons)
+    {
+        button.setEnabled(true);
+        button.setAlpha(enabled[1] ? 1.0f : 0.48f);
+    }
+    for (auto& button : filter1CombModeButtons)
+    {
+        button.setEnabled(true);
+        button.setAlpha(enabled[0] ? 1.0f : 0.48f);
+    }
+    for (auto& button : filter2CombModeButtons)
     {
         button.setEnabled(true);
         button.setAlpha(enabled[1] ? 1.0f : 0.48f);
@@ -9931,6 +10025,7 @@ void DuskAudioProcessorEditor::resized()
         juce::Label& typeLabel, SteppedComboBox& typeBox,
         std::array<FilterTypeButton, 9>& typeButtons,
         juce::Label& combLabel, SteppedComboBox& combBox,
+        std::array<juce::ToggleButton, 3>& combButtons,
         juce::Label& distortionLabel, SteppedComboBox& distortionBox,
         juce::Label& placementLabel, SteppedComboBox& placementBox,
         std::array<juce::ToggleButton, 3>& placementButtons)
@@ -9940,12 +10035,9 @@ void DuskAudioProcessorEditor::resized()
         const bool usesTypeIcons = architectureUsesTypeIcons(architecture);
         architectureLabel.setBounds(dropdownX, 67, 90, 12);
         architectureBox.setBounds(dropdownX, 79, 90, 20);
-        combLabel.setBounds(dropdownX, 103, 90, 12);
-        combBox.setBounds(dropdownX, 115, 90, 20);
-        distortionLabel.setBounds(
-            dropdownX, usesComb ? 139 : 105, 90, 12);
-        distortionBox.setBounds(
-            dropdownX, usesComb ? 151 : 117, 90, 20);
+        combBox.setBounds(0, 0, 1, 1);
+        distortionLabel.setBounds(dropdownX, 105, 90, 12);
+        distortionBox.setBounds(dropdownX, 117, 90, 20);
 
         typeBox.setBounds(0, 0, 1, 1);
         placementBox.setBounds(0, 0, 1, 1);
@@ -9960,26 +10052,28 @@ void DuskAudioProcessorEditor::resized()
                 gridX + column * 22, 159 + row * 21, 19, 18);
         }
 
-        const int placementX = usesTypeIcons ? dropdownX + 53 : dropdownX;
-        const int placementWidth = usesTypeIcons ? 66 : 90;
-        const int placementLabelY = usesComb ? 174 : 145;
-        const int placementButtonY = usesComb ? 184 : 159;
-        const int placementStep = usesComb ? 15 : 20;
-        const int placementHeight = usesComb ? 14 : 18;
+        combLabel.setBounds(gridX, 145, 66, 12);
+        for (size_t index = 0; index < combButtons.size(); ++index)
+            combButtons[index].setBounds(
+                gridX, 159 + static_cast<int>(index) * 20, 66, 18);
+
+        const bool useCompactPlacementColumn = usesTypeIcons || usesComb;
+        const int placementX = useCompactPlacementColumn
+            ? dropdownX + 53 : dropdownX;
+        const int placementWidth = useCompactPlacementColumn ? 66 : 90;
         placementLabel.setBounds(
-            placementX, placementLabelY, placementWidth, 12);
+            placementX, 145, placementWidth, 12);
         for (size_t index = 0; index < placementButtons.size(); ++index)
             placementButtons[index].setBounds(
                 placementX,
-                placementButtonY
-                    + static_cast<int>(index) * placementStep,
-                placementWidth, placementHeight);
+                159 + static_cast<int>(index) * 20,
+                placementWidth, 18);
     };
     layoutFilterSelectors(
         64, 38, architectureChoiceForFilter(1),
         filter1ArchitectureLabel, filter1ArchitectureBox,
         filter1TypeLabel, filter1TypeBox, filter1TypeButtons,
-        filter1CombModeLabel, filter1CombModeBox,
+        filter1CombModeLabel, filter1CombModeBox, filter1CombModeButtons,
         filter1DistortionTypeLabel, filter1DistortionTypeBox,
         filter1DistortionPlacementLabel, filter1DistortionPlacementBox,
         filter1PlacementButtons);
@@ -9987,7 +10081,7 @@ void DuskAudioProcessorEditor::resized()
         581, 555, architectureChoiceForFilter(2),
         filter2ArchitectureLabel, filter2ArchitectureBox,
         filter2TypeLabel, filter2TypeBox, filter2TypeButtons,
-        filter2CombModeLabel, filter2CombModeBox,
+        filter2CombModeLabel, filter2CombModeBox, filter2CombModeButtons,
         filter2DistortionTypeLabel, filter2DistortionTypeBox,
         filter2DistortionPlacementLabel, filter2DistortionPlacementBox,
         filter2PlacementButtons);

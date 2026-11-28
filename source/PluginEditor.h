@@ -114,10 +114,12 @@ private:
                 return;
             lastWheelDirection = direction;
             lastWheelTimeMs = now;
-            const int current = juce::jmax(0, getSelectedItemIndex());
+            const int selected = getSelectedItemIndex();
+            const int current = selected >= 0 ? selected
+                : (direction > 0 ? -1 : getNumItems());
             const int next = juce::jlimit(
                 0, getNumItems() - 1, current + direction);
-            if (next != getSelectedItemIndex())
+            if (next != selected)
                 setSelectedItemIndex(next, juce::sendNotificationSync);
         }
     private:
@@ -467,6 +469,8 @@ private:
     SteppedComboBox filter2ModelBox;
     std::array<FilterTypeButton, 9> filter1TypeButtons;
     std::array<FilterTypeButton, 9> filter2TypeButtons;
+    std::array<juce::ToggleButton, 3> filter1CombModeButtons;
+    std::array<juce::ToggleButton, 3> filter2CombModeButtons;
     std::array<juce::ToggleButton, 3> filter1PlacementButtons;
     std::array<juce::ToggleButton, 3> filter2PlacementButtons;
     juce::Label routingLabel;
@@ -550,6 +554,7 @@ private:
     void setZoomPercent(int);
     void updateArchitectureContext();
     void updateFilterTypeButtons(int filterIndex);
+    void updateCombModeButtons(int filterIndex);
     void updateDistortionPlacementButtons(int filterIndex);
     int architectureChoiceForFilter(int filterIndex) const;
     void refreshFilterModelBoxes();

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(Dusk VERSION 1.28.28 LANGUAGES C CXX)
+project(Dusk VERSION 1.28.31 LANGUAGES C CXX)
 
 set(JUCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../../_Tools/JUCE/_9.0.4")
 if(NOT EXISTS "${JUCE_DIR}/CMakeLists.txt")
@@ -8,7 +8,7 @@ endif()
 add_subdirectory("${JUCE_DIR}" "${CMAKE_BINARY_DIR}/JUCE")
 
 juce_add_plugin(Dusk
-    VERSION 1.28.28
+    VERSION 1.28.31
     COMPANY_NAME "sl23"
     BUNDLE_ID "com.sl23.dusk"
     IS_SYNTH FALSE

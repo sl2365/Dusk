@@ -1390,9 +1390,18 @@ inline std::array<float, stepCount> makeWaveform(Waveform waveform,
             value = phase < 0.50f ? 1.0f : 0.0f;
         else
             value = phase < 0.75f ? 1.0f : 0.0f;
-        result[static_cast<size_t>(step)] = bipolar
-            ? juce::jlimit(0.0f, 1.0f, value)
-            : 0.5f + 0.5f * juce::jlimit(0.0f, 1.0f, value);
+        result[static_cast<size_t>(step)] = juce::jlimit(0.0f, 1.0f, value);
+    }
+    const auto extrema = std::minmax_element(result.begin(), result.end());
+    const float minimum = *extrema.first;
+    const float maximum = *extrema.second;
+    const float span = maximum - minimum;
+    for (auto& value : result)
+    {
+        const float normalised = span > 0.000001f
+            ? juce::jlimit(0.0f, 1.0f, (value - minimum) / span)
+            : juce::jlimit(0.0f, 1.0f, value);
+        value = bipolar ? normalised : 0.5f + 0.5f * normalised;
     }
     return result;
 }

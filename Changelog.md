@@ -1,5 +1,26 @@
 # Dusk Changelog
 
+## 1.28.31 — Sequencer Scrolling Build Fix — 28 November 2026
+
+- Fixed the MSVC C3535/C2440 compilation failure caused by mixing stepped and standard ComboBox pointers in an implicitly typed initializer list.
+- Used an explicitly typed ComboBox pointer array while retaining the v1.28.30 one-item WAVEFORM and USER scrolling behavior unchanged.
+- DSP, parameters, presets and Resources remain unchanged.
+
+## 1.28.30 — Sequencer Menu Scrolling — 28 November 2026
+
+- Changed both WAVEFORM and USER to Dusk's existing one-step dropdown implementation so each accepted mouse-wheel movement advances exactly one item instead of skipping entries.
+- Made the first downward wheel movement start at the first entry when either selector is still showing its placeholder; upward movement starts at the final entry.
+- Retained the current selection between wheel movements and kept waveform generation, saved sequences, parameters, presets and DSP unchanged.
+- Update archives continue to exclude the Resources folder.
+
+## 1.28.29 — Comb Mode Radios and Sequencer Waveforms — 28 November 2026
+
+- Replaced each Comb architecture's Comb Mode dropdown with three amber radio LEDs for Feedback, Feedforward and All-pass.
+- Positioned the Comb Mode radio group immediately left of Placement with matching label, LED, row spacing and alignment.
+- Normalised generated sequencer waveforms across their sampled range so their highest steps reach the full top value.
+- Kept the selected waveform visible after application so mouse-wheel navigation continues from the current waveform instead of restarting at the first item.
+- Kept the existing Comb Mode parameter IDs, values, automation, MIDI Learn, presets, state recall and DSP unchanged. Update archives continue to exclude Resources.
+
 ## 1.28.28 — Logo-Only GUI Zoom Click Area — 27 November 2026
 
 - Restricted the GUI Zoom click target to the actual proportionally rendered Dusk logo instead of the full 280-pixel header area.
